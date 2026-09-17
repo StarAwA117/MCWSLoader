@@ -1,0 +1,12 @@
+{
+	"sapiInterval": 5000,
+	"sapiEnabled": false,
+	"bindEnabled": true,
+	"defaultBind": {
+		"ping": "",
+		"avgping": "",
+		"packetloss": "",
+		"avgpacketloss": "",
+		"maxbps": ""
+	}
+}

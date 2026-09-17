@@ -2,6 +2,9 @@
 import { ref, computed, onMounted, onBeforeUnmount } from "vue";
 import { api } from "../api";
 import ConfigField from "../components/ConfigField.vue";
+import { useI18n } from "../composables/useI18n";
+
+const { t } = useI18n();
 
 const mods = ref([]);
 const loading = ref(false);
@@ -83,7 +86,7 @@ async function openSettings(mod) {
 			modal.value.config = JSON.parse(JSON.stringify(res.config));
 			modal.value.fields = buildFields(res.config, "");
 		}
-	} catch { modal.value.message = "加载失败"; }
+	} catch { modal.value.message = t("mods.loadFailed"); }
 }
 
 async function openManifest(mod) {
@@ -92,7 +95,7 @@ async function openManifest(mod) {
 	try {
 		const res = await api.getModManifest(mod.name);
 		if (res.ok) modal.value.manifest = res.manifest;
-	} catch { modal.value.message = "加载失败"; }
+	} catch { modal.value.message = t("mods.loadFailed"); }
 }
 
 async function openReadme(mod) {
@@ -100,9 +103,9 @@ async function openReadme(mod) {
 	lockScroll();
 	try {
 		const res = await api.getModReadme(mod.name);
-		if (res.ok) modal.value.readme = res.readme || "无 README 内容";
-		else modal.value.readme = res.message || "无 README 文件";
-	} catch { modal.value.readme = "加载失败"; }
+		if (res.ok) modal.value.readme = res.readme || t("mods.noReadme");
+		else modal.value.readme = res.message || t("mods.noReadme");
+	} catch { modal.value.readme = t("mods.loadFailed"); }
 }
 
 async function saveConfig() {
@@ -110,16 +113,16 @@ async function saveConfig() {
 	modal.value.message = "";
 	try {
 		const res = await api.saveModConfig(modal.value.modName, modal.value.config);
-		if (res.ok) { modal.value.message = "已保存"; setTimeout(closeModal, 800); }
-		else { modal.value.message = res.message || "失败"; }
+		if (res.ok) { modal.value.message = t("common.saveSuccess"); setTimeout(closeModal, 800); }
+		else { modal.value.message = res.message || t("common.saveFailed"); }
 	} catch (e) { modal.value.message = e.message; }
 	modal.value.saving = false;
 }
 
 function modType(m) {
-	if (m.entry?.server && m.entry?.client) return "双端互通";
-	if (m.entry?.server) return "仅服务端";
-	return "仅客户端";
+	if (m.entry?.server && m.entry?.client) return t("mods.typeBoth");
+	if (m.entry?.server) return t("mods.typeServer");
+	return t("mods.typeClient");
 }
 
 function simpleMd(text) {
@@ -142,11 +145,11 @@ onBeforeUnmount(unlockScroll);
 <template>
 	<div>
 		<div class="card-header">
-			<h2>Mod 列表</h2>
-			<button class="btn btn-sm btn-ghost reload-btn" @click="reloadAll" :disabled="loading">{{ loading ? "..." : "重载" }}</button>
+			<h2>{{ t('mods.title') }}</h2>
+			<button class="btn btn-sm btn-ghost reload-btn" @click="reloadAll" :disabled="loading">{{ loading ? "..." : t('mods.reloadAll') }}</button>
 			<span class="badge">{{ sortedMods.length }}</span>
 		</div>
-		<div v-if="!sortedMods.length" class="empty-state"><p>暂无插件</p></div>
+		<div v-if="!sortedMods.length" class="empty-state"><p>{{ t('mods.none') }}</p></div>
 		<div v-for="m in sortedMods" :key="m.name" class="card mod-card" :class="{ disabled: !m.enabled }">
 			<div class="mod-top">
 				<div class="mod-info">
@@ -164,17 +167,17 @@ onBeforeUnmount(unlockScroll);
 					<span v-if="m.author">{{ m.author }}</span>
 				</div>
 				<div class="mod-actions">
-					<button v-if="m.enabled" class="icon-btn" title="重载" @click="reloadMod(m)" :disabled="reloading[m.name]">
+					<button v-if="m.enabled" class="icon-btn" :title="t('mods.reload')" @click="reloadMod(m)" :disabled="reloading[m.name]">
 						<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
 					</button>
-					<button class="icon-btn" title="清单" @click="openManifest(m)">
+					<button class="icon-btn" :title="t('mods.manifest')" @click="openManifest(m)">
 						<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
 					</button>
-					<button v-if="m.hasReadme" class="icon-btn" title="文档" @click="openReadme(m)">
+					<button v-if="m.hasReadme" class="icon-btn" :title="t('mods.readme')" @click="openReadme(m)">
 						<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
 					</button>
-					<button v-if="m.hasConfig" class="icon-btn" title="设置" @click="openSettings(m)">
-						<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-2.82.48V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15H4.59a1.65 1.65 0 0 0-1.51 1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68V4.59a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9H19.41a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+					<button v-if="m.hasConfig" class="icon-btn" :title="t('mods.config')" @click="openSettings(m)">
+						<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-2.82.48V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15H4.59a1.65 1.65 0 0 0-1.51 1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68V4.59a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9H19.41a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
 					</button>
 				</div>
 			</div>
@@ -184,32 +187,32 @@ onBeforeUnmount(unlockScroll);
 	<div v-if="modal.open" class="modal-overlay" @click.self="closeModal">
 		<div class="modal">
 			<div class="modal-header">
-				<h3>{{ modal.modName }}{{ modal.type === "settings" ? " - 设置" : modal.type === "manifest" ? " - 清单" : " - 文档" }}</h3>
+				<h3>{{ modal.modName }}{{ modal.type === "settings" ? " - " + t('mods.config') : modal.type === "manifest" ? " - " + t('mods.manifest') : " - " + t('mods.readme') }}</h3>
 				<button class="modal-close" @click="closeModal">&times;</button>
 			</div>
 			<div class="modal-body">
 				<div v-if="modal.type === 'settings'">
-					<div v-if="!modal.config" class="empty-state"><p>{{ modal.message || "加载中..." }}</p></div>
+					<div v-if="!modal.config" class="empty-state"><p>{{ modal.message || t('common.loading') }}</p></div>
 					<ConfigField v-else v-for="f in modal.fields" :key="f.path" :field="f" :config="modal.config" :depth="0" />
 				</div>
 
 				<div v-if="modal.type === 'manifest'">
 					<div v-if="modal.manifest" class="manifest-info">
-						<p><b>名称：</b>{{ modal.manifest.name || modal.modName }}</p>
-						<p><b>版本：</b>{{ modal.manifest.version || "未知" }}</p>
-						<p><b>简介：</b>{{ modal.manifest.description || "无" }}</p>
-						<p><b>作者：</b>{{ modal.manifest.author || "未知" }}</p>
-						<p><b>类型：</b>{{ modType(modal.mod) }}</p>
+						<p><b>{{ t('mods.name') }}：</b>{{ modal.manifest.name || modal.modName }}</p>
+						<p><b>{{ t('mods.version') }}：</b>{{ modal.manifest.version || "未知" }}</p>
+						<p><b>{{ t('mods.description') }}：</b>{{ modal.manifest.description || "无" }}</p>
+						<p><b>{{ t('mods.author') }}：</b>{{ modal.manifest.author || "未知" }}</p>
+						<p><b>{{ t('mods.type') }}：</b>{{ modType(modal.mod) }}</p>
 					</div>
-					<div v-else class="empty-state"><p>{{ modal.message || "无 manifest" }}</p></div>
+					<div v-else class="empty-state"><p>{{ modal.message || t('mods.noManifest') }}</p></div>
 				</div>
 
 				<div v-if="modal.type === 'readme'" class="modal-markdown" v-html="simpleMd(modal.readme)"></div>
 			</div>
 			<div v-if="modal.type === 'settings' && modal.config" class="modal-footer">
 				<span v-if="modal.message" class="modal-msg">{{ modal.message }}</span>
-				<button class="btn btn-ghost" @click="closeModal">取消</button>
-				<button class="btn btn-primary" @click="saveConfig" :disabled="modal.saving">{{ modal.saving ? "保存中..." : "保存" }}</button>
+				<button class="btn btn-ghost" @click="closeModal">{{ t('modal.cancel') }}</button>
+				<button class="btn btn-primary" @click="saveConfig" :disabled="modal.saving">{{ modal.saving ? t('common.saving') : t('common.save') }}</button>
 			</div>
 		</div>
 	</div>

@@ -2,8 +2,11 @@
 import { ref, onMounted, onUnmounted } from "vue";
 import { api } from "../api";
 import { useModal } from "../composables/useModal";
+import { useI18n } from "../composables/useI18n";
 
 const { alert, confirm } = useModal();
+const { t } = useI18n();
+
 const clients = ref([]);
 const selected = ref(null);
 const showDetail = ref(false);
@@ -27,7 +30,8 @@ async function setMain() {
 
 async function disconnect() {
 	if (!selected.value) return;
-	const ok = await confirm(`确定断开 ${selected.value.localPlayerName || selected.value.id.slice(0, 8)} 的连接？`);
+	const name = selected.value.localPlayerName || selected.value.id.slice(0, 8);
+	const ok = await confirm(t("clients.confirmDisconnect", { name }));
 	if (!ok) return;
 	const res = await api.disconnectClient(selected.value.id);
 	if (res.ok) { showDetail.value = false; await refresh(); }
@@ -44,12 +48,12 @@ onUnmounted(() => clearInterval(timer));
 <template>
 	<div class="card">
 		<div class="card-header">
-			<h2>已连接客户端</h2>
-			<span class="badge">{{ clients.length }} 个</span>
+			<h2>{{ t('clients.title') }}</h2>
+			<span class="badge">{{ clients.length }} {{ t('clients.count') }}</span>
 		</div>
 
 		<div v-if="clients.length === 0" class="empty-state">
-			<p>暂无客户端连接</p>
+			<p>{{ t('clients.none') }}</p>
 		</div>
 
 		<div v-else>
@@ -61,8 +65,8 @@ onUnmounted(() => clearInterval(timer));
 			>
 				<div style="flex: 1;">
 					<div style="font-weight: 500; font-size: 14px;">
-						{{ c.localPlayerName || "未命名客户端" }}
-						<span v-if="c.isMain" class="badge" style="margin-left: 6px;">主客户端</span>
+						{{ c.localPlayerName || t('clients.unnamed') }}
+						<span v-if="c.isMain" class="badge" style="margin-left: 6px;">{{ t('clients.mainClient') }}</span>
 					</div>
 					<div class="client-meta">
 						<span>IP: {{ c.ip }}</span>
@@ -76,19 +80,19 @@ onUnmounted(() => clearInterval(timer));
 	<div v-if="showDetail && selected" class="modal-overlay" @click.self="showDetail = false">
 		<div class="modal" style="max-width: 420px;">
 			<div class="modal-header">
-				<h3>客户端详情</h3>
+				<h3>{{ t('clients.detail') }}</h3>
 				<button class="modal-close" @click="showDetail = false">×</button>
 			</div>
 			<div class="modal-body">
-				<div class="detail-row"><span class="detail-label">名称</span><span>{{ selected.localPlayerName || "未命名" }}</span></div>
+				<div class="detail-row"><span class="detail-label">{{ t('clients.name') }}</span><span>{{ selected.localPlayerName || t('clients.unnamed') }}</span></div>
 				<div class="detail-row"><span class="detail-label">IP</span><span style="font-family: monospace;">{{ selected.ip }}</span></div>
-				<div class="detail-row"><span class="detail-label">UUID</span><span style="font-family: monospace; font-size: 12px;">{{ selected.id }}</span></div>
-				<div class="detail-row"><span class="detail-label">角色</span><span :class="selected.isMain ? 'badge' : 'tag tag-user'">{{ selected.isMain ? "主客户端" : "普通" }}</span></div>
-				<div class="detail-row"><span class="detail-label">连接时间</span><span>{{ new Date(selected.connectedAt).toLocaleString() }}</span></div>
+				<div class="detail-row"><span class="detail-label">{{ t('clients.uuid') }}</span><span style="font-family: monospace; font-size: 12px;">{{ selected.id }}</span></div>
+				<div class="detail-row"><span class="detail-label">{{ t('clients.role') }}</span><span :class="selected.isMain ? 'badge' : 'tag tag-user'">{{ selected.isMain ? t('clients.mainClient') : t('clients.normal') }}</span></div>
+				<div class="detail-row"><span class="detail-label">{{ t('clients.connectedAt') }}</span><span>{{ new Date(selected.connectedAt).toLocaleString() }}</span></div>
 			</div>
 			<div class="modal-footer">
-				<button v-if="!selected.isMain" class="btn btn-primary btn-sm" @click="setMain">切换</button>
-				<button class="btn btn-danger btn-sm" @click="disconnect">断开</button>
+				<button v-if="!selected.isMain" class="btn btn-primary btn-sm" @click="setMain">{{ t('clients.switch') }}</button>
+				<button class="btn btn-danger btn-sm" @click="disconnect">{{ t('clients.disconnect') }}</button>
 			</div>
 		</div>
 	</div>

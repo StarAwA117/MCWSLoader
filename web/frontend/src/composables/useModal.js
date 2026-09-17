@@ -1,4 +1,7 @@
 import { reactive } from "vue";
+import { useI18n } from "./useI18n";
+
+const { t } = useI18n();
 
 const state = reactive({
 	open: false,
@@ -6,7 +9,9 @@ const state = reactive({
 	title: "",
 	message: "",
 	inputValue: "",
+	inputValue2: "",
 	inputPlaceholder: "",
+	inputPlaceholder2: "",
 	showCancel: false,
 	_error: null,
 	_resolve: null,
@@ -20,7 +25,9 @@ function openModal(options) {
 	state.title = options.title || "";
 	state.message = options.message || "";
 	state.inputValue = options.inputValue || "";
+	state.inputValue2 = options.inputValue2 || "";
 	state.inputPlaceholder = options.inputPlaceholder || "";
+	state.inputPlaceholder2 = options.inputPlaceholder2 || "";
 	state.showCancel = options.type === "confirm" || options.type === "prompt";
 	state._error = null;
 	state.open = true;
@@ -37,9 +44,16 @@ function close(result) {
 export function useModal() {
 	return {
 		state,
-		alert: (message, title) => openModal({ type: "alert", message, title: title || "提示" }),
-		confirm: (message, title) => openModal({ type: "confirm", message, title: title || "确认" }),
-		prompt: (message, defaultValue, title) => openModal({ type: "prompt", message, title: title || "输入", inputValue: defaultValue || "" }),
+		alert: (message, title) => openModal({ type: "alert", message, title: title || t("modal.alert") }),
+		confirm: (message, title) => openModal({ type: "confirm", message, title: title || t("modal.confirm") }),
+		prompt: (message, defaultValue, title) => openModal({ type: "prompt", message, title: title || t("modal.prompt"), inputValue: defaultValue || "" }),
+		openResetPassword: () => openModal({
+			type: "prompt",
+			title: t("modal.resetPasswordTitle"),
+			message: t("modal.resetPasswordMessage"),
+			inputPlaceholder: t("modal.currentPassword"),
+			inputPlaceholder2: t("modal.newPassword")
+		}),
 		close,
 	};
 }

@@ -1,12 +1,26 @@
 <script setup>
 import { ref, onMounted, onUnmounted } from "vue";
-import { api, formatUptime, formatBytes } from "../api";
+import { api, formatBytes } from "../api";
 import { useModal } from "../composables/useModal";
+import { useI18n } from "../composables/useI18n";
 
 const { confirm, alert } = useModal();
+const { t } = useI18n();
+
 const status = ref(null);
 const process = ref(null);
 let timer = null;
+
+function formatUptime(ms) {
+	const s = Math.floor(ms / 1000);
+	const m = Math.floor(s / 60);
+	const h = Math.floor(m / 60);
+	const d = Math.floor(h / 24);
+	if (d > 0) return d + t('time.day') + ' ' + (h % 24) + t('time.hour');
+	if (h > 0) return h + t('time.hour') + ' ' + (m % 60) + t('time.minute');
+	if (m > 0) return m + t('time.minute') + ' ' + (s % 60) + t('time.second');
+	return s + t('time.second');
+}
 
 async function refresh() {
 	try {
@@ -17,14 +31,14 @@ async function refresh() {
 }
 
 async function killProcess() {
-	const ok = await confirm("确定销毁进程？此操作将立即终止服务器。");
+	const ok = await confirm(t("dashboard.confirmKill"));
 	if (!ok) return;
 	const res = await api.killProcess();
 	if (res.ok) await alert(res.message);
 }
 
 async function restartServer() {
-	const ok = await confirm("确定重启服务器？将关闭当前进程并重新启动。");
+	const ok = await confirm(t("dashboard.confirmRestart"));
 	if (!ok) return;
 	const res = await api.restartServer();
 	if (res.ok) await alert(res.message);
@@ -42,38 +56,38 @@ onUnmounted(() => clearInterval(timer));
 	<div v-if="status">
 		<div class="stats-grid">
 			<div class="stat-card">
-				<div class="label">服务器状态</div>
-				<div class="value blue">运行中</div>
+				<div class="label">{{ t('dashboard.serverStatus') }}</div>
+				<div class="value blue">{{ t('dashboard.running') }}</div>
 			</div>
 			<div class="stat-card">
-				<div class="label">运行时间</div>
+				<div class="label">{{ t('dashboard.uptime') }}</div>
 				<div class="value blue">{{ formatUptime(status.server.uptime) }}</div>
 			</div>
 			<div class="stat-card">
-				<div class="label">连接客户端</div>
+				<div class="label">{{ t('dashboard.connectedClients') }}</div>
 				<div class="value">{{ status.connections.count }}</div>
 			</div>
 			<div class="stat-card">
-				<div class="label">WS 端口</div>
+				<div class="label">{{ t('dashboard.wsPort') }}</div>
 				<div class="value">{{ status.server.wsPort }}</div>
 			</div>
 		</div>
 
 		<div class="card">
 			<div class="card-header">
-				<h2>连接的客户端</h2>
-				<span class="badge">{{ status.connections.count }} 个</span>
+				<h2>{{ t('dashboard.connectedClientsTitle') }}</h2>
+				<span class="badge">{{ status.connections.count }} {{ t('dashboard.count') }}</span>
 			</div>
 			<div v-if="status.connections.clients.length === 0" class="empty-state">
-				<p>暂无客户端连接</p>
+				<p>{{ t('dashboard.noClients') }}</p>
 			</div>
 			<div v-else class="table-wrap">
 				<table>
 					<thead>
 						<tr>
-							<th>ID</th>
-							<th>IP</th>
-							<th>角色</th>
+							<th>{{ t('dashboard.id') }}</th>
+							<th>{{ t('dashboard.ip') }}</th>
+							<th>{{ t('dashboard.role') }}</th>
 						</tr>
 					</thead>
 					<tbody>
@@ -82,7 +96,7 @@ onUnmounted(() => clearInterval(timer));
 							<td>{{ c.ip }}</td>
 							<td>
 								<span :class="c.isMain ? 'badge' : 'tag tag-user'">
-									{{ c.isMain ? "主客户端" : "普通" }}
+									{{ c.isMain ? t('dashboard.mainClient') : t('dashboard.normal') }}
 								</span>
 							</td>
 						</tr>
@@ -93,19 +107,19 @@ onUnmounted(() => clearInterval(timer));
 
 		<div class="card">
 			<div class="card-header">
-				<h2>已加载模组</h2>
+				<h2>{{ t('dashboard.loadedMods') }}</h2>
 			</div>
 			<div class="form-row">
 				<div>
-					<label style="color: var(--text-muted); font-size: 12px; margin-bottom: 6px; display: block;">服务端模组</label>
-					<div v-if="status.mods.server.length === 0" style="color: var(--text-muted); font-size: 13px;">无</div>
+					<label style="color: var(--text-muted); font-size: 12px; margin-bottom: 6px; display: block;">{{ t('dashboard.serverMods') }}</label>
+					<div v-if="status.mods.server.length === 0" style="color: var(--text-muted); font-size: 13px;">{{ t('dashboard.none') }}</div>
 					<div v-else style="display: flex; flex-wrap: wrap; gap: 6px;">
 						<span v-for="m in status.mods.server" :key="m" class="tag tag-op">{{ m }}</span>
 					</div>
 				</div>
 				<div>
-					<label style="color: var(--text-muted); font-size: 12px; margin-bottom: 6px; display: block;">客户端模组</label>
-					<div v-if="status.mods.client.length === 0" style="color: var(--text-muted); font-size: 13px;">无</div>
+					<label style="color: var(--text-muted); font-size: 12px; margin-bottom: 6px; display: block;">{{ t('dashboard.clientMods') }}</label>
+					<div v-if="status.mods.client.length === 0" style="color: var(--text-muted); font-size: 13px;">{{ t('dashboard.none') }}</div>
 					<div v-else style="display: flex; flex-wrap: wrap; gap: 6px;">
 						<span v-for="m in status.mods.client" :key="m" class="tag tag-user">{{ m }}</span>
 					</div>
@@ -115,23 +129,23 @@ onUnmounted(() => clearInterval(timer));
 
 		<div v-if="process" class="card">
 			<div class="card-header">
-				<h2>进程信息</h2>
+				<h2>{{ t('dashboard.processInfo') }}</h2>
 			</div>
 			<div class="stats-grid">
 				<div class="stat-card">
-					<div class="label">PID</div>
+					<div class="label">{{ t('dashboard.pid') }}</div>
 					<div class="value">{{ process.pid }}</div>
 				</div>
 				<div class="stat-card">
-					<div class="label">内存使用</div>
+					<div class="label">{{ t('dashboard.memoryUsage') }}</div>
 					<div class="value blue">{{ formatBytes(process.memory.rss) }}</div>
 				</div>
 				<div class="stat-card">
-					<div class="label">堆内存</div>
+					<div class="label">{{ t('dashboard.heapMemory') }}</div>
 					<div class="value">{{ formatBytes(process.memory.heapUsed) }}</div>
 				</div>
 				<div class="stat-card">
-					<div class="label">Node.js</div>
+					<div class="label">{{ t('dashboard.nodeJs') }}</div>
 					<div class="value" style="font-size: 16px;">{{ process.nodeVersion }}</div>
 				</div>
 			</div>
@@ -139,15 +153,15 @@ onUnmounted(() => clearInterval(timer));
 
 		<div class="card">
 			<div class="card-header">
-				<h2>服务器控制</h2>
+				<h2>{{ t('dashboard.serverControl') }}</h2>
 			</div>
 			<div style="display: flex; gap: 8px;">
-				<button class="btn btn-primary btn-sm" @click="restartServer">重启服务器</button>
-				<button class="btn btn-primary btn-sm" @click="killProcess">销毁进程</button>
+				<button class="btn btn-primary btn-sm" @click="restartServer">{{ t('dashboard.restartServer') }}</button>
+				<button class="btn btn-primary btn-sm" @click="killProcess">{{ t('dashboard.killProcess') }}</button>
 			</div>
 		</div>
 	</div>
 	<div v-else class="empty-state">
-		<p>加载中...</p>
+		<p>{{ t('dashboard.loading') }}</p>
 	</div>
 </template>

@@ -1,32 +1,42 @@
 {
-	"ws": {
-		"name": "MCWSLoader",
-		"port": 8080
-	},
-	"web": {
-		"port": 18889,
-		"auth": {
-			"password": "",
-			"maxAttempts": 3,
-			"windowMs": 60000,
-			"lockoutMs": 60000
-		}
-	},
-	"logLevel": "info",
-	"commandPrefix": "$",
-	"sapi": {
-		"gmsg": "gmsg",
-		"smsg": "smsg"
-	},
-	"utils": {
-		"tellAllToTell": false,
-		"enablePolling": true
-	},
-	"rateLimit": {
-		"command": {
-			"enabled": true,
-			"windowMs": 1000,
-			"maxPerWindow": 20
-		}
-	}
+  "ws": {
+    "name": "MCWSLoader",
+    "port": 8080
+  },
+  "web": {
+    "port": 50005,
+    "auth": {
+      "maxAttempts": 3,
+      "windowMs": 60000,
+      "lockoutMs": 60000
+    }
+  },
+  "logLevel": "info",
+  "commandPrefix": "$",
+  "sapi": {
+    "gmsg": "gmsg",
+    "smsg": "smsg"
+  },
+  "utils": {
+    "tellAllToTell": false,
+    "enablePolling": true
+  },
+  "rateLimit": {
+    "command": {
+      "enabled": true,
+      "windowMs": 1000,
+      "maxPerWindow": 20
+    }
+  },
+  "safety": {
+    "rateLimitWindow": 60000,
+    "rateLimitMax": 10,
+    "maxPayload": 0,
+    "perMessageDeflate": false,
+    "enableMaxConnections": false,
+    "maxConnections": 100,
+    "enableConnectionRateLimit": true,
+    "commandMaxLength": 461
+  },
+  "language": "zh-CN"
 }

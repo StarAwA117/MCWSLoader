@@ -2,6 +2,9 @@
 import { ref, onMounted } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import { loginWithPassword } from "../api";
+import { useI18n } from "../composables/useI18n";
+
+const { t } = useI18n();
 
 const router = useRouter();
 const route = useRoute();
@@ -23,7 +26,7 @@ async function doLogin(pwd) {
 		} else if (data.locked) {
 			locked.value = true;
 			waitSec.value = data.waitSec;
-			error.value = `已锁定，请等待 ${data.waitSec} 秒`;
+			error.value = t("login.locked", { seconds: data.waitSec });
 			if (waitTimer) clearInterval(waitTimer);
 			waitTimer = setInterval(() => {
 				waitSec.value--;
@@ -34,10 +37,10 @@ async function doLogin(pwd) {
 				}
 			}, 1000);
 		} else {
-			error.value = `密码错误，剩余 ${data.remaining} 次尝试`;
+			error.value = t("login.wrongPassword", { remaining: data.remaining });
 		}
 	} catch {
-		error.value = "连接失败";
+		error.value = t("login.connectionFailed");
 	}
 	loading.value = false;
 }
@@ -56,7 +59,7 @@ onMounted(() => {
 
 function login() {
 	if (!password.value.trim()) {
-		error.value = "请输入密码";
+		error.value = t("login.emptyPassword");
 		return;
 	}
 	doLogin(password.value);
@@ -68,14 +71,14 @@ function login() {
 		<div class="login-card">
 			<div class="login-header">
 				<div class="login-bar"></div>
-				<h1>MCWSLoader</h1>
+				<h1>{{ t('app.name') }}</h1>
 			</div>
-			<p class="login-desc">WebUI 登录</p>
+			<p class="login-desc">{{ t('login.title') }}</p>
 			<div class="form-group">
 				<input
 					v-model="password"
 					type="password"
-					placeholder="输入密码"
+					:placeholder="t('login.placeholder')"
 					:disabled="locked || loading"
 					@keyup.enter="login"
 					autofocus
@@ -83,7 +86,7 @@ function login() {
 			</div>
 			<div v-if="error" class="login-error">{{ error }}</div>
 			<button class="btn btn-primary login-btn" @click="login" :disabled="locked || loading">
-				{{ loading ? "验证中..." : locked ? `等待 ${waitSec}s` : "登录" }}
+				{{ loading ? t('login.verifying') : locked ? t('login.waiting', { seconds: waitSec }) : t('login.button') }}
 			</button>
 		</div>
 	</div>

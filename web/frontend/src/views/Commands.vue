@@ -1,6 +1,9 @@
 <script setup>
 import { ref, onMounted } from "vue";
 import { api } from "../api";
+import { useI18n } from "../composables/useI18n";
+
+const { t } = useI18n();
 
 const input = ref("");
 const output = ref([]);
@@ -14,9 +17,9 @@ async function exec() {
 	try {
 		const res = await api.execCommand(cmd);
 		if (res.ok) {
-			output.value.push({ type: "success", text: JSON.stringify(res.result, null, 2) });
+			output.value.push({ type: "success", text: typeof res.result === "string" ? res.result : JSON.stringify(res.result, null, 2) });
 		} else {
-			output.value.push({ type: "error", text: res.message || "执行失败" });
+			output.value.push({ type: "error", text: res.message || t("commands.failed") });
 		}
 	} catch (e) {
 		output.value.push({ type: "error", text: e.message });
@@ -31,19 +34,19 @@ onMounted(() => { output.value = []; });
 <template>
 	<div class="card">
 		<div class="card-header">
-			<h2>命令执行</h2>
+			<h2>{{ t('commands.title') }}</h2>
 		</div>
 
 		<div style="display: flex; gap: 8px; margin-bottom: 16px;">
 			<input
 				v-model="input"
 				type="text"
-				placeholder="输入基岩版命令..."
+				:placeholder="t('commands.executePlaceholder')"
 				@keydown.enter="exec"
-				style="flex: 1;"
+				style="flex: 1; min-width: 0;"
 			/>
-			<button class="btn btn-primary" @click="exec" :disabled="loading">
-				{{ loading ? "执行中..." : "执行" }}
+			<button class="btn btn-primary btn-sm" @click="exec" :disabled="loading">
+				{{ loading ? t('commands.processing') : t('commands.execute') }}
 			</button>
 		</div>
 

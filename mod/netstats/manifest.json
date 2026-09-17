@@ -1,0 +1,10 @@
+{
+	"name": "NetStats",
+	"description": "查询玩家网络状态（延迟、丢包、带宽）并支持绑定到计分板",
+	"version": "1.0.0",
+	"author": "StarAwA117",
+	"entry": {
+		"server": null,
+		"client": "main.js"
+	}
+}

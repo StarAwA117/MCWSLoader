@@ -20,9 +20,8 @@ const __dirname = path.dirname(__filename);
 const DIST_DIR = path.join(__dirname, "frontend", "dist");
 const CONFIG_PATH = path.resolve(__dirname, "..", "config.json");
 
-const WEB_PORT = config.web?.port || 18889;
+const WEB_PORT = config.web?.port || 50005;
 const authConfig = config.web?.auth || {};
-const AUTH_PASSWORD = authConfig.password || crypto.randomBytes(8).toString("hex");
 const AUTH_MAX_ATTEMPTS = authConfig.maxAttempts || 3;
 const AUTH_WINDOW_MS = authConfig.windowMs || 60000;
 const AUTH_LOCKOUT_MS = authConfig.lockoutMs || 60000;
@@ -32,6 +31,7 @@ const REPO_ROOT = path.resolve(__dirname, "..");
 const CURRENT_VERSION = JSON.parse(fs.readFileSync(path.join(REPO_ROOT, "package.json"), "utf-8")).version;
 
 let logBuffer = [];
+let temporaryPassword = null;
 let updating = false;
 let rollingBack = false;
 const LOG_BUFFER_MAX = 500;
@@ -64,33 +64,14 @@ function getAuthState(ip) {
 	return state;
 }
 
-function checkAuth(ip, password) {
-	const state = getAuthState(ip);
-	if (state.lockedUntil && Date.now() < state.lockedUntil) {
-		const waitSec = Math.ceil((state.lockedUntil - Date.now()) / 1000);
-		logger.warning(`WebUI 登录锁定中: IP=${ip}, 剩余 ${waitSec}s`);
-		return { ok: false, locked: true, waitSec };
-	}
-	if (password !== AUTH_PASSWORD) {
-		state.attempts.push(Date.now());
-		logger.warning(`WebUI 登录失败: IP=${ip} (已尝试 ${state.attempts.length}/${AUTH_MAX_ATTEMPTS})`);
-		if (state.attempts.length >= AUTH_MAX_ATTEMPTS) {
-			state.lockedUntil = Date.now() + AUTH_LOCKOUT_MS;
-			logger.error(`WebUI 登录锁定: IP=${ip} 已被锁定 ${AUTH_LOCKOUT_MS / 1000}s`);
-			return { ok: false, locked: true, waitSec: Math.ceil(AUTH_LOCKOUT_MS / 1000) };
-		}
-		return { ok: false, locked: false, remaining: AUTH_MAX_ATTEMPTS - state.attempts.length };
-	}
-	state.attempts = [];
-	state.lockedUntil = 0;
-	return { ok: true };
-}
-
 function json(res, obj, status = 200) {
 	if (res.headersSent) return;
 	res.writeHead(status, {
 		"Content-Type": "application/json; charset=utf-8",
-		"Access-Control-Allow-Origin": "*"
+		"Access-Control-Allow-Origin": "*",
+		"X-Content-Type-Options": "nosniff",
+		"X-Frame-Options": "DENY",
+		"Cache-Control": "no-store"
 	});
 	res.end(JSON.stringify(obj));
 }
@@ -107,11 +88,65 @@ function readBody(req) {
 function getClientInfo(ws) {
 	return {
 		id: ws.id,
-		ip: ws._socket?.remoteAddress || "未知",
+		ip: ws._socket?.remoteAddress || "unknown",
 		isMain: ws === Current.client,
 		connectedAt: ws._connectedAt || Date.now(),
 		localPlayerName: ws.localPlayerName || null
 	};
+}
+
+const SESSION_TIMEOUT = 24 * 60 * 60 * 1000; // 24 hours
+const sessions = new Map();
+
+function hashPassword(password) {
+	return new Promise((resolve, reject) => {
+		const salt = crypto.randomBytes(16).toString("hex");
+		crypto.scrypt(password, salt, 64, (err, derivedKey) => {
+			if (err) return reject(err);
+			resolve({ salt, hash: derivedKey.toString("hex") });
+		});
+	});
+}
+
+function verifyPassword(password, salt, hash) {
+	return new Promise((resolve, reject) => {
+		crypto.scrypt(password, salt, 64, (err, derivedKey) => {
+			if (err) return reject(err);
+			resolve(derivedKey.toString("hex") === hash);
+		});
+	});
+}
+
+async function checkPassword(password) {
+	const auth = config.web?.auth || {};
+	if (auth.passwordHash && auth.salt) {
+		return await verifyPassword(password, auth.salt, auth.passwordHash);
+	}
+	if (temporaryPassword && password === temporaryPassword) {
+		return true;
+	}
+	return false;
+}
+
+function createSession(ip) {
+	const token = crypto.randomBytes(32).toString("hex");
+	sessions.set(token, { ip, createdAt: Date.now() });
+	return token;
+}
+
+function validateSession(token) {
+	if (!token) return false;
+	const session = sessions.get(token);
+	if (!session) return false;
+	if (Date.now() - session.createdAt > SESSION_TIMEOUT) {
+		sessions.delete(token);
+		return false;
+	}
+	return true;
+}
+
+function writeConfig() {
+	fs.writeFileSync(CONFIG_PATH, JSON.stringify(config, null, "	") + "\n", "utf-8");
 }
 
 const startTime = Date.now();
@@ -129,16 +164,27 @@ const MIME_TYPES = {
 	".woff": "font/woff"
 };
 
+function sendHTML(res, filePath) {
+	const html = fs.readFileSync(filePath, "utf-8");
+	const injected = html.replace("<head>", `<head><script>window.__LANGUAGE__="${config.language}";</script>`);
+	res.writeHead(200, {
+		"Content-Type": "text/html; charset=utf-8",
+		"X-Content-Type-Options": "nosniff",
+		"X-Frame-Options": "DENY",
+		"Cache-Control": "no-store"
+	});
+	res.end(injected);
+}
+
 function serveStatic(res, filePath) {
 	try {
 		const stat = fs.statSync(filePath);
 		if (!stat.isFile()) {
 			const indexPath = path.join(DIST_DIR, "index.html");
 			if (fs.existsSync(indexPath)) {
-				res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
-				fs.createReadStream(indexPath).on("error", (e) => { res.destroy(e); }).pipe(res);
+				sendHTML(res, indexPath);
 			} else {
-				res.writeHead(404);
+				res.writeHead(404, { "X-Content-Type-Options": "nosniff", "X-Frame-Options": "DENY" });
 				res.end("Not Found");
 			}
 			return;
@@ -146,18 +192,28 @@ function serveStatic(res, filePath) {
 	} catch {
 		const indexPath = path.join(DIST_DIR, "index.html");
 		if (fs.existsSync(indexPath)) {
-			res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
-			fs.createReadStream(indexPath).on("error", (e) => { res.destroy(e); }).pipe(res);
+			sendHTML(res, indexPath);
 		} else {
-			res.writeHead(404);
+			res.writeHead(404, { "X-Content-Type-Options": "nosniff", "X-Frame-Options": "DENY" });
 			res.end("Not Found");
 		}
 		return;
 	}
 	const ext = path.extname(filePath);
 	const mime = MIME_TYPES[ext] || "application/octet-stream";
-	res.writeHead(200, { "Content-Type": mime });
-	fs.createReadStream(filePath).on("error", (e) => { res.destroy(e); }).pipe(res);
+	const headers = {
+		"Content-Type": mime,
+		"X-Content-Type-Options": "nosniff",
+		"X-Frame-Options": "DENY"
+	};
+	if (ext === ".html") {
+		headers["Cache-Control"] = "no-store";
+		sendHTML(res, filePath);
+	} else {
+		headers["Cache-Control"] = "public, max-age=3600";
+		res.writeHead(200, headers);
+		fs.createReadStream(filePath).on("error", (e) => { res.destroy(e); }).pipe(res);
+	}
 }
 
 async function handleAPI(req, res, url) {
@@ -168,7 +224,9 @@ async function handleAPI(req, res, url) {
 		res.writeHead(204, {
 			"Access-Control-Allow-Origin": "*",
 			"Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
-			"Access-Control-Allow-Headers": "Content-Type, X-Auth-Token"
+			"Access-Control-Allow-Headers": "Content-Type, X-Auth-Token",
+			"X-Content-Type-Options": "nosniff",
+			"X-Frame-Options": "DENY"
 		});
 		res.end();
 		return;
@@ -177,19 +235,38 @@ async function handleAPI(req, res, url) {
 	// Login endpoint (no auth required)
 	if (pathname === "/api/login" && method === "GET") {
 		const password = url.searchParams.get("pwd") || "";
-		const ip = req.socket.remoteAddress || "未知";
-		const result = checkAuth(ip, password);
-		if (result.ok) {
-			logger.info(`WebUI 登录成功: IP=${ip}`);
-			return json(res, { ok: true, token: AUTH_PASSWORD });
+		const ip = req.socket.remoteAddress || "unknown";
+
+		const state = getAuthState(ip);
+		if (state.lockedUntil && Date.now() < state.lockedUntil) {
+			const waitSec = Math.ceil((state.lockedUntil - Date.now()) / 1000);
+			return json(res, { ok: false, locked: true, waitSec }, 401);
 		}
-		return json(res, { ok: false, locked: result.locked, remaining: result.remaining, waitSec: result.waitSec }, 401);
+
+		const valid = await checkPassword(password);
+		if (valid) {
+			state.attempts = [];
+			state.lockedUntil = 0;
+
+			
+			const token = createSession(ip);
+			logger.info(`WebUI login success: IP=${ip}`);
+			return json(res, { ok: true, token, expiresIn: SESSION_TIMEOUT });
+		}
+
+		state.attempts.push(Date.now());
+		if (state.attempts.length >= AUTH_MAX_ATTEMPTS) {
+			state.lockedUntil = Date.now() + AUTH_LOCKOUT_MS;
+			logger.error(`WebUI login locked: IP=${ip} locked for ${AUTH_LOCKOUT_MS / 1000}s`);
+			return json(res, { ok: false, locked: true, waitSec: Math.ceil(AUTH_LOCKOUT_MS / 1000) }, 401);
+		}
+		return json(res, { ok: false, message: "Invalid username or password", remaining: Math.max(0, AUTH_MAX_ATTEMPTS - state.attempts.length) }, 401);
 	}
 
 	// Auth check for all other API routes
 	const token = req.headers["x-auth-token"];
-	if (token !== AUTH_PASSWORD) {
-		return json(res, { ok: false, message: "未授权" }, 401);
+	if (!validateSession(token)) {
+		return json(res, { ok: false, message: "Unauthorized" }, 401);
 	}
 
 	try {
@@ -206,10 +283,33 @@ async function handleAPI(req, res, url) {
 			});
 		}
 
+		// Language
+		if (pathname === "/api/language" && method === "GET") {
+			return json(res, { language: config.language });
+		}
+		if (pathname === "/api/language" && method === "POST") {
+			const authToken = req.headers["x-auth-token"];
+			if (!validateSession(authToken)) return json(res, { ok: false, message: "Unauthorized" }, 401);
+			const body = await readBody(req);
+			let payload;
+			try { payload = JSON.parse(body); } catch { return json(res, { ok: false, message: "Invalid request format" }, 400); }
+			const lang = String(payload.language || "");
+			const allowed = ["zh-CN", "en"];
+			if (!allowed.includes(lang)) return json(res, { ok: false, message: "Unsupported language" }, 400);
+			config.language = lang;
+			writeConfig();
+			reloadConfig();
+			return json(res, { ok: true, language: config.language });
+		}
+
 		// Config
 		if (pathname === "/api/config" && method === "GET") {
 			const cfg = JSON.parse(JSON.stringify(config));
 			if (cfg.ai?.options?.apiKey) cfg.ai.options.apiKey = "***";
+			if (cfg.web?.auth) {
+				cfg.web.auth.passwordHash = "";
+				cfg.web.auth.salt = "";
+			}
 			return json(res, cfg);
 		}
 		if (pathname === "/api/config" && method === "PUT") {
@@ -217,7 +317,37 @@ async function handleAPI(req, res, url) {
 			const newCfg = JSON.parse(body);
 			fs.writeFileSync(CONFIG_PATH, JSON.stringify(newCfg, null, "\t") + "\n", "utf-8");
 			reloadConfig();
-			return json(res, { ok: true, message: "配置已保存" });
+			return json(res, { ok: true, message: "Config saved" });
+		}
+
+		// Auth: change password
+		if (pathname === "/api/auth/change-password" && method === "POST") {
+			const authToken = req.headers["x-auth-token"];
+			if (!validateSession(authToken)) return json(res, { ok: false, message: "Unauthorized" }, 401);
+			const body = await readBody(req);
+			let payload;
+			try { payload = JSON.parse(body); } catch { return json(res, { ok: false, message: "Invalid request format" }, 400); }
+			const oldPassword = String(payload.oldPassword || "");
+			const newPassword = String(payload.newPassword || "");
+			const auth = config.web?.auth || {};
+			let valid = false;
+			if (auth.passwordHash && auth.salt) {
+				valid = await verifyPassword(oldPassword, auth.salt, auth.passwordHash);
+			} else if (auth.password) {
+				valid = oldPassword === auth.password;
+			}
+			if (!valid) return json(res, { ok: false, message: "Incorrect old password" }, 401);
+			try {
+				const { salt, hash } = await hashPassword(newPassword);
+				auth.password = "";
+				auth.salt = salt;
+				auth.passwordHash = hash;
+				await writeConfig();
+				sessions.delete(authToken);
+				return json(res, { ok: true, message: "Password updated, please login again" });
+			} catch (e) {
+				return json(res, { ok: false, message: "Password update failed" }, 500);
+			}
 		}
 
 		// Permissions
@@ -275,7 +405,7 @@ async function handleAPI(req, res, url) {
 		if (modEnableMatch && method === "POST") {
 			const modName = decodeURIComponent(modEnableMatch[1]);
 			const modEntry = modRegistry.list().find(m => m.name === modName);
-			if (!modEntry) return json(res, { ok: false, message: "模组未找到" }, 404);
+			if (!modEntry) return json(res, { ok: false, message: "Mod not found" }, 404);
 			const r = modRegistry.enable(modEntry.id);
 			if (r.ok) {
 				try {
@@ -296,7 +426,7 @@ async function handleAPI(req, res, url) {
 							}
 						}
 					}
-				} catch (e) { logger.error(`Mod ${modEntry.name} 启用热加载失败: ${e.message}`); }
+				} catch (e) { logger.error(`Mod ${modEntry.name} hot reload failed: ${e.message}`); }
 			}
 			collectTerminalCommands(ServerModManager, ClientModManager);
 			return json(res, r);
@@ -305,7 +435,7 @@ async function handleAPI(req, res, url) {
 		if (modDisableMatch && method === "POST") {
 			const modName = decodeURIComponent(modDisableMatch[1]);
 			const modEntry = modRegistry.list().find(m => m.name === modName);
-			if (!modEntry) return json(res, { ok: false, message: "模组未找到" }, 404);
+			if (!modEntry) return json(res, { ok: false, message: "Mod not found" }, 404);
 			if (modEntry.entry.server) {
 				const sm = ServerModManager._inst();
 				if (sm?.modInstances[modEntry.name]) {
@@ -340,11 +470,11 @@ async function handleAPI(req, res, url) {
 		if (modReloadMatch && method === "POST") {
 			const modName = decodeURIComponent(modReloadMatch[1]);
 			const modEntry = modRegistry.list().find(m => m.name === modName);
-			if (!modEntry) return json(res, { ok: false, message: "模组未找到" }, 404);
+			if (!modEntry) return json(res, { ok: false, message: "Mod not found" }, 404);
 			const results = { server: null, client: null };
 			if (modEntry.entry.server) {
 				const sm = ServerModManager._inst();
-				results.server = sm ? await sm.reload(modEntry.name) : { success: false, message: "服务端 Mod 管理器未初始化" };
+				results.server = sm ? await sm.reload(modEntry.name) : { success: false, message: "Server mod manager not initialized" };
 			}
 			if (modEntry.entry.client) {
 				const successes = [], faileds = [];
@@ -364,11 +494,11 @@ async function handleAPI(req, res, url) {
 		if (modConfigMatch && method === "GET") {
 			const modName = decodeURIComponent(modConfigMatch[1]);
 			const modEntry = modRegistry.list().find(m => m.name === modName);
-			if (!modEntry) return json(res, { ok: false, message: "模组未找到" }, 404);
+			if (!modEntry) return json(res, { ok: false, message: "Mod not found" }, 404);
 			const configPath = path.join(modEntry.path, "config.json");
 			const examplePath = path.join(modEntry.path, "config.example.json");
 			if (!fs.existsSync(configPath) && !fs.existsSync(examplePath)) {
-				return json(res, { ok: false, message: "该模组没有配置文件" }, 404);
+				return json(res, { ok: false, message: "Mod has no config file" }, 404);
 			}
 			let modConfig = {};
 			if (fs.existsSync(configPath)) {
@@ -379,12 +509,12 @@ async function handleAPI(req, res, url) {
 		if (modConfigMatch && method === "PUT") {
 			const modName = decodeURIComponent(modConfigMatch[1]);
 			const modEntry = modRegistry.list().find(m => m.name === modName);
-			if (!modEntry) return json(res, { ok: false, message: "模组未找到" }, 404);
+			if (!modEntry) return json(res, { ok: false, message: "Mod not found" }, 404);
 			const body = await readBody(req);
 			const newConfig = JSON.parse(body);
 			const configPath = path.join(modEntry.path, "config.json");
 			fs.writeFileSync(configPath, JSON.stringify(newConfig, null, "\t") + "\n", "utf-8");
-			return json(res, { ok: true, message: "配置已保存" });
+			return json(res, { ok: true, message: "Config saved" });
 		}
 
 		// Mod manifest
@@ -392,9 +522,9 @@ async function handleAPI(req, res, url) {
 		if (modManifestMatch && method === "GET") {
 			const modName = decodeURIComponent(modManifestMatch[1]);
 			const modEntry = modRegistry.list().find(m => m.name === modName);
-			if (!modEntry) return json(res, { ok: false, message: "模组未找到" }, 404);
+			if (!modEntry) return json(res, { ok: false, message: "Mod not found" }, 404);
 			const manifestPath = path.join(modEntry.path, "manifest.json");
-			if (!fs.existsSync(manifestPath)) return json(res, { ok: false, message: "清单文件不存在" }, 404);
+			if (!fs.existsSync(manifestPath)) return json(res, { ok: false, message: "Manifest file not found" }, 404);
 			const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf-8"));
 			return json(res, { ok: true, manifest });
 		}
@@ -404,9 +534,9 @@ async function handleAPI(req, res, url) {
 		if (modReadmeMatch && method === "GET") {
 			const modName = decodeURIComponent(modReadmeMatch[1]);
 			const modEntry = modRegistry.list().find(m => m.name === modName);
-			if (!modEntry) return json(res, { ok: false, message: "模组未找到" }, 404);
+			if (!modEntry) return json(res, { ok: false, message: "Mod not found" }, 404);
 			const readmePath = path.join(modEntry.path, "README.md");
-			if (!fs.existsSync(readmePath)) return json(res, { ok: false, message: "无 README 文件" });
+			if (!fs.existsSync(readmePath)) return json(res, { ok: false, message: "No README file" });
 			const readme = fs.readFileSync(readmePath, "utf-8");
 			return json(res, { ok: true, readme });
 		}
@@ -432,8 +562,8 @@ async function handleAPI(req, res, url) {
 		if (pathname === "/api/command" && method === "POST") {
 			const body = await readBody(req);
 			const { command } = JSON.parse(body);
-			if (!command) throw new Error("命令不能为空");
-			if (!Current.client) throw new Error("主客户端未连接");
+			if (!command) throw new Error("Command cannot be empty");
+			if (!Current.client) throw new Error("Main client not connected");
 			const result = await Current.client.runCommand(command);
 			return json(res, { ok: true, result });
 		}
@@ -452,7 +582,7 @@ async function handleAPI(req, res, url) {
 			for (const [ws] of Current.clientMods) {
 				if (ws.id === clientId) { ws.tell(message); return json(res, { ok: true }); }
 			}
-			return json(res, { ok: false, message: "客户端未找到" }, 404);
+			return json(res, { ok: false, message: "Client not found" }, 404);
 		}
 		const clientMoveMatch = pathname.match(/^\/api\/clients\/(.+)\/set-main$/);
 		if (clientMoveMatch && method === "POST") {
@@ -460,7 +590,7 @@ async function handleAPI(req, res, url) {
 			for (const [ws] of Current.clientMods) {
 				if (ws.id === clientId) { Current.client = ws; return json(res, { ok: true }); }
 			}
-			return json(res, { ok: false, message: "客户端未找到" }, 404);
+			return json(res, { ok: false, message: "Client not found" }, 404);
 		}
 		const clientDisconnectMatch = pathname.match(/^\/api\/clients\/(.+)\/disconnect$/);
 		if (clientDisconnectMatch && method === "POST") {
@@ -473,17 +603,17 @@ async function handleAPI(req, res, url) {
 					return json(res, { ok: true });
 				}
 			}
-			return json(res, { ok: false, message: "客户端未找到" }, 404);
+			return json(res, { ok: false, message: "Client not found" }, 404);
 		}
 
 		// System
 		if (pathname === "/api/system/kill" && method === "POST") {
-			json(res, { ok: true, message: "进程已销毁" });
+			json(res, { ok: true, message: "Process terminated" });
 			setTimeout(() => process.exit(1), 500);
 			return;
 		}
 		if (pathname === "/api/system/restart" && method === "POST") {
-			json(res, { ok: true, message: "正在重启..." });
+			json(res, { ok: true, message: "Restarting..." });
 			setTimeout(async () => {
 				try { await destroy(); } catch {}
 				const { spawn } = await import("child_process");
@@ -516,7 +646,7 @@ async function handleAPI(req, res, url) {
 		if (pathname === "/api/chat" && method === "POST") {
 			const body = await readBody(req);
 			const { message } = JSON.parse(body);
-			if (!Current.client) throw new Error("主客户端未连接");
+			if (!Current.client) throw new Error("Main client not connected");
 			Current.client.tellAll(message);
 			return json(res, { ok: true });
 		}
@@ -532,7 +662,7 @@ async function handleAPI(req, res, url) {
 			const res = await fetch(`${GITHUB_API}${apiPath}`, {
 				headers: { "Accept": "application/vnd.github+json", "User-Agent": "MCWSLoader-UpdateChecker" }
 			});
-			if (!res.ok) throw new Error(`GitHub API 请求失败: HTTP ${res.status}`);
+			if (!res.ok) throw new Error(`GitHub API request failed: HTTP ${res.status}`);
 			return res.json();
 		}
 
@@ -560,16 +690,16 @@ async function handleAPI(req, res, url) {
 			try {
 				const release = await githubFetch("/releases/latest");
 				const targetTag = release.tag_name;
-				if (!targetTag) throw new Error("无法获取最新版本标签");
+				if (!targetTag) throw new Error("Cannot get latest version tag");
 				await execAsync("git fetch --all", { cwd: REPO_ROOT, maxBuffer: 10 * 1024 * 1024 });
 				await execAsync("git reset --hard HEAD", { cwd: REPO_ROOT, maxBuffer: 10 * 1024 * 1024 });
 				await execFileAsync("git", ["checkout", "-f", targetTag], { cwd: REPO_ROOT, maxBuffer: 10 * 1024 * 1024 });
 				await execAsync("npm install", { cwd: REPO_ROOT, maxBuffer: 10 * 1024 * 1024, timeout: 300000 });
-				json(res, { ok: true, message: "更新完成，正在退出进程，请手动重启服务。" });
+				json(res, { ok: true, message: "Update complete, exiting. Please restart manually." });
 				setTimeout(() => process.exit(0), 2000);
 			} catch (e) {
 				updating = false;
-				return json(res, { ok: false, message: "更新失败: " + e.message });
+				return json(res, { ok: false, message: "Update failed: " + e.message });
 			}
 		}
 
@@ -577,18 +707,18 @@ async function handleAPI(req, res, url) {
 			const body = await readBody(req);
 			let targetTag = null;
 			try { targetTag = JSON.parse(body).tag; } catch {}
-			if (!targetTag) return json(res, { ok: false, message: "请指定回退版本标签" }, 400);
+			if (!targetTag) return json(res, { ok: false, message: "Please specify rollback version tag" }, 400);
 			rollingBack = true;
 			try {
 				await execAsync("git fetch --all", { cwd: REPO_ROOT, maxBuffer: 10 * 1024 * 1024 });
 				await execAsync("git reset --hard HEAD", { cwd: REPO_ROOT, maxBuffer: 10 * 1024 * 1024 });
 				await execFileAsync("git", ["checkout", "-f", targetTag], { cwd: REPO_ROOT, maxBuffer: 10 * 1024 * 1024 });
 				await execAsync("npm install", { cwd: REPO_ROOT, maxBuffer: 10 * 1024 * 1024, timeout: 300000 });
-				json(res, { ok: true, message: "回退完成，正在退出进程，请手动重启服务。" });
+				json(res, { ok: true, message: "Rollback complete, exiting. Please restart manually." });
 				setTimeout(() => process.exit(0), 2000);
 			} catch (e) {
 				rollingBack = false;
-				return json(res, { ok: false, message: "回退失败: " + e.message });
+				return json(res, { ok: false, message: "Rollback failed: " + e.message });
 			}
 		}
 
@@ -612,9 +742,13 @@ const server = http.createServer((req, res) => {
 export function startWebServer() {
 	return new Promise((resolve) => {
 		server.listen(WEB_PORT, "0.0.0.0", () => {
-			const isCustom = config.web?.auth?.password;
-			const source = isCustom ? "配置文件" : "随机生成";
-			logger.info(`WebUI 已启动: http://127.0.0.1:${WEB_PORT}/login?pwd=${AUTH_PASSWORD} [${source}]`);
+			const hasCustomPassword = !!(config.web?.auth?.passwordHash || config.web?.auth?.password);
+			if (!hasCustomPassword) {
+				temporaryPassword = crypto.randomBytes(8).toString("hex");
+				logger.info(`WebUI temporary password: ${temporaryPassword}`);
+			}
+			const source = hasCustomPassword ? "config file" : "random";
+			logger.info(`WebUI started: http://127.0.0.1:${WEB_PORT}/login [${source}]`);
 			resolve();
 		});
 	});

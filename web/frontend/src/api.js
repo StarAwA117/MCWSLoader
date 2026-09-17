@@ -14,10 +14,6 @@ async function request(path, options = {}) {
 	});
 	if (res.status === 401) {
 		const data = await res.json().catch(() => ({}));
-		if (data.token) {
-			sessionStorage.setItem("auth_token", data.token);
-			return data;
-		}
 		sessionStorage.removeItem("auth_token");
 		if (window.location.pathname !== "/login") {
 			window.location.href = "/login";
@@ -66,6 +62,7 @@ export const api = {
 	getTags: () => request("/update/tags"),
 	doUpdate: () => request("/update/do", { method: "POST" }),
 	rollback: (tag) => request("/update/rollback", { method: "POST", body: JSON.stringify({ tag }) }),
+	changePassword: (oldPassword, newPassword) => request("/auth/change-password", { method: "POST", body: JSON.stringify({ oldPassword, newPassword }) }),
 };
 
 export function useToast() {

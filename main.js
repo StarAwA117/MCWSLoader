@@ -31,4 +31,14 @@ if (!fs.existsSync(configPath) && fs.existsSync(configExamplePath)) {
 	console.log("< 已从 config.example.json 初始化 config.json");
 }
 
+if (fs.existsSync(configPath)) {
+	const cfg = JSON.parse(fs.readFileSync(configPath, "utf-8"));
+	if (!cfg.language) {
+		const lang = (process.env.LANG || process.env.LC_ALL || "").toLowerCase();
+		cfg.language = lang.startsWith("zh") ? "zh-CN" : "en";
+		fs.writeFileSync(configPath, JSON.stringify(cfg, null, "\t") + "\n", "utf-8");
+		console.log("< 已写入默认语言设置:", cfg.language);
+	}
+}
+
 await import("./ws.js");

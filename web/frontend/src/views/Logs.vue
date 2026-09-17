@@ -1,6 +1,9 @@
 <script setup>
 import { ref, onMounted, onUnmounted, nextTick } from "vue";
 import { api } from "../api";
+import { useI18n } from "../composables/useI18n";
+
+const { t } = useI18n();
 
 const logType = ref("app");
 const logLines = ref([]);
@@ -32,29 +35,29 @@ onUnmounted(() => clearInterval(timer));
 <template>
 	<div class="card">
 		<div class="card-header">
-			<h2>日志查看</h2>
+			<h2>{{ t('logs.title') }}</h2>
 			<div class="btn-group">
 				<button
 					class="btn btn-sm"
 					:class="logType === 'app' ? 'btn-primary' : 'btn-ghost'"
 					@click="setLogType('app')"
-				>应用日志</button>
+				>{{ t('logs.app') }}</button>
 				<button
 					class="btn btn-sm"
 					:class="logType === 'message' ? 'btn-primary' : 'btn-ghost'"
 					@click="setLogType('message')"
-				>消息日志</button>
+				>{{ t('logs.message') }}</button>
 				<button
 					class="btn btn-sm"
 					:class="autoScroll ? 'btn-success' : 'btn-ghost'"
 					@click="autoScroll = !autoScroll"
-				>{{ autoScroll ? '自动滚动' : '手动滚动' }}</button>
+				>{{ autoScroll ? t('logs.autoScroll') : t('logs.manualScroll') }}</button>
 			</div>
 		</div>
 
 		<div ref="logRef" class="log-viewer" style="height: 500px;">
 			<div v-if="logLines.length === 0" style="color: var(--text-muted); text-align: center; padding: 40px;">
-				暂无日志
+				{{ t('logs.none') }}
 			</div>
 			<div
 				v-for="(line, i) in logLines"

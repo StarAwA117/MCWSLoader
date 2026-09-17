@@ -1,9 +1,10 @@
 <script setup>
 import { ref, onMounted, onUnmounted, nextTick } from "vue";
 import { api } from "../api";
-import { useModal } from "../composables/useModal";
+import { useI18n } from "../composables/useI18n";
 
-const { alert } = useModal();
+const { t } = useI18n();
+
 const messages = ref([]);
 const input = ref("");
 const chatRef = ref(null);
@@ -20,7 +21,7 @@ async function send() {
 	const msg = input.value.trim();
 	input.value = "";
 	const res = await api.sendChat(msg);
-	if (!res.ok) await alert(res.message);
+	if (!res.ok) return;
 	await refresh();
 }
 
@@ -34,13 +35,11 @@ onUnmounted(() => clearInterval(timer));
 <template>
 	<div class="card">
 		<div class="card-header">
-			<h2>聊天</h2>
-			<span class="badge badge-blue">{{ messages.length }} 条</span>
+			<h2>{{ t('chat.title') }}</h2>
 		</div>
-
 		<div ref="chatRef" class="log-viewer" style="height: 400px; margin-bottom: 12px;">
 			<div v-if="messages.length === 0" style="color: var(--text-muted); text-align: center; padding: 40px;">
-				暂无聊天记录
+				{{ t('chat.empty') }}
 			</div>
 			<div
 				v-for="(msg, i) in messages"
@@ -49,16 +48,15 @@ onUnmounted(() => clearInterval(timer));
 				style="color: #94a3b8;"
 			>{{ msg }}</div>
 		</div>
-
 		<div style="display: flex; gap: 8px;">
 			<input
 				v-model="input"
 				type="text"
-				placeholder="输入要发送的聊天消息..."
+				:placeholder="t('chat.placeholder')"
 				@keydown.enter="send"
-				style="flex: 1;"
+				style="flex: 1; min-width: 0;"
 			/>
-			<button class="btn btn-primary" @click="send">发送</button>
+			<button class="btn btn-primary btn-sm" @click="send">{{ t('chat.send') }}</button>
 		</div>
 	</div>
 </template>

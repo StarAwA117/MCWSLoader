@@ -2,12 +2,15 @@
 import { ref, onMounted } from "vue";
 import { api } from "../api";
 import { useModal } from "../composables/useModal";
+import { useI18n } from "../composables/useI18n";
 
 const { alert, confirm } = useModal();
+const { t } = useI18n();
+
 const permissions = ref({ owner: "", op: [], user: [], blocker: [] });
 const newPlayer = ref({ op: "", user: "", blocker: "" });
 const groups = ["owner", "op", "user", "blocker"];
-const groupNames = { owner: "服主", op: "管理员", user: "普通用户", blocker: "屏蔽名单" };
+const groupKeys = { owner: "owner", op: "op", user: "user", blocker: "blocker" };
 const groupColors = { owner: "tag-owner", op: "tag-op", user: "tag-user", blocker: "tag-blocker" };
 
 async function refresh() {
@@ -24,16 +27,16 @@ async function addPlayer(group) {
 		newPlayer.value[group] = "";
 		await refresh();
 	} else {
-		await alert(res.message || "添加失败");
+		await alert(res.message || t("permissions.addFailed"));
 	}
 }
 
 async function removePlayer(group, player) {
-	const ok = await confirm(`确定移除 ${player} 的 ${groupNames[group]} 权限？`);
+	const ok = await confirm(t("permissions.confirmRemove", { player, group: t("permissions." + group) }));
 	if (!ok) return;
 	const res = await api.removePermission(group, player);
 	if (res.ok) await refresh();
-	else await alert(res.message || "移除失败");
+	else await alert(res.message || t("permissions.removeFailed"));
 }
 
 onMounted(refresh);
@@ -42,9 +45,9 @@ onMounted(refresh);
 <template>
 	<div v-for="group in groups" :key="group" class="card">
 		<div class="card-header">
-			<h2>{{ groupNames[group] }}</h2>
+			<h2>{{ t('permissions.' + group) }}</h2>
 			<span :class="'badge ' + (groupColors[group])">
-				{{ group === 'owner' ? (permissions[group] || '未设置') : (permissions[group]?.length || 0) + ' 人' }}
+				{{ group === 'owner' ? (permissions[group] || t('permissions.notSet')) : (permissions[group]?.length || 0) + ' ' + t('permissions.people') }}
 			</span>
 		</div>
 
@@ -52,11 +55,11 @@ onMounted(refresh);
 			<input
 				v-model="newPlayer[group]"
 				type="text"
-				placeholder="输入玩家名设为服主"
+				:placeholder="t('permissions.setOwnerPlaceholder')"
 				@keydown.enter="addPlayer(group)"
 				style="flex: 1; min-width: 0;"
 			/>
-			<button class="btn btn-primary btn-sm" @click="addPlayer(group)">设置</button>
+			<button class="btn btn-primary btn-sm" @click="addPlayer(group)">{{ t('permissions.set') }}</button>
 		</div>
 
 		<template v-else>
@@ -64,15 +67,15 @@ onMounted(refresh);
 				<input
 					v-model="newPlayer[group]"
 					type="text"
-					:placeholder="'输入玩家名添加到' + groupNames[group]"
+					:placeholder="t('permissions.addPlaceholder', { group: t('permissions.' + group) })"
 					@keydown.enter="addPlayer(group)"
 					style="flex: 1; min-width: 0;"
 				/>
-				<button class="btn btn-primary btn-sm" @click="addPlayer(group)">添加</button>
+				<button class="btn btn-primary btn-sm" @click="addPlayer(group)">{{ t('permissions.add') }}</button>
 			</div>
 
 			<div v-if="!permissions[group]?.length" style="color: var(--text-muted); font-size: 13px; padding: 8px 0;">
-				暂无成员
+				{{ t('permissions.none') }}
 			</div>
 			<div v-else style="display: flex; flex-wrap: wrap; gap: 6px;">
 				<div

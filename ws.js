@@ -1,6 +1,5 @@
 import { WebSocketServer } from "ws";
 import { v4 as uuidv4 } from "uuid";
-import { fileURLToPath } from "url";
 import { logger } from "./lib/logger.js";
 import { closeLogStreams } from "./lib/logger.js";
 import { config, ClientModManager, ServerModManager, modRegistry } from "./lib/mods.js";
@@ -8,55 +7,128 @@ import Utils from "./lib/utils.js";
 import Current from "./lib/current.js";
 import { startWebServer } from "./web/server.js";
 
-// 创建 WebSocket 服务端，监听端口 config.ws.port
-const server = new WebSocketServer({
-	port: config.ws.port
-});
+// WebSocket server instance
+let server = null;
 
-// 立即注册错误监听，避免端口占用等错误在异步加载期间未被捕获
-server.on("error", (error) => {
-	logger.error(`服务器错误: ${error.message}`);
-	logger.debug(error.stack);
-});
+// Connection tracking for rate limiting
+const connectionAttempts = new Map();
+const RATE_LIMIT_WINDOW = (config.safety && config.safety.rateLimitWindow !== undefined) ? config.safety.rateLimitWindow : 60000;
+const RATE_LIMIT_MAX = (config.safety && config.safety.rateLimitMax !== undefined) ? config.safety.rateLimitMax : 10;
 
-// 扫描并加载服务端 Mod 和客户端 Mod 的静态定义
+function isRateLimited(ip) {
+	if (RATE_LIMIT_MAX === 0) return false;
+	const now = Date.now();
+	const attempts = connectionAttempts.get(ip) || [];
+	const recentAttempts = attempts.filter((time) => now - time < RATE_LIMIT_WINDOW);
+	connectionAttempts.set(ip, recentAttempts);
+	return recentAttempts.length >= RATE_LIMIT_MAX;
+}
+
+function recordConnectionAttempt(ip) {
+	const now = Date.now();
+	const attempts = connectionAttempts.get(ip) || [];
+	attempts.push(now);
+	connectionAttempts.set(ip, attempts);
+}
+
+// Periodic cleanup of stale rate-limit entries
+const cleanupTimer = setInterval(() => {
+	const now = Date.now();
+	for (const [ip, attempts] of connectionAttempts) {
+		const recent = attempts.filter((time) => now - time < RATE_LIMIT_WINDOW);
+		if (recent.length === 0) connectionAttempts.delete(ip);
+		else connectionAttempts.set(ip, recent);
+	}
+}, RATE_LIMIT_WINDOW);
+
+function createServer() {
+	const server = new WebSocketServer({
+		port: config.ws.port,
+		perMessageDeflate: (config.safety && config.safety.perMessageDeflate) === true,
+		clientTracking: true,
+		maxPayload: (config.safety && config.safety.maxPayload !== undefined) ? config.safety.maxPayload : 0
+	});
+
+	server.on("error", (error) => {
+		logger.error("WebSocket server error: " + error.message);
+		logger.debug(error.stack);
+	});
+
+	// Origin check
+	const allowedOrigins = (config.web?.ui?.allowedOrigins || []);
+	if (allowedOrigins.length > 0) {
+		server.on("upgrade", (req, socket, head) => {
+			const origin = req.headers.origin;
+			if (origin) {
+				let host = "";
+				try { host = new URL(origin).host; } catch {}
+				if (host && !allowedOrigins.includes(host) && !allowedOrigins.includes(origin)) {
+					logger.warning("WebSocket connection rejected: Origin=" + origin);
+					socket.write("HTTP/1.1 403 Forbidden\r\n\r\n");
+					socket.destroy();
+					return;
+				}
+			}
+		});
+	}
+
+	return server;
+}
+
+// Scan and load mods
 modRegistry.scan();
 await ServerModManager.load();
 await ClientModManager.load();
-logger.info("服务器已启动");
 
-// 启动 WebUI 服务器
-startWebServer().catch(e => {
-	logger.error(`WebUI 启动失败: ${e.message}`);
+// Create WebSocket server
+server = createServer();
+logger.info("WebSocket server started on port " + config.ws.port);
+
+// Start WebUI server
+startWebServer().catch((e) => {
+	logger.error("WebUI start failed: " + e.message);
 });
 
-// 处理客户端连接
+// Handle client connections
 server.on("connection", (ws) => {
-	// 获取客户端 IP
-	const clientIP = ws._socket.remoteAddress;
-	logger.info(`客户端 ${clientIP} 已连接`);
+	const clientIP = ws._socket?.remoteAddress || "unknown";
 
-	// 分配唯一 ID，用于客户端 Mod 存储和事件总线隔离
+	if (isRateLimited(clientIP)) {
+		logger.warning("Connection rate limited: " + clientIP);
+		ws.close(1008, "Rate limited");
+		return;
+	}
+
+	// Max connections check
+	const MAX_CONNECTIONS = (config.safety && config.safety.maxConnections !== undefined) ? config.safety.maxConnections : 0;
+	const ENABLE_MAX_CONNECTIONS = (config.safety && config.safety.enableMaxConnections === true);
+	const currentConnections = new Set();
+
+	if (ENABLE_MAX_CONNECTIONS && MAX_CONNECTIONS > 0 && currentConnections.size >= MAX_CONNECTIONS) {
+		logger.warning('Connection rejected: max connections reached');
+		ws.close(1013, 'Max connections reached');
+		return;
+	}
+	currentConnections.add(ws);
+	recordConnectionAttempt(clientIP);
+
+	logger.info("Client connected: " + clientIP);
+
 	ws.id = uuidv4();
-
-	// 为当前客户端绑定工具方法（runCommand, subscribe, tell 等）
 	ws.utils = new Utils(ws);
 
-	// 记录第一个连接的客户端为主客户端
 	const isMainClient = !Current.client;
 	if (isMainClient) {
 		Current.client = ws;
-		logger.info("主客户端已连接");
+		logger.info("Main client connected");
 	}
 
-	// 实例化客户端 Mod，注入当前连接
 	const clientMod = new ClientModManager(ws);
 	ws.clientMod = clientMod;
 	ws.localPlayerName = null;
 	ws._connectedAt = Date.now();
 	Current.clientMods.set(ws, clientMod);
 
-	// 延迟获取 localPlayerName（等待客户端进入世界）
 	setTimeout(async () => {
 		try {
 			const name = await ws.getLocalPlayer();
@@ -64,113 +136,100 @@ server.on("connection", (ws) => {
 		} catch {}
 	}, 3000);
 
-	// 通知服务端 Mod 客户端已连接
 	ServerModManager.onClientConnect(ws, isMainClient);
 
-	// 处理客户端消息
 	ws.on("message", (message) => {
-		// 仅 JSON 解析需捕获，非 JSON 消息直接忽略；
-		// Mod 分发调用各自内部已有 try/catch，不应被外层吞掉，便于排查
 		let data;
 		try {
 			data = JSON.parse(String(message));
 		} catch {
-			// 解析失败则忽略（非 JSON 消息）
 			return;
 		}
 
-		// 将消息解析为 JSON 后分发给工具类处理
 		ws.utils.onMessage(data);
-
-		// 通知客户端 Mod 收到消息
 		clientMod.callModMethod("onPocket", data);
-
-		// 通知服务端 Mod 收到消息
 		ServerModManager.onMessage(ws, data);
 	});
 
-	// 处理客户端断开连接
 	ws.on("close", () => {
-		logger.info(`客户端 ${clientIP} 连接已关闭`);
-
-		// 通知服务端 Mod 客户端已断开连接
+		logger.info("Client disconnected: " + clientIP);
 		ServerModManager.onClientDisconnect(ws, ws === Current.client);
-
-		// 若为主客户端断开，重置主客户端状态
 		if (ws === Current.client) {
 			Current.reset();
-			logger.info("主客户端连接已关闭");
+			logger.info("Main client disconnected");
 		}
-
-		// 销毁该客户端的所有 Mod 实例
+		currentConnections.delete(ws);
 		Current.clientMods.delete(ws);
 		clientMod.destroy();
-
-		// 清理工具类回调映射，防止内存泄漏
 		if (ws.utils && typeof ws.utils.destroy === "function") {
 			ws.utils.destroy();
 		}
-
-		// 移除所有事件监听器，防止内存泄漏
 		ws.removeAllListeners();
 	});
 
-	// 处理客户端错误
 	ws.on("error", (error) => {
 		if (ws === Current.client) {
-			logger.error(`主客户端错误: ${error.message}`);
+			logger.error("Main client error: " + error.message);
 			logger.debug(error.stack);
+		} else {
+			logger.warning("Client error from " + clientIP + ": " + error.message);
 		}
 	});
 });
 
-// 关闭函数
-// 依次销毁 Mod、关闭 WebSocket 服务端
-// 防重入：重复调用（如多次 SIGINT）直接忽略，避免反复启动 10s 硬超时
+// Shutdown function
 let destroying = false;
 async function destroy() {
 	if (destroying) return;
 	destroying = true;
 
-	logger.info("正在关闭服务端 Mod...");
+	clearInterval(cleanupTimer);
+
+	logger.info("Shutting down server mods...");
 	ServerModManager.destroy();
-	logger.info("服务端 Mod 已关闭");
+	logger.info("Server mods closed");
 
-	logger.info("正在通知客户端断开连接...");
-	server.clients.forEach((client) => {
-		client.runCommand("/closewebsocket").catch(() => {});
-		client.close();
-	});
-	logger.info("客户端通知已完成");
+	logger.info("Notifying clients to disconnect...");
+	if (server) {
+		server.clients.forEach((client) => {
+			client.runCommand("/closewebsocket").catch(() => {});
+			client.close();
+		});
+	}
+	logger.info("Client notifications completed");
 
-	logger.info("正在关闭服务器...");
+	logger.info("Shutting down server...");
 
 	const hardTimeout = new Promise((_, reject) => {
 		setTimeout(() => {
-			logger.warning("服务器关闭超时，强制退出");
-			reject(new Error("服务器关闭超时"));
+			logger.warning("Server shutdown timeout, force exit");
+			reject(new Error("Server shutdown timeout"));
 		}, 10000);
 	});
 
 	const close = new Promise((resolve) => {
-		server.close(() => {
-			logger.info("服务器已关闭");
+		if (server) {
+			server.close(() => {
+				logger.info("Server closed");
+				resolve();
+			});
+		} else {
 			resolve();
-		});
+		}
 	});
 
 	try {
 		await Promise.race([close, hardTimeout]);
 	} catch {
-		logger.warning("服务器关闭异常，正在强制退出");
+		logger.warning("Server shutdown abnormal, forcing exit");
 	}
 }
 
-// 信号处理
+// Signal handling
 process.on("SIGINT", async () => {
-	logger.info("正在执行正常关闭...");
+	logger.info("Performing graceful shutdown...");
 	await destroy();
 	closeLogStreams();
-	logger.info("程序进程结束");
+	logger.info("Process ended");
 	process.exit(0);
 });
