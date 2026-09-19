@@ -421,8 +421,19 @@ async function handleAPI(req, res, url) {
 							modEntry.clientClass = modModule.default;
 							ClientModManager.loadedMod[modEntry.name] = modModule.default;
 							for (const [, mgr] of Current.clientMods) {
-								if (!mgr || mgr.modInstances[modEntry.name]) continue;
-								try { mgr._instantiateMod(modEntry.name, modModule.default); mgr._collectCommands(); } catch {}
+								if (!mgr) continue;
+								if (mgr.modInstances[modEntry.name]) {
+									const old = mgr.modInstances[modEntry.name];
+									const dm = mgr._resolveModMethod(old, "onDestroy") || mgr._resolveModMethod(old, "destroy");
+									if (dm) { try { dm.fn.apply(dm.ctx); } catch {} }
+									if (mgr.sapi && typeof mgr.sapi.clearMod === "function") mgr.sapi.clearMod(modEntry.name);
+									if (mgr.client.utils && typeof mgr.client.utils.removeOwner === "function") mgr.client.utils.removeOwner(modEntry.name);
+									eventBus.clearMod(`client_${mgr.client?.id || "unknown"}_${modEntry.name}`);
+									mgr.client[modEntry.name] = null;
+									delete mgr.modInstances[modEntry.name];
+								}
+								try { mgr._instantiateMod(modEntry.name, modModule.default); mgr._collectCommands(); }
+								catch (e) { logger.error(`Client Mod ${modEntry.name} enable instantiation failed: ${e.message}`); }
 							}
 						}
 					}

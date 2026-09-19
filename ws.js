@@ -41,6 +41,9 @@ const cleanupTimer = setInterval(() => {
 	}
 }, RATE_LIMIT_WINDOW);
 
+// Active connection tracking for max connections limit
+const currentConnections = new Set();
+
 function createServer() {
 	const server = new WebSocketServer({
 		port: config.ws.port,
@@ -102,7 +105,6 @@ server.on("connection", (ws) => {
 	// Max connections check
 	const MAX_CONNECTIONS = (config.safety && config.safety.maxConnections !== undefined) ? config.safety.maxConnections : 0;
 	const ENABLE_MAX_CONNECTIONS = (config.safety && config.safety.enableMaxConnections === true);
-	const currentConnections = new Set();
 
 	if (ENABLE_MAX_CONNECTIONS && MAX_CONNECTIONS > 0 && currentConnections.size >= MAX_CONNECTIONS) {
 		logger.warning('Connection rejected: max connections reached');
