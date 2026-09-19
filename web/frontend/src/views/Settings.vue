@@ -184,6 +184,19 @@ onMounted(refresh);
 						<input v-model.number="config.command.maxLength" type="number" />
 					</div>
 				</div>
+
+				<div class="card">
+					<div class="card-header">
+						<h2>{{ t('settings.dependencySettings') }}</h2>
+					</div>
+					<div class="switch-row">
+						<span class="switch-label">{{ t('settings.checkDependenciesOnLoad') }}</span>
+						<label class="switch">
+							<input id="checkDependenciesOnLoad" type="checkbox" v-model="config.ws.checkDependenciesOnLoad" />
+							<span class="slider"></span>
+						</label>
+					</div>
+				</div>
 			</div>
 
 			<div v-if="activeTab === 'webui'" class="tab-panel">

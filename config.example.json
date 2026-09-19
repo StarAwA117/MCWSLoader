@@ -10,7 +10,8 @@
 			"rateLimitMax": 10,
 			"perMessageDeflate": false,
 			"maxPayload": 0
-		}
+		},
+		"checkDependenciesOnLoad": true
 	},
 	"command": {
 		"maxLength": 461,

@@ -145,7 +145,15 @@
 		"typeBoth": "双端互通",
 		"typeServer": "仅服务端",
 		"typeClient": "仅客户端",
-		"none": "暂无插件"
+		"none": "暂无插件",
+		"import": "导入",
+		"importTooltip": "导入 .wsmod 或 .zip 模组",
+		"importSuccess": "导入成功",
+		"importFailed": "导入失败",
+		"invalidMod": "无效的模组：缺少 manifest.json",
+		"downloadingDependency": "正在下载依赖：{name}",
+		"dependencyDownloadFailed": "依赖下载失败：{name}",
+		"dependencyMissing": "缺少依赖：{name}"
 	},
 	"permissions": {
 		"title": "权限",
@@ -243,6 +251,8 @@
 		"maxConnectionsPerWindow": "窗口内最大连接数",
 		"commandMaxLength": "命令最大长度（字节）",
 		"connectionSettings": "连接设置",
-		"commandSettings": "命令设置"
+		"commandSettings": "命令设置",
+		"checkDependenciesOnLoad": "启动时检查依赖",
+		"dependencySettings": "依赖设置"
 	}
 }

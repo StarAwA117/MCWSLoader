@@ -145,7 +145,15 @@
 		"typeBoth": "Both",
 		"typeServer": "Server",
 		"typeClient": "Client",
-		"none": "No mods"
+		"none": "No mods",
+		"import": "Import",
+		"importTooltip": "Import .wsmod or .zip mod",
+		"importSuccess": "Import successful",
+		"importFailed": "Import failed",
+		"invalidMod": "Invalid mod: missing manifest.json",
+		"downloadingDependency": "Downloading dependency: {name}",
+		"dependencyDownloadFailed": "Dependency download failed: {name}",
+		"dependencyMissing": "Missing dependency: {name}"
 	},
 	"permissions": {
 		"title": "Permissions",
@@ -243,6 +251,8 @@
 		"maxConnectionsPerWindow": "Max Connections Per Window",
 		"commandMaxLength": "Command Max Length (bytes)",
 		"connectionSettings": "Connection Settings",
-		"commandSettings": "Command Settings"
+		"commandSettings": "Command Settings",
+		"checkDependenciesOnLoad": "Check dependencies on load",
+		"dependencySettings": "Dependency Settings"
 	}
 }

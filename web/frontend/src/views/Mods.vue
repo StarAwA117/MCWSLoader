@@ -43,6 +43,22 @@ async function toggleMod(mod) {
 }
 
 async function reloadMod(mod) {
+
+async function importMod(event) {
+	const file = event.target.files[0];
+	if (!file) return;
+	try {
+		const res = await api.importMod(file);
+		if (res.ok) {
+			alert(res.message || t('mods.importSuccess'));
+		} else {
+			alert(res.message || t('mods.importFailed'));
+		}
+	} catch (e) {
+		alert(t('mods.importFailed') + ": " + e.message);
+	}
+	event.target.value = "";
+}
 	reloading.value[mod.name] = true;
 	try { await api.reloadMod(mod.name); } catch {}
 	reloading.value[mod.name] = false;
@@ -147,6 +163,10 @@ onBeforeUnmount(unlockScroll);
 		<div class="card-header">
 			<h2>{{ t('mods.title') }}</h2>
 			<button class="btn btn-sm btn-ghost reload-btn" @click="reloadAll" :disabled="loading">{{ loading ? "..." : t('mods.reloadAll') }}</button>
+		<label class="icon-btn import-btn" :title="t('mods.importTooltip')">
+			<input type="file" accept=".wsmod,.zip" @change="importMod" style="display:none" />
+			<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+		</label>
 			<span class="badge">{{ sortedMods.length }}</span>
 		</div>
 		<div v-if="!sortedMods.length" class="empty-state"><p>{{ t('mods.none') }}</p></div>
@@ -240,7 +260,16 @@ onBeforeUnmount(unlockScroll);
 .icon-btn:disabled:hover { background: transparent; color: var(--text-secondary); }
 .icon-btn svg { width: 16px; height: 16px; }
 
+
+
 .card-header { display: flex; flex-direction: row; align-items: center; flex-wrap: nowrap; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid var(--border); gap: 8px; }
+
+.import-btn {
+	background: var(--primary-dim);
+	color: var(--primary);
+}
+
+
 .card-header h2 { font-size: 15px; color: var(--text); font-weight: 600; margin: 0; white-space: nowrap; flex-shrink: 0; }
 .reload-btn { margin-left: auto; white-space: nowrap; flex-shrink: 0; }
 .badge { display: inline-flex; align-items: center; justify-content: center; min-width: 22px; height: 22px; padding: 0 6px; border-radius: 11px; font-size: 12px; font-weight: 600; background: var(--primary-dim); color: var(--primary); white-space: nowrap; flex-shrink: 0; }

@@ -11,6 +11,7 @@ import PermissionManager from "../lib/permission.js";
 import Command from "../lib/command.js";
 import { logger } from "../lib/logger.js";
 import { collectCommands as collectTerminalCommands } from "../lib/readline.js";
+import { parseMultipartBody } from "../../multipart.js";
 
 const execAsync = promisify(exec);
 const execFileAsync = promisify(execFile);
@@ -390,6 +391,100 @@ async function handleAPI(req, res, url) {
 			return json(res, { server: serverMods, client: clientMods });
 		}
 		if (pathname === "/api/mods/reload-all" && method === "POST") {
+
+		// Mod import
+		if (pathname === "/api/mods/import" && method === "POST") {
+			try {
+				const contentType = req.headers["content-type"] || "";
+				if (!contentType.includes("multipart/form-data")) {
+					return json(res, { ok: false, message: "Invalid content type" }, 400);
+				}
+
+				const chunks = [];
+				for await (const chunk of req) chunks.push(chunk);
+				const buffer = Buffer.concat(chunks);
+				const parts = parseMultipartBody(buffer, contentType);
+				const filePart = parts?.file;
+				if (!filePart || !filePart.buffer) {
+					return json(res, { ok: false, message: "No file uploaded" }, 400);
+				}
+
+				const modDir = path.join(__dirname, "..", "..", "mod");
+				const tempDir = path.join(modDir, "..", "tmp", "mod_import_" + Date.now());
+				fs.mkdirSync(tempDir, { recursive: true });
+
+				const zipPath = path.join(tempDir, "upload.zip");
+				fs.writeFileSync(zipPath, filePart.buffer);
+
+				const { execAsync } = await import("child_process");
+				const { promisify } = await import("util");
+				const execAsyncP = promisify(execAsync);
+				await execAsyncP(`unzip -q \"${zipPath}\" -d \"${tempDir}\"`);
+
+				const manifestPath = path.join(tempDir, "manifest.json");
+				if (!fs.existsSync(manifestPath)) {
+					fs.rmSync(tempDir, { recursive: true, force: true });
+					return json(res, { ok: false, message: "Invalid mod: missing manifest.json" }, 400);
+				}
+
+				const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf-8"));
+				const modName = manifest.name;
+				if (!modName) {
+					fs.rmSync(tempDir, { recursive: true, force: true });
+					return json(res, { ok: false, message: "Invalid manifest: name is required" }, 400);
+				}
+
+				const targetDir = path.join(modDir, modName);
+				if (fs.existsSync(targetDir)) {
+					fs.rmSync(targetDir, { recursive: true, force: true });
+				}
+				fs.mkdirSync(targetDir, { recursive: true });
+
+				const entries = fs.readdirSync(tempDir);
+				for (const entry of entries) {
+					const src = path.join(tempDir, entry);
+					const dst = path.join(targetDir, entry);
+					if (fs.statSync(src).isDirectory()) {
+						fs.mkdirSync(dst, { recursive: true });
+						const inner = fs.readdirSync(src);
+						for (const f of inner) {
+							fs.copyFileSync(path.join(src, f), path.join(dst, f));
+						}
+					} else {
+						fs.copyFileSync(src, dst);
+					}
+				}
+
+				fs.rmSync(tempDir, { recursive: true, force: true });
+
+				if (manifest.dependencies && Array.isArray(manifest.dependencies)) {
+					for (const dep of manifest.dependencies) {
+						try {
+							if (dep.url) {
+								logger.info(`Downloading dependency: ${dep.name || dep.url}`);
+								const depPath = path.join(modDir, dep.name || path.basename(dep.url));
+								const depRes = await fetch(dep.url);
+								if (!depRes.ok) throw new Error(`HTTP ${depRes.status}`);
+								const depBuf = Buffer.from(await depRes.arrayBuffer());
+								fs.writeFileSync(depPath, depBuf);
+							}
+						} catch (e) {
+							logger.error(`Dependency download failed: ${dep.name || dep.url}: ${e.message}`);
+							return json(res, { ok: false, message: `Dependency download failed: ${dep.name || dep.url}` }, 500);
+						}
+					}
+				}
+
+				modRegistry.scan();
+				await ServerModManager.reloadAll();
+				await ClientModManager.reloadAllClients();
+
+				return json(res, { ok: true, message: "Import successful" });
+			} catch (e) {
+				logger.error("Mod import failed: " + e.message);
+				return json(res, { ok: false, message: "Import failed: " + e.message }, 500);
+			}
+		}
 			reloadConfig();
 			const serverResult = await ServerModManager.reloadAll();
 			const clientResult = await ClientModManager.reloadAllClients();
