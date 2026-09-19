@@ -11,7 +11,7 @@ import PermissionManager from "../lib/permission.js";
 import Command from "../lib/command.js";
 import { logger } from "../lib/logger.js";
 import { collectCommands as collectTerminalCommands } from "../lib/readline.js";
-import { parseMultipartBody } from "../../multipart.js";
+import { parseMultipartBody } from "../lib/multipart.js";
 
 const execAsync = promisify(exec);
 const execFileAsync = promisify(execFile);
@@ -391,6 +391,17 @@ async function handleAPI(req, res, url) {
 			return json(res, { server: serverMods, client: clientMods });
 		}
 		if (pathname === "/api/mods/reload-all" && method === "POST") {
+
+		if (pathname === "/api/mods/reload-all" && method === "POST") {
+			reloadConfig();
+			const serverResult = await ServerModManager.reloadAll();
+			const clientResult = await ClientModManager.reloadAllClients();
+			return json(res, {
+				ok: true,
+				server: { success: serverResult.success, failed: serverResult.failed },
+				client: { success: clientResult.success.length, failed: clientResult.failed }
+			});
+		}
 
 		// Mod import
 		if (pathname === "/api/mods/import" && method === "POST") {
