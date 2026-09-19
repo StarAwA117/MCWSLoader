@@ -12,6 +12,7 @@ import Command from "../lib/command.js";
 import { logger } from "../lib/logger.js";
 import { collectCommands as collectTerminalCommands } from "../lib/readline.js";
 import { parseMultipartBody } from "../lib/multipart.js";
+import { extractZip, resolveModRoot, readManifest, copyMerge, removeDir, sanitizeFolderName, installDependencies, makeTempDir, makeTempPath, moveDir } from "../lib/modinstall.js";
 
 const execAsync = promisify(exec);
 const execFileAsync = promisify(execFile);
@@ -217,6 +218,37 @@ function serveStatic(res, filePath) {
 	}
 }
 
+// 卸载已加载的模组实例（服务端/客户端），不删除文件
+function unloadMod(modEntry) {
+	if (!modEntry) return;
+	if (modEntry.entry?.server) {
+		const sm = ServerModManager._inst();
+		if (sm && sm.modInstances && sm.modInstances[modEntry.name]) {
+			const inst = sm.modInstances[modEntry.name];
+			const dm = sm._resolveMethod(inst, "onDestroy") || sm._resolveMethod(inst, "destroy");
+			if (dm) { try { dm.fn.apply(dm.ctx); } catch {} }
+			eventBus.clearMod(modEntry.name);
+			delete sm.modInstances[modEntry.name];
+			delete ServerModManager.loadedMod[modEntry.name];
+		}
+	}
+	if (modEntry.entry?.client) {
+		for (const [, mgr] of Current.clientMods) {
+			if (!mgr) continue;
+			if (mgr.modInstances && mgr.modInstances[modEntry.name]) {
+				const dm = mgr._resolveModMethod(mgr.modInstances[modEntry.name], "onDestroy") || mgr._resolveModMethod(mgr.modInstances[modEntry.name], "destroy");
+				if (dm) { try { dm.fn.apply(dm.ctx); } catch {} }
+				delete mgr.modInstances[modEntry.name];
+				if (mgr.sapi && typeof mgr.sapi.clearMod === "function") mgr.sapi.clearMod(modEntry.name);
+				if (mgr.client && mgr.client.utils && typeof mgr.client.utils.removeOwner === "function") mgr.client.utils.removeOwner(modEntry.name);
+				delete ClientModManager.loadedMod[modEntry.name];
+				if (mgr.client) mgr.client[modEntry.name] = null;
+				if (typeof mgr._collectCommands === "function") mgr._collectCommands();
+			}
+		}
+	}
+}
+
 async function handleAPI(req, res, url) {
 	const method = req.method;
 	const pathname = url.pathname;
@@ -391,8 +423,6 @@ async function handleAPI(req, res, url) {
 			return json(res, { server: serverMods, client: clientMods });
 		}
 		if (pathname === "/api/mods/reload-all" && method === "POST") {
-
-		if (pathname === "/api/mods/reload-all" && method === "POST") {
 			reloadConfig();
 			const serverResult = await ServerModManager.reloadAll();
 			const clientResult = await ClientModManager.reloadAllClients();
@@ -405,105 +435,128 @@ async function handleAPI(req, res, url) {
 
 		// Mod import
 		if (pathname === "/api/mods/import" && method === "POST") {
+			const overwrite = url.searchParams.get("overwrite") === "1";
+			const modDir = path.join(__dirname, "..", "mod");
+			const tmpBase = path.join(__dirname, "..", "tmp");
+			let tempDir = null;
+			let backupPath = null;
+			let folderName = null;
+			let installed = false;
+			let manifest = null;
+			let existingEntry = null;
+			// 先清理临时文件再回响应，避免响应早于清理完成
+			const finish = (payload, status) => {
+				if (tempDir) removeDir(tempDir);
+				if (backupPath) removeDir(backupPath);
+				return json(res, payload, status);
+			};
 			try {
 				const contentType = req.headers["content-type"] || "";
 				if (!contentType.includes("multipart/form-data")) {
-					return json(res, { ok: false, message: "Invalid content type" }, 400);
+					return finish({ ok: false, code: "INVALID_FORMAT", message: "Invalid content type" }, 400);
 				}
 
 				const chunks = [];
 				for await (const chunk of req) chunks.push(chunk);
-				const buffer = Buffer.concat(chunks);
-				const parts = parseMultipartBody(buffer, contentType);
+				const parts = parseMultipartBody(Buffer.concat(chunks), contentType);
 				const filePart = parts?.file;
 				if (!filePart || !filePart.buffer) {
-					return json(res, { ok: false, message: "No file uploaded" }, 400);
+					return finish({ ok: false, code: "INVALID_FORMAT", message: "No file uploaded" }, 400);
 				}
 
-				const modDir = path.join(__dirname, "..", "..", "mod");
-				const tempDir = path.join(modDir, "..", "tmp", "mod_import_" + Date.now());
-				fs.mkdirSync(tempDir, { recursive: true });
+				const uploadName = String(filePart.filename || "mod.zip").toLowerCase();
+				if (!uploadName.endsWith(".wsmod") && !uploadName.endsWith(".zip")) {
+					return finish({ ok: false, code: "INVALID_FORMAT", message: "Unsupported file type" }, 400);
+				}
 
+				tempDir = makeTempDir(tmpBase, "mod_import_");
 				const zipPath = path.join(tempDir, "upload.zip");
 				fs.writeFileSync(zipPath, filePart.buffer);
 
-				const { execAsync } = await import("child_process");
-				const { promisify } = await import("util");
-				const execAsyncP = promisify(execAsync);
-				await execAsyncP(`unzip -q \"${zipPath}\" -d \"${tempDir}\"`);
+				const extractDir = path.join(tempDir, "extract");
+				await extractZip(zipPath, extractDir);
 
-				const manifestPath = path.join(tempDir, "manifest.json");
-				if (!fs.existsSync(manifestPath)) {
-					fs.rmSync(tempDir, { recursive: true, force: true });
-					return json(res, { ok: false, message: "Invalid mod: missing manifest.json" }, 400);
+				const resolved = resolveModRoot(extractDir);
+				if (!resolved) {
+					return finish({ ok: false, code: "INVALID_FORMAT", message: "Missing manifest.json" }, 400);
+				}
+				manifest = readManifest(resolved.root);
+				if (!manifest || !manifest.name) {
+					return finish({ ok: false, code: "INVALID_FORMAT", message: "Invalid manifest.json: name is required" }, 400);
+				}
+				existingEntry = modRegistry.list().find(m => m.name === manifest.name) || null;
+
+				folderName = sanitizeFolderName(resolved.folderName || manifest.name);
+				const targetDir = path.join(modDir, folderName);
+				const targetExists = fs.existsSync(targetDir);
+
+				if (targetExists && !overwrite) {
+					return finish({ ok: false, code: "CONFLICT", name: folderName }, 409);
 				}
 
-				const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf-8"));
-				const modName = manifest.name;
-				if (!modName) {
-					fs.rmSync(tempDir, { recursive: true, force: true });
-					return json(res, { ok: false, message: "Invalid manifest: name is required" }, 400);
+				// 覆盖安装：先备份旧版本，失败时才能原样回滚
+				if (targetExists) {
+					backupPath = makeTempPath(tmpBase, "mod_backup_");
+					copyMerge(targetDir, backupPath);
 				}
 
-				const targetDir = path.join(modDir, modName);
-				if (fs.existsSync(targetDir)) {
-					fs.rmSync(targetDir, { recursive: true, force: true });
-				}
-				fs.mkdirSync(targetDir, { recursive: true });
+				// 覆盖时仅覆盖压缩包中出现的文件，未出现的保留
+				installed = true;
+				copyMerge(resolved.root, targetDir);
 
-				const entries = fs.readdirSync(tempDir);
-				for (const entry of entries) {
-					const src = path.join(tempDir, entry);
-					const dst = path.join(targetDir, entry);
-					if (fs.statSync(src).isDirectory()) {
-						fs.mkdirSync(dst, { recursive: true });
-						const inner = fs.readdirSync(src);
-						for (const f of inner) {
-							fs.copyFileSync(path.join(src, f), path.join(dst, f));
-						}
-					} else {
-						fs.copyFileSync(src, dst);
-					}
-				}
-
-				fs.rmSync(tempDir, { recursive: true, force: true });
-
-				if (manifest.dependencies && Array.isArray(manifest.dependencies)) {
-					for (const dep of manifest.dependencies) {
-						try {
-							if (dep.url) {
-								logger.info(`Downloading dependency: ${dep.name || dep.url}`);
-								const depPath = path.join(modDir, dep.name || path.basename(dep.url));
-								const depRes = await fetch(dep.url);
-								if (!depRes.ok) throw new Error(`HTTP ${depRes.status}`);
-								const depBuf = Buffer.from(await depRes.arrayBuffer());
-								fs.writeFileSync(depPath, depBuf);
-							}
-						} catch (e) {
-							logger.error(`Dependency download failed: ${dep.name || dep.url}: ${e.message}`);
-							return json(res, { ok: false, message: `Dependency download failed: ${dep.name || dep.url}` }, 500);
-						}
-					}
-				}
+				await installDependencies(manifest, modDir, { tmpBase });
 
 				modRegistry.scan();
 				await ServerModManager.reloadAll();
 				await ClientModManager.reloadAllClients();
-
-				return json(res, { ok: true, message: "Import successful" });
+				collectTerminalCommands(ServerModManager, ClientModManager);
+				return finish({ ok: true, name: manifest.name, folder: folderName });
 			} catch (e) {
 				logger.error("Mod import failed: " + e.message);
-				return json(res, { ok: false, message: "Import failed: " + e.message }, 500);
+				// 导入中途失败：恢复现场，避免留下半成品
+				if (installed && folderName) {
+					const targetDir = path.join(modDir, folderName);
+					if (existingEntry) unloadMod(existingEntry);
+					if (backupPath) {
+						// 覆盖失败：回滚到旧版本
+						removeDir(targetDir);
+						try {
+							moveDir(backupPath, targetDir);
+							backupPath = null;
+							logger.warning(`Mod "${folderName}" import failed, rolled back to previous version`);
+						} catch (re) {
+							logger.error(`Rollback failed for "${folderName}": ${re.message}`);
+						}
+					} else {
+						// 全新安装失败：删除半成品并从 mods_config.json 移除
+						removeDir(targetDir);
+						modRegistry.forget(folderName);
+						if (manifest?.uuid) modRegistry.forget(manifest.uuid);
+					}
+					try {
+						modRegistry.scan();
+						await ServerModManager.reloadAll();
+						await ClientModManager.reloadAllClients();
+						collectTerminalCommands(ServerModManager, ClientModManager);
+					} catch {}
+				}
+				return finish({ ok: false, code: e.code || "INSTALL_FAILED", message: e.message }, 500);
 			}
 		}
-			reloadConfig();
-			const serverResult = await ServerModManager.reloadAll();
-			const clientResult = await ClientModManager.reloadAllClients();
-			return json(res, {
-				ok: true,
-				server: { success: serverResult.success, failed: serverResult.failed },
-				client: { success: clientResult.success.length, failed: clientResult.failed }
-			});
+
+		// Mod delete
+		const modDeleteMatch = pathname.match(/^\/api\/mods\/(.+)\/delete$/);
+		if (modDeleteMatch && method === "POST") {
+			const modName = decodeURIComponent(modDeleteMatch[1]);
+			const modEntry = modRegistry.list().find(m => m.name === modName);
+			if (!modEntry) return json(res, { ok: false, message: "Mod not found" }, 404);
+			unloadMod(modEntry);
+			const r = modRegistry.remove(modEntry.id);
+			if (!r.ok) return json(res, { ok: false, message: r.message }, 500);
+			await ServerModManager.reloadAll();
+			await ClientModManager.reloadAllClients();
+			collectTerminalCommands(ServerModManager, ClientModManager);
+			return json(res, { ok: true, name: modEntry.name });
 		}
 
 		// Mod enable/disable

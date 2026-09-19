@@ -41,17 +41,18 @@ export const api = {
 	enableMod: (name) => request(`/mods/${encodeURIComponent(name)}/enable`, { method: "POST" }),
 	disableMod: (name) => request(`/mods/${encodeURIComponent(name)}/disable`, { method: "POST" }),
 	reloadMod: (name) => request(`/mods/${encodeURIComponent(name)}/reload`, { method: "POST" }),
-	importMod: (file) => {
+	importMod: (file, overwrite = false) => {
 		const form = new FormData();
 		form.append("file", file);
-		return fetch("/api/mods/import", {
+		return fetch(`/api/mods/import${overwrite ? "?overwrite=1" : ""}`, {
 			method: "POST",
 			body: form,
 			headers: {
 				"X-Auth-Token": getToken()
 			}
-		}).then(res => res.json());
+		}).then(res => res.json()).catch(e => ({ ok: false, code: "NETWORK", message: e.message }));
 	},
+	deleteMod: (name) => request(`/mods/${encodeURIComponent(name)}/delete`, { method: "POST" }),
 	getModConfig: (name) => request(`/mods/${encodeURIComponent(name)}/config`),
 	saveModConfig: (name, cfg) => request(`/mods/${encodeURIComponent(name)}/config`, { method: "PUT", body: JSON.stringify(cfg) }),
 	getModManifest: (name) => request(`/mods/${encodeURIComponent(name)}/manifest`),

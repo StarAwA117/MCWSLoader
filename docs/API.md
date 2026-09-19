@@ -283,6 +283,8 @@ REST API served by the WebUI backend. All endpoints require `X-Auth-Token` heade
 |--------|----------|-------------|
 | `GET` | `/api/mods` | List all loaded Mods |
 | `POST` | `/api/mods/reload-all` | Reload config + all Mods |
+| `POST` | `/api/mods/import` | Import a Mod archive (`multipart/form-data`, field `file`, `.wsmod`/`.zip`). Add `?overwrite=1` to overwrite an existing Mod. Returns `409` with `code: "CONFLICT"` when the Mod exists. |
+| `POST` | `/api/mods/:name/delete` | Delete a Mod (folder + `mods_config.json` entry) |
 | `POST` | `/api/mods/:name/enable` | Enable a Mod |
 | `POST` | `/api/mods/:name/disable` | Disable a Mod |
 | `POST` | `/api/mods/:name/reload` | Reload a single Mod |

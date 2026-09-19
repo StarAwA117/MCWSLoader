@@ -79,9 +79,9 @@ function createServer() {
 	return server;
 }
 
-// Scan and load mods
-modRegistry.scan();
+// Check/install mod dependencies first, then scan and load mods
 await checkModDependencies();
+modRegistry.scan();
 await ServerModManager.load();
 await ClientModManager.load();
 

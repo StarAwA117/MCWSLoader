@@ -3,12 +3,15 @@ import { ref, computed, onMounted, onBeforeUnmount } from "vue";
 import { api } from "../api";
 import ConfigField from "../components/ConfigField.vue";
 import { useI18n } from "../composables/useI18n";
+import { useModal } from "../composables/useModal";
 
 const { t } = useI18n();
+const { alert: showAlert, confirm: showConfirm } = useModal();
 
 const mods = ref([]);
 const loading = ref(false);
 const reloading = ref({});
+const importing = ref(false);
 const modal = ref({ open: false, type: "", modName: "", mod: null, config: null, fields: [], manifest: null, readme: "", saving: false, message: "" });
 
 const sortedMods = computed(() => [...mods.value].sort((a, b) => {
@@ -32,6 +35,8 @@ async function refresh() {
 }
 
 async function reloadAll() {
+	const ok = await showConfirm(t("mods.reloadConfirm"), t("mods.reloadTitle"));
+	if (!ok) return;
 	loading.value = true;
 	try { await api.reloadAllMods(); await refresh(); } catch {}
 	loading.value = false;
@@ -43,25 +48,75 @@ async function toggleMod(mod) {
 }
 
 async function reloadMod(mod) {
-
-async function importMod(event) {
-	const file = event.target.files[0];
-	if (!file) return;
-	try {
-		const res = await api.importMod(file);
-		if (res.ok) {
-			alert(res.message || t('mods.importSuccess'));
-		} else {
-			alert(res.message || t('mods.importFailed'));
-		}
-	} catch (e) {
-		alert(t('mods.importFailed') + ": " + e.message);
-	}
-	event.target.value = "";
-}
+	const ok = await showConfirm(t("mods.reloadOneConfirm", { name: mod.name }), t("mods.reloadTitle"));
+	if (!ok) return;
 	reloading.value[mod.name] = true;
 	try { await api.reloadMod(mod.name); } catch {}
 	reloading.value[mod.name] = false;
+}
+
+function importErrorText(res) {
+	switch (res && res.code) {
+		case "INVALID_FORMAT": return t("mods.errInvalidFormat");
+		case "DEPENDENCY_FAILED": return t("mods.errDependency");
+		case "DEPENDENCY_MISSING": return t("mods.errDependencyMissing");
+		case "INSTALL_FAILED": return t("mods.errInstall");
+		default: return (res && res.message) || t("mods.importFailed");
+	}
+}
+
+async function importMod(event) {
+	const input = event.target;
+	const file = input.files && input.files[0];
+	input.value = "";
+	if (!file || importing.value) return;
+
+	const lower = file.name.toLowerCase();
+	if (!lower.endsWith(".wsmod") && !lower.endsWith(".zip")) {
+		await showAlert(t("mods.importFailed") + "：" + t("mods.errInvalidFormat"), t("mods.importTitle"));
+		return;
+	}
+
+	importing.value = true;
+	try {
+		let res = await api.importMod(file, false);
+
+		// 模组已存在 -> 询问是否覆盖，确认后重新上传并覆盖
+		if (res && res.code === "CONFLICT") {
+			const ok = await showConfirm(t("mods.overwriteConfirm", { name: res.name || file.name }), t("mods.overwriteTitle"));
+			if (!ok) { importing.value = false; return; }
+			res = await api.importMod(file, true);
+		}
+
+		if (res && res.ok) {
+			await refresh();
+			await showAlert(t("mods.importSuccess"), t("mods.importTitle"));
+		} else {
+			// 失败时后端已清理半成品模组，这里刷新一次列表
+			await refresh();
+			await showAlert(t("mods.importFailed") + "：" + importErrorText(res), t("mods.importTitle"));
+		}
+	} catch (e) {
+		await refresh();
+		await showAlert(t("mods.importFailed") + "：" + e.message, t("mods.importTitle"));
+	}
+	importing.value = false;
+}
+
+async function deleteMod(mod) {
+	const ok = await showConfirm(t("mods.deleteConfirm"), t("mods.deleteTitle"));
+	if (!ok) return;
+	try {
+		const res = await api.deleteMod(mod.name);
+		if (res && res.ok) {
+			await refresh();
+			await showAlert(t("mods.deleteSuccess"), t("mods.deleteTitle"));
+		} else {
+			await showAlert(t("mods.deleteFailed") + "：" + ((res && res.message) || t("mods.deleteNotFound")), t("mods.deleteTitle"));
+		}
+	} catch (e) {
+		await showAlert(t("mods.deleteFailed") + "：" + e.message, t("mods.deleteTitle"));
+	}
 }
 
 function lockScroll() { document.body.classList.add("modal-open"); }
@@ -163,11 +218,10 @@ onBeforeUnmount(unlockScroll);
 		<div class="card-header">
 			<h2>{{ t('mods.title') }}</h2>
 			<button class="btn btn-sm btn-ghost reload-btn" @click="reloadAll" :disabled="loading">{{ loading ? "..." : t('mods.reloadAll') }}</button>
-		<label class="icon-btn import-btn" :title="t('mods.importTooltip')">
-			<input type="file" accept=".wsmod,.zip" @change="importMod" style="display:none" />
-			<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-		</label>
-			<span class="badge">{{ sortedMods.length }}</span>
+			<label class="icon-btn import-btn" :title="t('mods.importTooltip')" :class="{ busy: importing }">
+				<input type="file" accept=".wsmod,.zip" @change="importMod" :disabled="importing" />
+				<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+			</label>
 		</div>
 		<div v-if="!sortedMods.length" class="empty-state"><p>{{ t('mods.none') }}</p></div>
 		<div v-for="m in sortedMods" :key="m.name" class="card mod-card" :class="{ disabled: !m.enabled }">
@@ -198,6 +252,9 @@ onBeforeUnmount(unlockScroll);
 					</button>
 					<button v-if="m.hasConfig" class="icon-btn" :title="t('mods.config')" @click="openSettings(m)">
 						<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-2.82.48V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15H4.59a1.65 1.65 0 0 0-1.51 1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68V4.59a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9H19.41a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+					</button>
+					<button class="icon-btn delete-btn" :title="t('mods.delete')" @click="deleteMod(m)">
+						<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
 					</button>
 				</div>
 			</div>
@@ -259,20 +316,16 @@ onBeforeUnmount(unlockScroll);
 .icon-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 .icon-btn:disabled:hover { background: transparent; color: var(--text-secondary); }
 .icon-btn svg { width: 16px; height: 16px; }
-
-
+.delete-btn:hover { background: rgba(239, 68, 68, 0.15); color: #ef4444; }
 
 .card-header { display: flex; flex-direction: row; align-items: center; flex-wrap: nowrap; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid var(--border); gap: 8px; }
 
-.import-btn {
-	background: var(--primary-dim);
-	color: var(--primary);
-}
-
+.import-btn { background: var(--primary-dim); color: var(--primary); cursor: pointer; }
+.import-btn input[type="file"] { display: none; }
+.import-btn.busy { opacity: 0.5; cursor: wait; pointer-events: none; }
 
 .card-header h2 { font-size: 15px; color: var(--text); font-weight: 600; margin: 0; white-space: nowrap; flex-shrink: 0; }
 .reload-btn { margin-left: auto; white-space: nowrap; flex-shrink: 0; }
-.badge { display: inline-flex; align-items: center; justify-content: center; min-width: 22px; height: 22px; padding: 0 6px; border-radius: 11px; font-size: 12px; font-weight: 600; background: var(--primary-dim); color: var(--primary); white-space: nowrap; flex-shrink: 0; }
 
 .switch { position: relative; display: inline-block; width: 42px; height: 24px; flex-shrink: 0; cursor: pointer; }
 .switch input { opacity: 0; width: 0; height: 0; }
