@@ -1,3 +1,5 @@
+import { useI18n } from "./composables/useI18n";
+
 const BASE = "/api";
 
 function getToken() {
@@ -13,14 +15,20 @@ async function request(path, options = {}) {
 		...options
 	});
 	if (res.status === 401) {
-		const data = await res.json().catch(() => ({}));
 		sessionStorage.removeItem("auth_token");
 		if (window.location.pathname !== "/login") {
 			window.location.href = "/login";
 		}
-		return { ok: false, message: "未授权" };
+		return { ok: false, message: useI18n().t("common.unauthorized") };
 	}
-	return res.json();
+	// 非 JSON 响应（空响应体 / 网关错误页等）不应让调用方抛异常
+	const text = await res.text().catch(() => "");
+	if (!text) return { ok: false, message: `HTTP ${res.status}` };
+	try {
+		return JSON.parse(text);
+	} catch {
+		return { ok: false, message: `HTTP ${res.status}` };
+	}
 }
 
 export async function loginWithPassword(pwd) {

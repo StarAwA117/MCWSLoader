@@ -21,14 +21,17 @@ const sortedMods = computed(() => [...mods.value].sort((a, b) => {
 
 async function refresh() {
 	const data = await api.getMods();
+	// 接口异常时返回的是 { ok:false, message }，这里要容错，否则整个页面会崩
+	const server = Array.isArray(data?.server) ? data.server : [];
+	const client = Array.isArray(data?.client) ? data.client : [];
 	const map = new Map();
-	for (const m of [...data.server, ...data.client]) {
+	for (const m of [...server, ...client]) {
 		const existing = map.get(m.name);
 		if (existing) {
-			if (data.server.some(s => s.name === m.name)) existing.entry.server = true;
-			if (data.client.some(c => c.name === m.name)) existing.entry.client = true;
+			if (server.some(s => s.name === m.name)) existing.entry.server = true;
+			if (client.some(c => c.name === m.name)) existing.entry.client = true;
 		} else {
-			map.set(m.name, { ...m, entry: { server: data.server.some(s => s.name === m.name), client: data.client.some(c => c.name === m.name) } });
+			map.set(m.name, { ...m, entry: { server: server.some(s => s.name === m.name), client: client.some(c => c.name === m.name) } });
 		}
 	}
 	mods.value = [...map.values()];
@@ -43,8 +46,19 @@ async function reloadAll() {
 }
 
 async function toggleMod(mod) {
-	if (mod.enabled) { await api.disableMod(mod.name); } else { await api.enableMod(mod.name); }
-	mod.enabled = !mod.enabled;
+	const target = !mod.enabled;
+	// 乐观切换：请求失败时再改回来（否则开关会与后端状态不一致）
+	mod.enabled = target;
+	try {
+		const res = target ? await api.enableMod(mod.name) : await api.disableMod(mod.name);
+		if (!res || !res.ok) {
+			mod.enabled = !target;
+			await showAlert(t("mods.toggleFailed") + "：" + ((res && res.message) || `HTTP ${target ? "enable" : "disable"}`), t("mods.title"));
+		}
+	} catch (e) {
+		mod.enabled = !target;
+		await showAlert(t("mods.toggleFailed") + "：" + e.message, t("mods.title"));
+	}
 }
 
 async function reloadMod(mod) {
@@ -84,7 +98,7 @@ async function importMod(event) {
 		// 模组已存在 -> 询问是否覆盖，确认后重新上传并覆盖
 		if (res && res.code === "CONFLICT") {
 			const ok = await showConfirm(t("mods.overwriteConfirm", { name: res.name || file.name }), t("mods.overwriteTitle"));
-			if (!ok) { importing.value = false; return; }
+			if (!ok) return;
 			res = await api.importMod(file, true);
 		}
 
@@ -92,15 +106,17 @@ async function importMod(event) {
 			await refresh();
 			await showAlert(t("mods.importSuccess"), t("mods.importTitle"));
 		} else {
-			// 失败时后端已清理半成品模组，这里刷新一次列表
-			await refresh();
+			// 失败时后端已回滚/清理，这里刷新一次列表
+			await refresh().catch(() => {});
 			await showAlert(t("mods.importFailed") + "：" + importErrorText(res), t("mods.importTitle"));
 		}
 	} catch (e) {
-		await refresh();
+		await refresh().catch(() => {});
 		await showAlert(t("mods.importFailed") + "：" + e.message, t("mods.importTitle"));
+	} finally {
+		// 无论成功失败都要复位，否则导入按钮会永久禁用
+		importing.value = false;
 	}
-	importing.value = false;
 }
 
 async function deleteMod(mod) {
@@ -209,7 +225,7 @@ function simpleMd(text) {
 		.replace(/\n/g, '<br>');
 }
 
-onMounted(refresh);
+onMounted(() => { refresh().catch(() => {}); });
 onBeforeUnmount(unlockScroll);
 </script>
 

@@ -128,6 +128,7 @@
 		"reloadTitle": "Reload Mod",
 		"reloadConfirm": "Are you sure you want to reload all mods?",
 		"reloadOneConfirm": "Are you sure you want to reload mod \"{name}\"?",
+		"toggleFailed": "Failed to change mod state",
 		"clientMods": "Client Mods",
 		"serverMods": "Server Mods",
 		"enable": "Enable",

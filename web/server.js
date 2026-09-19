@@ -124,6 +124,10 @@ async function checkPassword(password) {
 	if (auth.passwordHash && auth.salt) {
 		return await verifyPassword(password, auth.salt, auth.passwordHash);
 	}
+	// 兼容旧版明文密码
+	if (auth.password) {
+		return password === auth.password;
+	}
 	if (temporaryPassword && password === temporaryPassword) {
 		return true;
 	}
@@ -347,8 +351,29 @@ async function handleAPI(req, res, url) {
 		}
 		if (pathname === "/api/config" && method === "PUT") {
 			const body = await readBody(req);
-			const newCfg = JSON.parse(body);
-			fs.writeFileSync(CONFIG_PATH, JSON.stringify(newCfg, null, "\t") + "\n", "utf-8");
+			let newCfg;
+			try {
+				newCfg = JSON.parse(body);
+			} catch {
+				return json(res, { ok: false, message: "Invalid request format" }, 400);
+			}
+			if (!newCfg || typeof newCfg !== "object") {
+				return json(res, { ok: false, message: "Invalid request format" }, 400);
+			}
+			// GET /api/config 会对敏感字段脱敏，保存时不能把脱敏后的值写回磁盘
+			if (newCfg.web?.auth) {
+				if (!newCfg.web.auth.passwordHash && config.web?.auth?.passwordHash) newCfg.web.auth.passwordHash = config.web.auth.passwordHash;
+				if (!newCfg.web.auth.salt && config.web?.auth?.salt) newCfg.web.auth.salt = config.web.auth.salt;
+			}
+			if (newCfg.ai?.options && newCfg.ai.options.apiKey === "***" && config.ai?.options?.apiKey) {
+				newCfg.ai.options.apiKey = config.ai.options.apiKey;
+			}
+			try {
+				fs.writeFileSync(CONFIG_PATH, JSON.stringify(newCfg, null, "\t") + "\n", "utf-8");
+			} catch (e) {
+				logger.error("Config save failed: " + e.message);
+				return json(res, { ok: false, message: "Failed to write config: " + e.message }, 500);
+			}
 			reloadConfig();
 			return json(res, { ok: true, message: "Config saved" });
 		}
@@ -362,13 +387,10 @@ async function handleAPI(req, res, url) {
 			try { payload = JSON.parse(body); } catch { return json(res, { ok: false, message: "Invalid request format" }, 400); }
 			const oldPassword = String(payload.oldPassword || "");
 			const newPassword = String(payload.newPassword || "");
+			if (!newPassword) return json(res, { ok: false, message: "New password is required" }, 400);
 			const auth = config.web?.auth || {};
-			let valid = false;
-			if (auth.passwordHash && auth.salt) {
-				valid = await verifyPassword(oldPassword, auth.salt, auth.passwordHash);
-			} else if (auth.password) {
-				valid = oldPassword === auth.password;
-			}
+			// 与登录一致：支持哈希密码、旧版明文密码、启动时的临时密码
+			const valid = await checkPassword(oldPassword);
 			if (!valid) return json(res, { ok: false, message: "Incorrect old password" }, 401);
 			try {
 				const { salt, hash } = await hashPassword(newPassword);
@@ -424,6 +446,8 @@ async function handleAPI(req, res, url) {
 		}
 		if (pathname === "/api/mods/reload-all" && method === "POST") {
 			reloadConfig();
+			// 重新读取各模组的 manifest / config.json，否则改过的配置重载也不会生效
+			modRegistry.scan();
 			const serverResult = await ServerModManager.reloadAll();
 			const clientResult = await ClientModManager.reloadAllClients();
 			return json(res, {
@@ -486,12 +510,15 @@ async function handleAPI(req, res, url) {
 				}
 				existingEntry = modRegistry.list().find(m => m.name === manifest.name) || null;
 
-				folderName = sanitizeFolderName(resolved.folderName || manifest.name);
+				// 已有同名模组时目标目录取它原来的目录，避免同名模组被安装成两份
+				folderName = existingEntry
+					? path.basename(existingEntry.path)
+					: sanitizeFolderName(resolved.folderName || manifest.name);
 				const targetDir = path.join(modDir, folderName);
 				const targetExists = fs.existsSync(targetDir);
 
 				if (targetExists && !overwrite) {
-					return finish({ ok: false, code: "CONFLICT", name: folderName }, 409);
+					return finish({ ok: false, code: "CONFLICT", name: manifest.name, folder: folderName }, 409);
 				}
 
 				// 覆盖安装：先备份旧版本，失败时才能原样回滚
@@ -681,9 +708,16 @@ async function handleAPI(req, res, url) {
 			const modEntry = modRegistry.list().find(m => m.name === modName);
 			if (!modEntry) return json(res, { ok: false, message: "Mod not found" }, 404);
 			const body = await readBody(req);
-			const newConfig = JSON.parse(body);
+			let newConfig;
+			try {
+				newConfig = JSON.parse(body);
+			} catch {
+				return json(res, { ok: false, message: "Invalid request format" }, 400);
+			}
 			const configPath = path.join(modEntry.path, "config.json");
 			fs.writeFileSync(configPath, JSON.stringify(newConfig, null, "\t") + "\n", "utf-8");
+			// 同步注册表缓存，否则之后的 reload 仍会拿到旧配置
+			modEntry.config = newConfig;
 			return json(res, { ok: true, message: "Config saved" });
 		}
 
@@ -901,7 +935,14 @@ async function handleAPI(req, res, url) {
 const server = http.createServer((req, res) => {
 	const url = new URL(req.url, "http://127.0.0.1");
 	if (url.pathname.startsWith("/api/")) {
-		handleAPI(req, res, url);
+		// 兑底：处理器内部异常不应变成 unhandled rejection（Node 会因此退出进程）
+		handleAPI(req, res, url).catch((e) => {
+			logger.error("API handler error: " + (e?.stack || e));
+			try {
+				if (!res.headersSent) json(res, { ok: false, message: "Internal server error" }, 500);
+				else res.end();
+			} catch {}
+		});
 		return;
 	}
 	let filePath = path.join(DIST_DIR, url.pathname);
