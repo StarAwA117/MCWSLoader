@@ -124,7 +124,10 @@
 	},
 	"mods": {
 		"title": "模组",
-		"reloadAll": "重载全部",
+		"reloadAll": "重载",
+		"reloadTitle": "重载模组",
+		"reloadConfirm": "你确定要重载全部模组吗？",
+		"reloadOneConfirm": "你确定要重载模组「{name}」吗？",
 		"clientMods": "客户端模组",
 		"serverMods": "服务端模组",
 		"enable": "启用",
