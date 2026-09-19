@@ -1,0 +1,5 @@
+{
+	"defaultBlock": "iron_block",
+	"origin": { "x": 0, "y": 0, "z": 0 },
+	"particle": "minecraft:explosion"
+}

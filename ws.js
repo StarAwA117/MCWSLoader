@@ -12,8 +12,9 @@ let server = null;
 
 // Connection tracking for rate limiting
 const connectionAttempts = new Map();
-const RATE_LIMIT_WINDOW = (config.safety && config.safety.rateLimitWindow !== undefined) ? config.safety.rateLimitWindow : 60000;
-const RATE_LIMIT_MAX = (config.safety && config.safety.rateLimitMax !== undefined) ? config.safety.rateLimitMax : 10;
+const connCfg = (config.ws && config.ws.connection) || {};
+const RATE_LIMIT_WINDOW = (connCfg.rateLimitWindow !== undefined) ? connCfg.rateLimitWindow : 60000;
+const RATE_LIMIT_MAX = (connCfg.rateLimitMax !== undefined) ? connCfg.rateLimitMax : 10;
 
 function isRateLimited(ip) {
 	if (RATE_LIMIT_MAX === 0) return false;
@@ -47,9 +48,9 @@ const currentConnections = new Set();
 function createServer() {
 	const server = new WebSocketServer({
 		port: config.ws.port,
-		perMessageDeflate: (config.safety && config.safety.perMessageDeflate) === true,
+		perMessageDeflate: (connCfg.perMessageDeflate) === true,
 		clientTracking: true,
-		maxPayload: (config.safety && config.safety.maxPayload !== undefined) ? config.safety.maxPayload : 0
+		maxPayload: (connCfg.maxPayload !== undefined) ? connCfg.maxPayload : 0
 	});
 
 	server.on("error", (error) => {
@@ -103,8 +104,8 @@ server.on("connection", (ws) => {
 	}
 
 	// Max connections check
-	const MAX_CONNECTIONS = (config.safety && config.safety.maxConnections !== undefined) ? config.safety.maxConnections : 0;
-	const ENABLE_MAX_CONNECTIONS = (config.safety && config.safety.enableMaxConnections === true);
+	const MAX_CONNECTIONS = (connCfg.maxConnections !== undefined) ? connCfg.maxConnections : 0;
+	const ENABLE_MAX_CONNECTIONS = (connCfg.enableMaxConnections === true);
 
 	if (ENABLE_MAX_CONNECTIONS && MAX_CONNECTIONS > 0 && currentConnections.size >= MAX_CONNECTIONS) {
 		logger.warning('Connection rejected: max connections reached');

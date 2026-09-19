@@ -129,31 +129,31 @@ onMounted(refresh);
 					<div class="switch-row">
 						<span class="switch-label">{{ t('settings.enableMaxConnections') }}</span>
 						<label class="switch">
-							<input id="enableMaxConnections" type="checkbox" v-model="config.safety.enableMaxConnections" />
+							<input id="enableMaxConnections" type="checkbox" v-model="config.ws.connection.enableMaxConnections" />
 							<span class="slider"></span>
 						</label>
 					</div>
 					<div class="form-row">
 						<div class="form-group">
 							<label>{{ t('settings.maxConnections') }}</label>
-							<input v-model.number="config.safety.maxConnections" type="number" />
+							<input v-model.number="config.ws.connection.maxConnections" type="number" />
 						</div>
 					</div>
 					<div class="switch-row" style="margin-top: 10px;">
 						<span class="switch-label">{{ t('settings.enableConnectionRateLimit') }}</span>
 						<label class="switch">
-							<input id="enableConnectionRateLimit" type="checkbox" v-model="config.safety.enableConnectionRateLimit" />
+							<input id="enableConnectionRateLimit" type="checkbox" v-model="config.ws.connection.enableConnectionRateLimit" />
 							<span class="slider"></span>
 						</label>
 					</div>
 					<div class="form-row">
 						<div class="form-group">
 							<label>{{ t('settings.connectionWindowMs') }}</label>
-							<input v-model.number="config.safety.rateLimitWindow" type="number" />
+							<input v-model.number="config.ws.connection.rateLimitWindow" type="number" />
 						</div>
 						<div class="form-group">
 							<label>{{ t('settings.maxConnectionsPerWindow') }}</label>
-							<input v-model.number="config.safety.rateLimitMax" type="number" />
+							<input v-model.number="config.ws.connection.rateLimitMax" type="number" />
 						</div>
 					</div>
 				</div>
@@ -165,23 +165,23 @@ onMounted(refresh);
 					<div class="switch-row">
 						<span class="switch-label">{{ t('settings.enableRateLimit') }}</span>
 						<label class="switch">
-							<input id="enableRateLimit" type="checkbox" v-model="config.rateLimit.command.enabled" />
+							<input id="enableRateLimit" type="checkbox" v-model="config.command.rateLimit.enabled" />
 							<span class="slider"></span>
 						</label>
 					</div>
 					<div class="form-row">
 						<div class="form-group">
 							<label>{{ t('settings.windowMsRate') }}</label>
-							<input v-model.number="config.rateLimit.command.windowMs" type="number" />
+							<input v-model.number="config.command.rateLimit.windowMs" type="number" />
 						</div>
 						<div class="form-group">
 							<label>{{ t('settings.maxPerWindow') }}</label>
-							<input v-model.number="config.rateLimit.command.maxPerWindow" type="number" />
+							<input v-model.number="config.command.rateLimit.maxPerWindow" type="number" />
 						</div>
 					</div>
 					<div class="form-group" style="margin-top: 10px;">
 						<label>{{ t('settings.commandMaxLength') }}</label>
-						<input v-model.number="config.safety.commandMaxLength" type="number" />
+						<input v-model.number="config.command.maxLength" type="number" />
 					</div>
 				</div>
 			</div>

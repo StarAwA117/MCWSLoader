@@ -1,0 +1,10 @@
+{
+  "name": "FastBuilder",
+  "description": "MCBE Structure Generator",
+  "version": "1.0.0",
+  "author": "CAIMEO & StarAwA117",
+  "entry": {
+    "server": null,
+    "client": "main.js"
+  }
+}
