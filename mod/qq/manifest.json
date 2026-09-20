@@ -6,5 +6,10 @@
 	"entry": {
 		"server": "main.js",
 		"client": "commands.js"
-	}
+	},
+	"dependencies": [
+		"profanity-guard",
+		"sensitive-word-tool",
+		"node-napcat-ts"
+	]
 }

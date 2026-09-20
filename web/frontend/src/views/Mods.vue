@@ -73,7 +73,6 @@ function importErrorText(res) {
 	switch (res && res.code) {
 		case "INVALID_FORMAT": return t("mods.errInvalidFormat");
 		case "DEPENDENCY_FAILED": return t("mods.errDependency");
-		case "DEPENDENCY_MISSING": return t("mods.errDependencyMissing");
 		case "INSTALL_FAILED": return t("mods.errInstall");
 		default: return (res && res.message) || t("mods.importFailed");
 	}
@@ -252,10 +251,9 @@ onBeforeUnmount(unlockScroll);
 				</label>
 			</div>
 			<div class="mod-bottom">
-				<div class="mod-meta">
-					<span v-if="m.version">v{{ m.version }}</span>
-					<span v-if="m.author">{{ m.author }}</span>
-				</div>
+				<button class="icon-btn delete-btn" :title="t('mods.delete')" @click="deleteMod(m)">
+					<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+				</button>
 				<div class="mod-actions">
 					<button v-if="m.enabled" class="icon-btn" :title="t('mods.reload')" @click="reloadMod(m)" :disabled="reloading[m.name]">
 						<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
@@ -268,9 +266,6 @@ onBeforeUnmount(unlockScroll);
 					</button>
 					<button v-if="m.hasConfig" class="icon-btn" :title="t('mods.config')" @click="openSettings(m)">
 						<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-2.82.48V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15H4.59a1.65 1.65 0 0 0-1.51 1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68V4.59a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9H19.41a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-					</button>
-					<button class="icon-btn delete-btn" :title="t('mods.delete')" @click="deleteMod(m)">
-						<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
 					</button>
 				</div>
 			</div>
@@ -292,9 +287,9 @@ onBeforeUnmount(unlockScroll);
 				<div v-if="modal.type === 'manifest'">
 					<div v-if="modal.manifest" class="manifest-info">
 						<p><b>{{ t('mods.name') }}：</b>{{ modal.manifest.name || modal.modName }}</p>
-						<p><b>{{ t('mods.version') }}：</b>{{ modal.manifest.version || "未知" }}</p>
-						<p><b>{{ t('mods.description') }}：</b>{{ modal.manifest.description || "无" }}</p>
-						<p><b>{{ t('mods.author') }}：</b>{{ modal.manifest.author || "未知" }}</p>
+						<p><b>{{ t('mods.version') }}：</b>{{ modal.manifest.version || t('mods.unknown') }}</p>
+						<p><b>{{ t('mods.description') }}：</b>{{ modal.manifest.description || t('mods.notSet') }}</p>
+						<p><b>{{ t('mods.author') }}：</b>{{ modal.manifest.author || t('mods.unknown') }}</p>
 						<p><b>{{ t('mods.type') }}：</b>{{ modType(modal.mod) }}</p>
 					</div>
 					<div v-else class="empty-state"><p>{{ modal.message || t('mods.noManifest') }}</p></div>
@@ -319,7 +314,6 @@ onBeforeUnmount(unlockScroll);
 .mod-name { font-weight: 600; font-size: 15px; color: var(--text); }
 .mod-desc { font-size: 13px; color: var(--text-secondary); margin-top: 4px; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .mod-bottom { margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
-.mod-meta { display: flex; gap: 10px; font-size: 12px; color: var(--text-muted); align-items: center; }
 .mod-actions { display: flex; gap: 2px; }
 
 .icon-btn {

@@ -6,5 +6,9 @@
 	"entry": {
 		"server": null,
 		"client": "main.js"
-	}
+	},
+	"dependencies": [
+		"pngjs",
+		"jpeg-js"
+	]
 }

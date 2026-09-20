@@ -6,5 +6,8 @@
 	"entry": {
 		"server": "main.js",
 		"client": "main.js"
-	}
+	},
+	"dependencies": [
+		"openai"
+	]
 }

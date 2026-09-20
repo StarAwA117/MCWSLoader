@@ -531,7 +531,8 @@ async function handleAPI(req, res, url) {
 				installed = true;
 				copyMerge(resolved.root, targetDir);
 
-				await installDependencies(manifest, modDir, { tmpBase });
+				// dependencies 为 npm 包名列表，安装到项目根目录
+				await installDependencies(manifest, path.join(__dirname, ".."));
 
 				modRegistry.scan();
 				await ServerModManager.reloadAll();

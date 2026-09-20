@@ -1,6 +1,6 @@
 # Commands
 
-All commands use the prefix defined in `config.json` (`commandPrefix`, default `!`). Parameters in `[brackets]` are optional.
+All commands use the prefix defined in `config.json` (`commandPrefix`, default `$`), so the command named `t:help` is typed as `$t:help` in game chat. Parameters in `[brackets]` are optional.
 
 ## Permission Levels
 

@@ -6,5 +6,8 @@
 	"entry": {
 		"server": null,
 		"client": "main.js"
-	}
+	},
+	"dependencies": [
+		"ws"
+	]
 }
