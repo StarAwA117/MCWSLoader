@@ -4,6 +4,7 @@ import { api } from "../api";
 import ConfigField from "../components/ConfigField.vue";
 import { useI18n } from "../composables/useI18n";
 import { useModal } from "../composables/useModal";
+import { renderMarkdown } from "../utils/markdown";
 
 const { t } = useI18n();
 const { alert: showAlert, confirm: showConfirm } = useModal();
@@ -18,6 +19,9 @@ const sortedMods = computed(() => [...mods.value].sort((a, b) => {
 	if (a.enabled !== b.enabled) return b.enabled - a.enabled;
 	return a.name.localeCompare(b.name);
 }));
+
+// README 只在内容变化时解析一次，避免无关状态更新触发重复渲染
+const readmeHtml = computed(() => renderMarkdown(modal.value.readme));
 
 async function refresh() {
 	const data = await api.getMods();
@@ -211,19 +215,6 @@ function modType(m) {
 	return t("mods.typeClient");
 }
 
-function simpleMd(text) {
-	if (!text) return "";
-	return text
-		.replace(/^### (.+)$/gm, '<h3>$1</h3>')
-		.replace(/^## (.+)$/gm, '<h2>$1</h2>')
-		.replace(/^# (.+)$/gm, '<h1>$1</h1>')
-		.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-		.replace(/`([^`]+)`/g, '<code>$1</code>')
-		.replace(/^- (.+)$/gm, '<li>$1</li>')
-		.replace(/(<li>.*<\/li>\n?)+/g, '<ul>$&</ul>')
-		.replace(/\n/g, '<br>');
-}
-
 onMounted(() => { refresh().catch(() => {}); });
 onBeforeUnmount(unlockScroll);
 </script>
@@ -295,7 +286,7 @@ onBeforeUnmount(unlockScroll);
 					<div v-else class="empty-state"><p>{{ modal.message || t('mods.noManifest') }}</p></div>
 				</div>
 
-				<div v-if="modal.type === 'readme'" class="modal-markdown" v-html="simpleMd(modal.readme)"></div>
+				<div v-if="modal.type === 'readme'" class="modal-markdown" v-html="readmeHtml"></div>
 			</div>
 			<div v-if="modal.type === 'settings' && modal.config" class="modal-footer">
 				<span v-if="modal.message" class="modal-msg">{{ modal.message }}</span>
