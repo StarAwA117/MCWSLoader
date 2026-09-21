@@ -4,6 +4,9 @@ permission.json
 mod/**/config.json
 mod/mods_config.json
 
+# Notes
+notes.md
+
 # Resources
 resources/*
 
