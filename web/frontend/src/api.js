@@ -1,3 +1,5 @@
+import { useI18n } from "./composables/useI18n";
+
 const BASE = "/api";
 
 function getToken() {
@@ -13,14 +15,20 @@ async function request(path, options = {}) {
 		...options
 	});
 	if (res.status === 401) {
-		const data = await res.json().catch(() => ({}));
 		sessionStorage.removeItem("auth_token");
 		if (window.location.pathname !== "/login") {
 			window.location.href = "/login";
 		}
-		return { ok: false, message: "未授权" };
+		return { ok: false, message: useI18n().t("common.unauthorized") };
 	}
-	return res.json();
+	// 非 JSON 响应（空响应体 / 网关错误页等）不应让调用方抛异常
+	const text = await res.text().catch(() => "");
+	if (!text) return { ok: false, message: `HTTP ${res.status}` };
+	try {
+		return JSON.parse(text);
+	} catch {
+		return { ok: false, message: `HTTP ${res.status}` };
+	}
 }
 
 export async function loginWithPassword(pwd) {
@@ -41,6 +49,18 @@ export const api = {
 	enableMod: (name) => request(`/mods/${encodeURIComponent(name)}/enable`, { method: "POST" }),
 	disableMod: (name) => request(`/mods/${encodeURIComponent(name)}/disable`, { method: "POST" }),
 	reloadMod: (name) => request(`/mods/${encodeURIComponent(name)}/reload`, { method: "POST" }),
+	importMod: (file, overwrite = false) => {
+		const form = new FormData();
+		form.append("file", file);
+		return fetch(`/api/mods/import${overwrite ? "?overwrite=1" : ""}`, {
+			method: "POST",
+			body: form,
+			headers: {
+				"X-Auth-Token": getToken()
+			}
+		}).then(res => res.json()).catch(e => ({ ok: false, code: "NETWORK", message: e.message }));
+	},
+	deleteMod: (name) => request(`/mods/${encodeURIComponent(name)}/delete`, { method: "POST" }),
 	getModConfig: (name) => request(`/mods/${encodeURIComponent(name)}/config`),
 	saveModConfig: (name, cfg) => request(`/mods/${encodeURIComponent(name)}/config`, { method: "PUT", body: JSON.stringify(cfg) }),
 	getModManifest: (name) => request(`/mods/${encodeURIComponent(name)}/manifest`),

@@ -11,6 +11,8 @@ import PermissionManager from "../lib/permission.js";
 import Command from "../lib/command.js";
 import { logger } from "../lib/logger.js";
 import { collectCommands as collectTerminalCommands } from "../lib/readline.js";
+import { parseMultipartBody } from "../lib/multipart.js";
+import { extractZip, resolveModRoot, readManifest, copyMerge, removeDir, sanitizeFolderName, installDependencies, makeTempDir, makeTempPath, moveDir } from "../lib/modinstall.js";
 
 const execAsync = promisify(exec);
 const execFileAsync = promisify(execFile);
@@ -122,6 +124,10 @@ async function checkPassword(password) {
 	if (auth.passwordHash && auth.salt) {
 		return await verifyPassword(password, auth.salt, auth.passwordHash);
 	}
+	// 兼容旧版明文密码
+	if (auth.password) {
+		return password === auth.password;
+	}
 	if (temporaryPassword && password === temporaryPassword) {
 		return true;
 	}
@@ -213,6 +219,37 @@ function serveStatic(res, filePath) {
 		headers["Cache-Control"] = "public, max-age=3600";
 		res.writeHead(200, headers);
 		fs.createReadStream(filePath).on("error", (e) => { res.destroy(e); }).pipe(res);
+	}
+}
+
+// 卸载已加载的模组实例（服务端/客户端），不删除文件
+function unloadMod(modEntry) {
+	if (!modEntry) return;
+	if (modEntry.entry?.server) {
+		const sm = ServerModManager._inst();
+		if (sm && sm.modInstances && sm.modInstances[modEntry.name]) {
+			const inst = sm.modInstances[modEntry.name];
+			const dm = sm._resolveMethod(inst, "onDestroy") || sm._resolveMethod(inst, "destroy");
+			if (dm) { try { dm.fn.apply(dm.ctx); } catch {} }
+			eventBus.clearMod(modEntry.name);
+			delete sm.modInstances[modEntry.name];
+			delete ServerModManager.loadedMod[modEntry.name];
+		}
+	}
+	if (modEntry.entry?.client) {
+		for (const [, mgr] of Current.clientMods) {
+			if (!mgr) continue;
+			if (mgr.modInstances && mgr.modInstances[modEntry.name]) {
+				const dm = mgr._resolveModMethod(mgr.modInstances[modEntry.name], "onDestroy") || mgr._resolveModMethod(mgr.modInstances[modEntry.name], "destroy");
+				if (dm) { try { dm.fn.apply(dm.ctx); } catch {} }
+				delete mgr.modInstances[modEntry.name];
+				if (mgr.sapi && typeof mgr.sapi.clearMod === "function") mgr.sapi.clearMod(modEntry.name);
+				if (mgr.client && mgr.client.utils && typeof mgr.client.utils.removeOwner === "function") mgr.client.utils.removeOwner(modEntry.name);
+				delete ClientModManager.loadedMod[modEntry.name];
+				if (mgr.client) mgr.client[modEntry.name] = null;
+				if (typeof mgr._collectCommands === "function") mgr._collectCommands();
+			}
+		}
 	}
 }
 
@@ -314,8 +351,29 @@ async function handleAPI(req, res, url) {
 		}
 		if (pathname === "/api/config" && method === "PUT") {
 			const body = await readBody(req);
-			const newCfg = JSON.parse(body);
-			fs.writeFileSync(CONFIG_PATH, JSON.stringify(newCfg, null, "\t") + "\n", "utf-8");
+			let newCfg;
+			try {
+				newCfg = JSON.parse(body);
+			} catch {
+				return json(res, { ok: false, message: "Invalid request format" }, 400);
+			}
+			if (!newCfg || typeof newCfg !== "object") {
+				return json(res, { ok: false, message: "Invalid request format" }, 400);
+			}
+			// GET /api/config 会对敏感字段脱敏，保存时不能把脱敏后的值写回磁盘
+			if (newCfg.web?.auth) {
+				if (!newCfg.web.auth.passwordHash && config.web?.auth?.passwordHash) newCfg.web.auth.passwordHash = config.web.auth.passwordHash;
+				if (!newCfg.web.auth.salt && config.web?.auth?.salt) newCfg.web.auth.salt = config.web.auth.salt;
+			}
+			if (newCfg.ai?.options && newCfg.ai.options.apiKey === "***" && config.ai?.options?.apiKey) {
+				newCfg.ai.options.apiKey = config.ai.options.apiKey;
+			}
+			try {
+				fs.writeFileSync(CONFIG_PATH, JSON.stringify(newCfg, null, "\t") + "\n", "utf-8");
+			} catch (e) {
+				logger.error("Config save failed: " + e.message);
+				return json(res, { ok: false, message: "Failed to write config: " + e.message }, 500);
+			}
 			reloadConfig();
 			return json(res, { ok: true, message: "Config saved" });
 		}
@@ -329,13 +387,10 @@ async function handleAPI(req, res, url) {
 			try { payload = JSON.parse(body); } catch { return json(res, { ok: false, message: "Invalid request format" }, 400); }
 			const oldPassword = String(payload.oldPassword || "");
 			const newPassword = String(payload.newPassword || "");
+			if (!newPassword) return json(res, { ok: false, message: "New password is required" }, 400);
 			const auth = config.web?.auth || {};
-			let valid = false;
-			if (auth.passwordHash && auth.salt) {
-				valid = await verifyPassword(oldPassword, auth.salt, auth.passwordHash);
-			} else if (auth.password) {
-				valid = oldPassword === auth.password;
-			}
+			// 与登录一致：支持哈希密码、旧版明文密码、启动时的临时密码
+			const valid = await checkPassword(oldPassword);
 			if (!valid) return json(res, { ok: false, message: "Incorrect old password" }, 401);
 			try {
 				const { salt, hash } = await hashPassword(newPassword);
@@ -391,6 +446,8 @@ async function handleAPI(req, res, url) {
 		}
 		if (pathname === "/api/mods/reload-all" && method === "POST") {
 			reloadConfig();
+			// 重新读取各模组的 manifest / config.json，否则改过的配置重载也不会生效
+			modRegistry.scan();
 			const serverResult = await ServerModManager.reloadAll();
 			const clientResult = await ClientModManager.reloadAllClients();
 			return json(res, {
@@ -398,6 +455,136 @@ async function handleAPI(req, res, url) {
 				server: { success: serverResult.success, failed: serverResult.failed },
 				client: { success: clientResult.success.length, failed: clientResult.failed }
 			});
+		}
+
+		// Mod import
+		if (pathname === "/api/mods/import" && method === "POST") {
+			const overwrite = url.searchParams.get("overwrite") === "1";
+			const modDir = path.join(__dirname, "..", "mod");
+			const tmpBase = path.join(__dirname, "..", "tmp");
+			let tempDir = null;
+			let backupPath = null;
+			let folderName = null;
+			let installed = false;
+			let manifest = null;
+			let existingEntry = null;
+			// 先清理临时文件再回响应，避免响应早于清理完成
+			const finish = (payload, status) => {
+				if (tempDir) removeDir(tempDir);
+				if (backupPath) removeDir(backupPath);
+				return json(res, payload, status);
+			};
+			try {
+				const contentType = req.headers["content-type"] || "";
+				if (!contentType.includes("multipart/form-data")) {
+					return finish({ ok: false, code: "INVALID_FORMAT", message: "Invalid content type" }, 400);
+				}
+
+				const chunks = [];
+				for await (const chunk of req) chunks.push(chunk);
+				const parts = parseMultipartBody(Buffer.concat(chunks), contentType);
+				const filePart = parts?.file;
+				if (!filePart || !filePart.buffer) {
+					return finish({ ok: false, code: "INVALID_FORMAT", message: "No file uploaded" }, 400);
+				}
+
+				const uploadName = String(filePart.filename || "mod.zip").toLowerCase();
+				if (!uploadName.endsWith(".wsmod") && !uploadName.endsWith(".zip")) {
+					return finish({ ok: false, code: "INVALID_FORMAT", message: "Unsupported file type" }, 400);
+				}
+
+				tempDir = makeTempDir(tmpBase, "mod_import_");
+				const zipPath = path.join(tempDir, "upload.zip");
+				fs.writeFileSync(zipPath, filePart.buffer);
+
+				const extractDir = path.join(tempDir, "extract");
+				await extractZip(zipPath, extractDir);
+
+				const resolved = resolveModRoot(extractDir);
+				if (!resolved) {
+					return finish({ ok: false, code: "INVALID_FORMAT", message: "Missing manifest.json" }, 400);
+				}
+				manifest = readManifest(resolved.root);
+				if (!manifest || !manifest.name) {
+					return finish({ ok: false, code: "INVALID_FORMAT", message: "Invalid manifest.json: name is required" }, 400);
+				}
+				existingEntry = modRegistry.list().find(m => m.name === manifest.name) || null;
+
+				// 已有同名模组时目标目录取它原来的目录，避免同名模组被安装成两份
+				folderName = existingEntry
+					? path.basename(existingEntry.path)
+					: sanitizeFolderName(resolved.folderName || manifest.name);
+				const targetDir = path.join(modDir, folderName);
+				const targetExists = fs.existsSync(targetDir);
+
+				if (targetExists && !overwrite) {
+					return finish({ ok: false, code: "CONFLICT", name: manifest.name, folder: folderName }, 409);
+				}
+
+				// 覆盖安装：先备份旧版本，失败时才能原样回滚
+				if (targetExists) {
+					backupPath = makeTempPath(tmpBase, "mod_backup_");
+					copyMerge(targetDir, backupPath);
+				}
+
+				// 覆盖时仅覆盖压缩包中出现的文件，未出现的保留
+				installed = true;
+				copyMerge(resolved.root, targetDir);
+
+				// dependencies 为 npm 包名列表，安装到项目根目录
+				await installDependencies(manifest, path.join(__dirname, ".."));
+
+				modRegistry.scan();
+				await ServerModManager.reloadAll();
+				await ClientModManager.reloadAllClients();
+				collectTerminalCommands(ServerModManager, ClientModManager);
+				return finish({ ok: true, name: manifest.name, folder: folderName });
+			} catch (e) {
+				logger.error("Mod import failed: " + e.message);
+				// 导入中途失败：恢复现场，避免留下半成品
+				if (installed && folderName) {
+					const targetDir = path.join(modDir, folderName);
+					if (existingEntry) unloadMod(existingEntry);
+					if (backupPath) {
+						// 覆盖失败：回滚到旧版本
+						removeDir(targetDir);
+						try {
+							moveDir(backupPath, targetDir);
+							backupPath = null;
+							logger.warning(`Mod "${folderName}" import failed, rolled back to previous version`);
+						} catch (re) {
+							logger.error(`Rollback failed for "${folderName}": ${re.message}`);
+						}
+					} else {
+						// 全新安装失败：删除半成品并从 mods_config.json 移除
+						removeDir(targetDir);
+						modRegistry.forget(folderName);
+						if (manifest?.uuid) modRegistry.forget(manifest.uuid);
+					}
+					try {
+						modRegistry.scan();
+						await ServerModManager.reloadAll();
+						await ClientModManager.reloadAllClients();
+						collectTerminalCommands(ServerModManager, ClientModManager);
+					} catch {}
+				}
+				return finish({ ok: false, code: e.code || "INSTALL_FAILED", message: e.message }, 500);
+			}
+		}
+
+		// Mod delete
+		const modDeleteMatch = pathname.match(/^\/api\/mods\/(.+)\/delete$/);
+		if (modDeleteMatch && method === "POST") {
+			const modName = decodeURIComponent(modDeleteMatch[1]);
+			const modEntry = modRegistry.list().find(m => m.name === modName);
+			if (!modEntry) return json(res, { ok: false, message: "Mod not found" }, 404);
+			unloadMod(modEntry);
+			const r = modRegistry.remove(modEntry.id);
+			if (!r.ok) return json(res, { ok: false, message: r.message }, 500);
+			await ServerModManager.reloadAll();
+			await ClientModManager.reloadAllClients();
+			collectTerminalCommands(ServerModManager, ClientModManager);
+			return json(res, { ok: true, name: modEntry.name });
 		}
 
 		// Mod enable/disable
@@ -522,9 +709,16 @@ async function handleAPI(req, res, url) {
 			const modEntry = modRegistry.list().find(m => m.name === modName);
 			if (!modEntry) return json(res, { ok: false, message: "Mod not found" }, 404);
 			const body = await readBody(req);
-			const newConfig = JSON.parse(body);
+			let newConfig;
+			try {
+				newConfig = JSON.parse(body);
+			} catch {
+				return json(res, { ok: false, message: "Invalid request format" }, 400);
+			}
 			const configPath = path.join(modEntry.path, "config.json");
 			fs.writeFileSync(configPath, JSON.stringify(newConfig, null, "\t") + "\n", "utf-8");
+			// 同步注册表缓存，否则之后的 reload 仍会拿到旧配置
+			modEntry.config = newConfig;
 			return json(res, { ok: true, message: "Config saved" });
 		}
 
@@ -742,7 +936,14 @@ async function handleAPI(req, res, url) {
 const server = http.createServer((req, res) => {
 	const url = new URL(req.url, "http://127.0.0.1");
 	if (url.pathname.startsWith("/api/")) {
-		handleAPI(req, res, url);
+		// 兑底：处理器内部异常不应变成 unhandled rejection（Node 会因此退出进程）
+		handleAPI(req, res, url).catch((e) => {
+			logger.error("API handler error: " + (e?.stack || e));
+			try {
+				if (!res.headersSent) json(res, { ok: false, message: "Internal server error" }, 500);
+				else res.end();
+			} catch {}
+		});
 		return;
 	}
 	let filePath = path.join(DIST_DIR, url.pathname);

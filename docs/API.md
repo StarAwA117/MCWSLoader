@@ -261,12 +261,18 @@ REST API served by the WebUI backend. All endpoints require `X-Auth-Token` heade
 |--------|----------|-------------|
 | `GET` | `/api/status` | Server status, connections, mods, SAPI state |
 
+### Auth
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/api/auth/change-password` | Change the WebUI password (`{ oldPassword, newPassword }`). The startup temporary password is accepted as `oldPassword`. Invalidates the current session. |
+
 ### Configuration
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| `GET` | `/api/config` | Get config (`apiKey` masked) |
-| `PUT` | `/api/config` | Save config to disk and reload |
+| `GET` | `/api/config` | Get config. Secrets are masked: `web.auth.passwordHash`/`salt` become `""`, `ai.options.apiKey` becomes `"***"`. |
+| `PUT` | `/api/config` | Save config to disk and reload. Masked secrets sent back unchanged are preserved (not overwritten with the placeholder). |
 
 ### Permissions
 
@@ -283,6 +289,8 @@ REST API served by the WebUI backend. All endpoints require `X-Auth-Token` heade
 |--------|----------|-------------|
 | `GET` | `/api/mods` | List all loaded Mods |
 | `POST` | `/api/mods/reload-all` | Reload config + all Mods |
+| `POST` | `/api/mods/import` | Import a Mod archive (`multipart/form-data`, field `file`, `.wsmod`/`.zip`). Add `?overwrite=1` to overwrite an existing Mod. Responses: `{ ok: true, name, folder }`; `409` + `code: "CONFLICT"` with `{ name, folder }` when the Mod already exists and `overwrite` was not set; `400` + `code: "INVALID_FORMAT"` for a bad archive; `500` with `code: "DEPENDENCY_FAILED"` / `"INSTALL_FAILED"` on install failure. |
+| `POST` | `/api/mods/:name/delete` | Delete a Mod (folder + `mods_config.json` entry) |
 | `POST` | `/api/mods/:name/enable` | Enable a Mod |
 | `POST` | `/api/mods/:name/disable` | Disable a Mod |
 | `POST` | `/api/mods/:name/reload` | Reload a single Mod |

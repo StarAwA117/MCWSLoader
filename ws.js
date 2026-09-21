@@ -2,7 +2,7 @@ import { WebSocketServer } from "ws";
 import { v4 as uuidv4 } from "uuid";
 import { logger } from "./lib/logger.js";
 import { closeLogStreams } from "./lib/logger.js";
-import { config, ClientModManager, ServerModManager, modRegistry } from "./lib/mods.js";
+import { config, ClientModManager, ServerModManager, modRegistry, checkModDependencies } from "./lib/mods.js";
 import Utils from "./lib/utils.js";
 import Current from "./lib/current.js";
 import { startWebServer } from "./web/server.js";
@@ -79,7 +79,8 @@ function createServer() {
 	return server;
 }
 
-// Scan and load mods
+// Check/install mod dependencies first, then scan and load mods
+await checkModDependencies();
 modRegistry.scan();
 await ServerModManager.load();
 await ClientModManager.load();

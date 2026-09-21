@@ -124,7 +124,11 @@
 	},
 	"mods": {
 		"title": "Mods",
-		"reloadAll": "Reload All",
+		"reloadAll": "Reload",
+		"reloadTitle": "Reload Mod",
+		"reloadConfirm": "Are you sure you want to reload all mods?",
+		"reloadOneConfirm": "Are you sure you want to reload mod \"{name}\"?",
+		"toggleFailed": "Failed to change mod state",
 		"clientMods": "Client Mods",
 		"serverMods": "Server Mods",
 		"enable": "Enable",
@@ -141,11 +145,33 @@
 		"version": "Version",
 		"description": "Description",
 		"author": "Author",
+		"unknown": "Unknown",
+		"notSet": "None",
 		"type": "Type",
 		"typeBoth": "Both",
 		"typeServer": "Server",
 		"typeClient": "Client",
-		"none": "No mods"
+		"none": "No mods",
+		"import": "Import",
+		"importTooltip": "Import .wsmod or .zip mod",
+		"importTitle": "Import Mod",
+		"importSuccess": "Mod imported",
+		"importFailed": "Import failed",
+		"overwriteTitle": "Overwrite Mod",
+		"overwriteConfirm": "Mod \"{name}\" already exists. Overwrite it?\nFiles not included in this archive will be kept.",
+		"errInvalidFormat": "Invalid mod format",
+		"errDependency": "Dependency installation failed",
+		"errInstall": "Mod installation failed",
+		"delete": "Delete",
+		"deleteTitle": "Delete Mod",
+		"deleteConfirm": "Are you sure you want to delete this mod?",
+		"deleteSuccess": "Mod deleted",
+		"deleteFailed": "Delete failed",
+		"deleteNotFound": "Mod not found",
+		"invalidMod": "Invalid mod: missing manifest.json",
+		"downloadingDependency": "Downloading dependency: {name}",
+		"dependencyDownloadFailed": "Dependency download failed: {name}",
+		"dependencyMissing": "Missing dependency: {name}"
 	},
 	"permissions": {
 		"title": "Permissions",
@@ -243,6 +269,8 @@
 		"maxConnectionsPerWindow": "Max Connections Per Window",
 		"commandMaxLength": "Command Max Length (bytes)",
 		"connectionSettings": "Connection Settings",
-		"commandSettings": "Command Settings"
+		"commandSettings": "Command Settings",
+		"checkDependenciesOnLoad": "Check dependencies on load",
+		"dependencySettings": "Dependency Settings"
 	}
 }

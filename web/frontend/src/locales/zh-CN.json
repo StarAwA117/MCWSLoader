@@ -124,7 +124,11 @@
 	},
 	"mods": {
 		"title": "模组",
-		"reloadAll": "重载全部",
+		"reloadAll": "重载",
+		"reloadTitle": "重载模组",
+		"reloadConfirm": "你确定要重载全部模组吗？",
+		"reloadOneConfirm": "你确定要重载模组「{name}」吗？",
+		"toggleFailed": "切换模组状态失败",
 		"clientMods": "客户端模组",
 		"serverMods": "服务端模组",
 		"enable": "启用",
@@ -141,11 +145,33 @@
 		"version": "版本",
 		"description": "简介",
 		"author": "作者",
+		"unknown": "未知",
+		"notSet": "无",
 		"type": "类型",
 		"typeBoth": "双端互通",
 		"typeServer": "仅服务端",
 		"typeClient": "仅客户端",
-		"none": "暂无插件"
+		"none": "暂无插件",
+		"import": "导入",
+		"importTooltip": "导入 .wsmod 或 .zip 模组",
+		"importTitle": "导入模组",
+		"importSuccess": "模组已导入",
+		"importFailed": "导入失败",
+		"overwriteTitle": "覆盖模组",
+		"overwriteConfirm": "模组「{name}」已存在，是否覆盖？\n覆盖时不会删除本次压缩包中未包含的文件。",
+		"errInvalidFormat": "模组格式错误",
+		"errDependency": "依赖安装错误",
+		"errInstall": "模组安装失败",
+		"delete": "删除",
+		"deleteTitle": "删除模组",
+		"deleteConfirm": "你确定要删除本模组吗？",
+		"deleteSuccess": "模组已删除",
+		"deleteFailed": "删除失败",
+		"deleteNotFound": "模组不存在",
+		"invalidMod": "无效的模组：缺少 manifest.json",
+		"downloadingDependency": "正在下载依赖：{name}",
+		"dependencyDownloadFailed": "依赖下载失败：{name}",
+		"dependencyMissing": "缺少依赖：{name}"
 	},
 	"permissions": {
 		"title": "权限",
@@ -243,6 +269,8 @@
 		"maxConnectionsPerWindow": "窗口内最大连接数",
 		"commandMaxLength": "命令最大长度（字节）",
 		"connectionSettings": "连接设置",
-		"commandSettings": "命令设置"
+		"commandSettings": "命令设置",
+		"checkDependenciesOnLoad": "启动时检查依赖",
+		"dependencySettings": "依赖设置"
 	}
 }

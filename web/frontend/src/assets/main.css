@@ -488,13 +488,34 @@ body.modal-open { overflow: hidden; }
 }
 .modal-select:focus { border-color: var(--border-focus); box-shadow: 0 0 0 3px var(--primary-dim); }
 .modal-msg { margin-right: auto; font-size: 13px; color: var(--text-muted); }
-.modal-markdown { font-size: 13px; line-height: 1.7; color: var(--text-secondary); }
-.modal-markdown h1, .modal-markdown h2, .modal-markdown h3 { color: var(--text); margin: 12px 0 6px; }
+.modal-markdown { font-size: 13px; line-height: 1.7; color: var(--text-secondary); overflow-wrap: anywhere; }
+.modal-markdown > :first-child { margin-top: 0; }
+.modal-markdown > :last-child { margin-bottom: 0; }
+.modal-markdown h1, .modal-markdown h2, .modal-markdown h3, .modal-markdown h4, .modal-markdown h5, .modal-markdown h6 { color: var(--text); margin: 16px 0 6px; line-height: 1.35; }
+.modal-markdown h1 { font-size: 18px; }
+.modal-markdown h2 { font-size: 16px; padding-bottom: 4px; border-bottom: 1px solid var(--border); }
+.modal-markdown h3 { font-size: 14px; }
+.modal-markdown h4, .modal-markdown h5, .modal-markdown h6 { font-size: 13px; }
 .modal-markdown p { margin: 6px 0; }
-.modal-markdown code { background: var(--bg-input); padding: 1px 4px; border-radius: 3px; font-size: 12px; }
-.modal-markdown pre { background: var(--bg-input); padding: 10px; border-radius: 6px; overflow-x: auto; }
+.modal-markdown a { color: var(--primary); text-decoration: none; }
+.modal-markdown a:hover { text-decoration: underline; }
+.modal-markdown strong { color: var(--text); }
+.modal-markdown hr { border: none; border-top: 1px solid var(--border); margin: 14px 0; }
+.modal-markdown code { background: var(--bg-input); padding: 1px 4px; border-radius: 3px; font-size: 12px; color: var(--text); word-break: break-word; }
+.modal-markdown pre { background: var(--bg-input); padding: 10px; border-radius: 6px; overflow-x: auto; margin: 8px 0; }
+.modal-markdown pre code { background: none; padding: 0; font-size: 12px; line-height: 1.6; word-break: normal; }
 .modal-markdown ul, .modal-markdown ol { padding-left: 20px; margin: 6px 0; }
+.modal-markdown ul { list-style: disc; }
+.modal-markdown ol { list-style: decimal; }
+.modal-markdown ul ul { list-style: circle; }
 .modal-markdown li { margin: 2px 0; }
+.modal-markdown li > ul, .modal-markdown li > ol { margin: 2px 0; }
+.modal-markdown blockquote { margin: 8px 0; padding: 2px 10px; border-left: 3px solid var(--border); color: var(--text-muted); }
+.modal-markdown blockquote p { margin: 4px 0; }
+.modal-markdown table { border-collapse: collapse; margin: 8px 0; display: block; max-width: 100%; overflow-x: auto; }
+.modal-markdown th, .modal-markdown td { border: 1px solid var(--border); padding: 4px 8px; text-align: left; vertical-align: top; }
+.modal-markdown th { background: var(--bg-input); color: var(--text); font-weight: 600; white-space: nowrap; }
+.modal-markdown img { max-width: 100%; height: auto; border-radius: 4px; }
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 @keyframes slideUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes slideDown { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
