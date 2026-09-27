@@ -5,7 +5,7 @@ import crypto from "crypto";
 import { exec, execFile } from "child_process";
 import { promisify } from "util";
 import { fileURLToPath } from "url";
-import { config, reloadConfig, eventBus, ServerModManager, ClientModManager, modRegistry } from "../lib/mods.js";
+import { config, reloadConfig, eventBus, ServerModManager, ClientModManager, modRegistry, resolveModuleUrl, resolveCaseInsensitivePath } from "../lib/mods.js";
 import Current from "../lib/current.js";
 import PermissionManager from "../lib/permission.js";
 import Command from "../lib/command.js";
@@ -602,8 +602,8 @@ async function handleAPI(req, res, url) {
 					}
 					if (modEntry.entry.client) {
 						const ts = Date.now();
-						const modPath = path.join(modEntry.path, modEntry.entry.client);
-						const modModule = await import(`${modPath}?t=${ts}`);
+						const modPath = resolveCaseInsensitivePath(modEntry.path, modEntry.entry.client);
+						const modModule = await import(resolveModuleUrl(modPath, ts));
 						if (modModule.default) {
 							modEntry.clientClass = modModule.default;
 							ClientModManager.loadedMod[modEntry.name] = modModule.default;

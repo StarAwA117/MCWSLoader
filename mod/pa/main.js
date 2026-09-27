@@ -61,14 +61,21 @@ class PA {
 			if (envOverride && fs.existsSync(envOverride)) return envOverride;
 			const candidates = [];
 			try {
-				const res = spawnSync("npm", ["root", "-g"], { timeout: 5000, encoding: "utf8", shell: true });
+				const shellOpt = process.platform === "win32" ? true : (process.env.SHELL || false);
+				const res = spawnSync("npm", ["root", "-g"], { timeout: 5000, encoding: "utf8", shell: shellOpt });
 				const root = (res.stdout || "").trim();
 				if (root) candidates.push(path.join(root, pkgName, relPath));
 			} catch {}
 			candidates.push(path.join("/usr/lib/node_modules", pkgName, relPath));
+			candidates.push(path.join("/usr/local/lib/node_modules", pkgName, relPath));
 			if (process.platform === "win32") {
 				candidates.push(path.join(process.env.APPDATA || "", "npm", "node_modules", pkgName, relPath));
 			}
+			// Android (Termux) global node_modules paths
+			const termuxPrefix = process.env.PREFIX || "/data/data/com.termux/files/usr";
+			candidates.push(path.join(termuxPrefix, "lib", "node_modules", pkgName, relPath));
+			candidates.push(path.join("/data/data/com.termux/files/usr/lib/node_modules", pkgName, relPath));
+
 			for (const c of candidates) { if (fs.existsSync(c)) return c; }
 			return null;
 		}
