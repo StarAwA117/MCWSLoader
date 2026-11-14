@@ -1,0 +1,31 @@
+{
+	"compilerOptions": {
+		"target": "ES2022",
+		"lib": ["ES2023"],
+		"module": "NodeNext",
+		"moduleResolution": "NodeNext",
+		"types": ["node"],
+		"strict": true,
+		"noEmit": true,
+		"allowJs": true,
+		"checkJs": false,
+		"esModuleInterop": true,
+		"forceConsistentCasingInFileNames": true,
+		"skipLibCheck": true,
+		"resolveJsonModule": true,
+		"noUncheckedIndexedAccess": false,
+		"noImplicitOverride": true,
+		"useUnknownInCatchVariables": true
+	},
+	"include": [
+		"main.js",
+		"main.ts",
+		"ws.js",
+		"ws.ts",
+		"lib/**/*",
+		"web/server.js",
+		"web/server.ts",
+		"types/**/*.d.ts"
+	],
+	"exclude": ["node_modules", "web/frontend", "mod", "resources", "tmp", "logs"]
+}

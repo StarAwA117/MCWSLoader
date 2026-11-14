@@ -10,6 +10,18 @@ import { SAPIMessageHandler } from "./sapi.js";
 import { installNpmDependency, parseDependency } from "./modinstall.js";
 import { resolveCaseInsensitivePath, resolveModuleUrl } from "./paths.js";
 import PermissionManager from "./permission.js";
+import type { AppConfig } from "../types/config.js";
+import type { Client } from "../types/client.js";
+import type { ModConstructor, ModEntry, ModSAPI } from "../types/mod.js";
+import type { CommandResponse } from "../types/config.js";
+
+type AnyRecord = Record<string, any>;
+type ModClass = ModConstructor;
+type ModsConfigMap = Map<string, { enabled: boolean }>;
+interface ResolvedMethod {
+	fn: (...args: any[]) => unknown;
+	ctx: unknown;
+}
 
 // Default client mod class (auto-loaded, no manifest scanning)
 import DefaultTool from "./tool.js";
@@ -17,10 +29,10 @@ import DefaultTool from "./tool.js";
 // Terminal readline lib
 import * as terminal from "./readline.js";
 
-const DEFAULT_CLIENT_MODS = { tool: DefaultTool };
+const DEFAULT_CLIENT_MODS: Record<string, ModClass> = { tool: DefaultTool as unknown as ModClass };
 
 // 权限等级对应表（与 PermissionManager 保持一致）
-const TIER_LEVELS = { normal: 0, user: 1, op: 2, owner: 3 };
+const TIER_LEVELS: Record<string, number> = { normal: 0, user: 1, op: 2, owner: 3 };
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -30,21 +42,21 @@ const MODS_CONFIG_PATH = path.join(MOD_DIR, "mods_config.json");
 
 // ==================== Global Config ====================
 
-let rawConfig;
+let rawConfig: string;
 try {
 	rawConfig = fs.readFileSync(CONFIG_PATH, "utf-8");
 } catch (e) {
-	throw new Error(`Failed to read config.json: ${e.message}`);
+	throw new Error(`Failed to read config.json: ${(e as Error).message}`);
 }
-export const config = JSON.parse(rawConfig);
+export const config = JSON.parse(rawConfig) as AppConfig;
 
 // 兼容旧版配置结构，将 safety/顶层 rateLimit 迁移到新路径
-function normalizeConfig(cfg) {
+function normalizeConfig(cfg: AnyRecord): AnyRecord {
 	if (!cfg || typeof cfg !== "object") return cfg;
-	const conn = (cfg.ws && cfg.ws.connection) || {};
-	const cmd = (cfg.command) || {};
+	const conn: AnyRecord = (cfg.ws && cfg.ws.connection) || {};
+	const cmd: AnyRecord = cfg.command || {};
 	// 旧 safety 连接相关 -> ws.connection
-	const safety = (cfg.safety) || {};
+	const safety: AnyRecord = cfg.safety || {};
 	if (safety.rateLimitWindow !== undefined && conn.rateLimitWindow === undefined) conn.rateLimitWindow = safety.rateLimitWindow;
 	if (safety.rateLimitMax !== undefined && conn.rateLimitMax === undefined) conn.rateLimitMax = safety.rateLimitMax;
 	if (safety.enableMaxConnections !== undefined && conn.enableMaxConnections === undefined) conn.enableMaxConnections = safety.enableMaxConnections;
@@ -76,16 +88,16 @@ Command.commandPrefix = sanitizePrefix(config.commandPrefix);
 config.commandPrefix = Command.commandPrefix;
 
 // 空前缀会让所有聊天消息都被当成命令；配置里出现非法值时回退到默认值
-function sanitizePrefix(prefix) {
+function sanitizePrefix(prefix: unknown): string {
 	return (typeof prefix === "string" && prefix && !/\s/.test(prefix)) ? prefix : "$";
 }
 
-export function reloadConfig() {
-	const fresh = JSON.parse(fs.readFileSync(CONFIG_PATH, "utf-8"));
+export function reloadConfig(): AppConfig {
+	const fresh = JSON.parse(fs.readFileSync(CONFIG_PATH, "utf-8")) as AppConfig;
 	const prevPrefix = Command.commandPrefix;
 	for (const k of Object.keys(config)) delete config[k];
 	Object.assign(config, fresh);
-	normalizeConfig(config);
+	normalizeConfig(config as AnyRecord);
 	if (fresh.commandPrefix == null) config.commandPrefix = prevPrefix;
 	config.commandPrefix = sanitizePrefix(config.commandPrefix);
 	Command.commandPrefix = config.commandPrefix;
@@ -96,7 +108,7 @@ export function reloadConfig() {
 
 // ==================== Deep Merge ====================
 
-function mergeDeep(target, ...sources) {
+function mergeDeep(target: AnyRecord, ...sources: Array<AnyRecord | null | undefined>): AnyRecord {
 	for (const source of sources) {
 		if (!source) continue;
 		for (const key of Object.keys(source)) {
@@ -114,6 +126,10 @@ function mergeDeep(target, ...sources) {
 // ==================== Mod Registry ====================
 
 class ModRegistry {
+	mods: Map<string, ModEntry>;
+	byName: Map<string, ModEntry>;
+	_mergedCache: Map<string, AnyRecord>;
+
 	constructor() {
 		this.mods = new Map();
 		// name -> entry（Mod 名不保证唯一，先注册者优先，与旧的 find() 行为一致）
@@ -122,11 +138,11 @@ class ModRegistry {
 		this._mergedCache = new Map();
 	}
 
-	_loadModsConfig() {
+	_loadModsConfig(): ModsConfigMap {
 		if (!fs.existsSync(MODS_CONFIG_PATH)) return new Map();
 		try {
-			const arr = JSON.parse(fs.readFileSync(MODS_CONFIG_PATH, "utf-8"));
-			const map = new Map();
+			const arr = JSON.parse(fs.readFileSync(MODS_CONFIG_PATH, "utf-8")) as Array<AnyRecord>;
+			const map: ModsConfigMap = new Map();
 			for (const item of arr) {
 				if (item && typeof item.name === "string") {
 					map.set(item.name, { enabled: item.enabled !== false });
@@ -134,20 +150,20 @@ class ModRegistry {
 			}
 			return map;
 		} catch (e) {
-			logger.warning(`mods_config.json parse failed: ${e.message}`);
+			logger.warning(`mods_config.json parse failed: ${(e as Error).message}`);
 			return new Map();
 		}
 	}
 
-	_saveModsConfig(configMap) {
-		const arr = [];
+	_saveModsConfig(configMap: ModsConfigMap): void {
+		const arr: Array<{ name: string; enabled: boolean }> = [];
 		for (const [name, { enabled }] of configMap) {
 			arr.push({ name, enabled });
 		}
 		fs.writeFileSync(MODS_CONFIG_PATH, JSON.stringify(arr, null, "\t") + "\n", "utf-8");
 	}
 
-	_ensureModInConfig(configMap, modId) {
+	_ensureModInConfig(configMap: ModsConfigMap, modId: string): boolean {
 		if (!configMap.has(modId)) {
 			configMap.set(modId, { enabled: false });
 			return true;
@@ -155,16 +171,16 @@ class ModRegistry {
 		return false;
 	}
 
-	_readJson(filePath) {
+	_readJson(filePath: string): AnyRecord | null {
 		try {
-			return JSON.parse(fs.readFileSync(filePath, "utf-8"));
+			return JSON.parse(fs.readFileSync(filePath, "utf-8")) as AnyRecord;
 		} catch (e) {
-			logger.warning(`${path.basename(path.dirname(filePath))}/${path.basename(filePath)} parse failed: ${e.message}`);
+			logger.warning(`${path.basename(path.dirname(filePath))}/${path.basename(filePath)} parse failed: ${(e as Error).message}`);
 			return null;
 		}
 	}
 
-	scan() {
+	scan(): void {
 		this.mods.clear();
 		this.byName.clear();
 		this._mergedCache.clear();
@@ -194,10 +210,10 @@ class ModRegistry {
 			}
 
 			// 配置损坏时回退为空对象，不应因此丢掉整个 Mod
-			const modConfig = fs.existsSync(configPath) ? (this._readJson(configPath) || {}) : {};
+			const modConfig: AnyRecord = fs.existsSync(configPath) ? (this._readJson(configPath) || {}) : {};
 
 			if (this._ensureModInConfig(modsConfig, modId)) changed = true;
-			const enabled = modsConfig.get(modId).enabled;
+			const enabled = modsConfig.get(modId)?.enabled ?? false;
 
 			const rawServer = manifest.entry?.server || null;
 			const rawClient = manifest.entry?.client || null;
@@ -222,32 +238,34 @@ class ModRegistry {
 				clientClass: null,
 				serverInstance: null
 			});
-			if (!this.byName.has(modName)) this.byName.set(modName, this.mods.get(modId));
+			const registered = this.mods.get(modId);
+			if (registered && !this.byName.has(modName)) this.byName.set(modName, registered);
 		}
 
 		if (changed) this._saveModsConfig(modsConfig);
 	}
 
-	getMergedConfig(modId) {
+	getMergedConfig(modId: string): AnyRecord {
 		const entry = this.mods.get(modId);
-		if (!entry) return config;
-		if (this._mergedCache.has(modId)) return this._mergedCache.get(modId);
-		const merged = mergeDeep({}, config, entry.config);
+		if (!entry) return config as AnyRecord;
+		const cached = this._mergedCache.get(modId);
+		if (cached) return cached;
+		const merged = mergeDeep({}, config as AnyRecord, entry.config);
 		this._mergedCache.set(modId, merged);
 		return merged;
 	}
 
 	// 配置变化后使缓存失效（config.json 热重载 / Mod 配置保存）
-	invalidateConfigCache(modId) {
+	invalidateConfigCache(modId?: string): void {
 		if (modId === undefined) this._mergedCache.clear();
 		else this._mergedCache.delete(modId);
 	}
 
-	list() { return [...this.mods.values()]; }
-	get(modId) { return this.mods.get(modId) || null; }
-	getByName(name) { return this.byName.get(name) || null; }
+	list(): ModEntry[] { return [...this.mods.values()]; }
+	get(modId: string): ModEntry | null { return this.mods.get(modId) ?? null; }
+	getByName(name: string): ModEntry | null { return this.byName.get(name) ?? null; }
 
-	enable(modId) {
+	enable(modId: string): { ok: boolean; message: string } {
 		const entry = this.mods.get(modId);
 		if (!entry) return { ok: false, message: `Mod "${modId}" not found` };
 		entry.enabled = true;
@@ -255,7 +273,7 @@ class ModRegistry {
 		return { ok: true, message: `Mod "${entry.name}" enabled` };
 	}
 
-	disable(modId) {
+	disable(modId: string): { ok: boolean; message: string } {
 		const entry = this.mods.get(modId);
 		if (!entry) return { ok: false, message: `Mod "${modId}" not found` };
 		entry.enabled = false;
@@ -263,14 +281,14 @@ class ModRegistry {
 		return { ok: true, message: `Mod "${entry.name}" disabled` };
 	}
 
-	_writeModsConfig(entry) {
+	_writeModsConfig(entry: ModEntry): void {
 		const configMap = this._loadModsConfig();
 		configMap.set(entry.id, { enabled: entry.enabled });
 		this._saveModsConfig(configMap);
 	}
 
 	// 从 mods_config.json 中移除记录（不删除文件）
-	forget(modId) {
+	forget(modId: string): boolean {
 		const configMap = this._loadModsConfig();
 		const changed = configMap.delete(modId);
 		if (changed) this._saveModsConfig(configMap);
@@ -282,13 +300,13 @@ class ModRegistry {
 	}
 
 	// 删除模组：移除文件夹并从 mods_config.json 中删除
-	remove(modId) {
+	remove(modId: string): { ok: true; name: string; id: string } | { ok: false; message: string } {
 		const entry = this.mods.get(modId);
 		if (!entry) return { ok: false, message: `Mod "${modId}" not found` };
 		try {
 			fs.rmSync(entry.path, { recursive: true, force: true });
 		} catch (e) {
-			return { ok: false, message: `Failed to delete mod files: ${e.message}` };
+			return { ok: false, message: `Failed to delete mod files: ${(e as Error).message}` };
 		}
 		this.forget(modId);
 		return { ok: true, name: entry.name, id: modId };
@@ -297,35 +315,40 @@ class ModRegistry {
 
 // ==================== EventBus ====================
 
+type EventCallback = (data: unknown) => void;
+
 class EventBus {
+	listeners: Map<string, Map<string, EventCallback[]>>;
+
 	constructor() { this.listeners = new Map(); }
 
-	on(event, modName, callback) {
-		if (!this.listeners.has(event)) this.listeners.set(event, new Map());
-		const eventMap = this.listeners.get(event);
-		if (!eventMap.has(modName)) eventMap.set(modName, []);
-		eventMap.get(modName).push(callback);
+	on(event: string, modName: string, callback: EventCallback): void {
+		let eventMap = this.listeners.get(event);
+		if (!eventMap) { eventMap = new Map(); this.listeners.set(event, eventMap); }
+		let callbacks = eventMap.get(modName);
+		if (!callbacks) { callbacks = []; eventMap.set(modName, callbacks); }
+		callbacks.push(callback);
 	}
 
-	off(event, modName) {
-		if (this.listeners.has(event)) this.listeners.get(event).delete(modName);
+	off(event: string, modName: string): void {
+		this.listeners.get(event)?.delete(modName);
 	}
 
-	emit(event, data, excludeMod = null) {
-		if (!this.listeners.has(event)) return;
+	emit(event: string, data?: unknown, excludeMod: string | null = null): void {
 		const eventMap = this.listeners.get(event);
+		if (!eventMap) return;
 		for (const [modName, callbacks] of eventMap) {
 			if (modName === excludeMod) continue;
 			for (const cb of callbacks) {
 				try { cb(data); } catch (e) {
 					logger.error(`EventBus: ${modName}.${event} execution error`);
-					logger.debug(e.message);
+					logger.debug((e as Error).message);
 				}
 			}
 		}
 	}
 
-	clearMod(modName) {
+	clearMod(modName: string): void {
 		for (const [, eventMap] of this.listeners) eventMap.delete(modName);
 	}
 
@@ -335,28 +358,40 @@ class EventBus {
 // ==================== Storage ====================
 
 class ModStorage {
-	constructor(modName) { this.modName = modName; this.data = new Map(); }
-	get(key, defaultValue) { return this.data.has(key) ? this.data.get(key) : defaultValue; }
-	set(key, value) { this.data.set(key, value); }
-	delete(key) { return this.data.delete(key); }
-	has(key) { return this.data.has(key); }
-	clear() { this.data.clear(); }
-	keys() { return [...this.data.keys()]; }
-	values() { return [...this.data.values()]; }
-	entries() { return [...this.data.entries()]; }
+	modName: string;
+	data: Map<string, unknown>;
+
+	constructor(modName: string) {
+		this.modName = modName;
+		this.data = new Map();
+	}
+
+	get<T = unknown>(key: string, defaultValue?: T): T | undefined {
+		return (this.data.has(key) ? this.data.get(key) : defaultValue) as T | undefined;
+	}
+
+	set(key: string, value: unknown): void { this.data.set(key, value); }
+	delete(key: string): boolean { return this.data.delete(key); }
+	has(key: string): boolean { return this.data.has(key); }
+	clear(): void { this.data.clear(); }
+	keys(): string[] { return [...this.data.keys()]; }
+	values(): unknown[] { return [...this.data.values()]; }
+	entries(): [string, unknown][] { return [...this.data.entries()]; }
 }
 
 class ModLogger {
-	constructor(modName) { this.prefix = `[${modName}]`; }
+	prefix: string;
 
-	_format(args) {
+	constructor(modName: string) { this.prefix = `[${modName}]`; }
+
+	_format(args: unknown[]): string {
 		return `${this.prefix} ${args.map(a => typeof a === "string" ? a : JSON.stringify(a)).join(" ")}`;
 	}
 
-	info(...args) { logger.info(this._format(args)); }
-	warning(...args) { logger.warning(this._format(args)); }
-	error(...args) { logger.error(this._format(args)); }
-	debug(...args) { logger.debug(this._format(args)); }
+	info(...args: unknown[]): void { logger.info(this._format(args)); }
+	warning(...args: unknown[]): void { logger.warning(this._format(args)); }
+	error(...args: unknown[]): void { logger.error(this._format(args)); }
+	debug(...args: unknown[]): void { logger.debug(this._format(args)); }
 }
 
 // ==================== Global Singletons ====================
@@ -364,16 +399,20 @@ class ModLogger {
 export const eventBus = new EventBus();
 
 export class StorageManager {
-	static stores = new Map();
-	static getStore(modName) {
-		if (!this.stores.has(modName)) this.stores.set(modName, new ModStorage(modName));
-		return this.stores.get(modName);
+	static stores = new Map<string, ModStorage>();
+
+	static getStore(modName: string): ModStorage {
+		let store = this.stores.get(modName);
+		if (!store) { store = new ModStorage(modName); this.stores.set(modName, store); }
+		return store;
 	}
-	static clearStore(modName) {
+
+	static clearStore(modName: string): void {
 		const store = this.stores.get(modName);
 		if (store) { store.clear(); this.stores.delete(modName); }
 	}
-	static clearAll() {
+
+	static clearAll(): void {
 		for (const [, store] of this.stores) store.clear();
 		this.stores.clear();
 	}
@@ -392,8 +431,8 @@ const LIFECYCLE_METHODS = [
 ];
 
 // 注入给 Mod 的公共依赖（延迟构造一次，避免类初始化顺序问题）
-let MOD_DEPENDENCIES = null;
-function getModDependencies() {
+let MOD_DEPENDENCIES: AnyRecord | null = null;
+function getModDependencies(): AnyRecord {
 	if (!MOD_DEPENDENCIES) {
 		MOD_DEPENDENCIES = {
 			Command, Current, logger, messageLogger, fs, path, fileURLToPath, exec,
@@ -403,7 +442,7 @@ function getModDependencies() {
 	return MOD_DEPENDENCIES;
 }
 
-function injectModDependencies(instance, ModClass) {
+function injectModDependencies(instance: AnyRecord, ModClass: ModClass): void {
 	for (const [key, value] of Object.entries(getModDependencies())) {
 		instance[key] = value;
 		// 兼容以静态属性访问依赖的 Mod（如 AIHelper.Current）
@@ -415,7 +454,16 @@ function injectModDependencies(instance, ModClass) {
  * 客户端 / 服务端 Mod 管理器的公共部分：
  * 方法索引、生命周期调用、卸载、实例查询。
  */
+interface MethodEntry extends ResolvedMethod {
+	name: string;
+}
+
 class ModManagerBase {
+	modInstances: Record<string, AnyRecord>;
+	_methodCache: WeakMap<AnyRecord, Map<string, ResolvedMethod | null>>;
+	_methodLists: Map<string, MethodEntry[]>;
+	_destroyMethods: Record<string, ResolvedMethod>;
+
 	constructor() {
 		this.modInstances = {};
 		this._methodCache = new WeakMap();
@@ -423,17 +471,21 @@ class ModManagerBase {
 		this._destroyMethods = {};
 	}
 
-	get _label() { return "Mod"; }
+	get _label(): string { return "Mod"; }
 
-	_resolveModMethod(instance, name) {
+	_resolveModMethod(instance: AnyRecord | null, name: string): ResolvedMethod | null {
 		if (!instance) return null;
 		let cache = this._methodCache.get(instance);
-		if (cache && cache.has(name)) return cache.get(name);
-		let resolved = null;
-		if (typeof instance[name] === "function") resolved = { fn: instance[name], ctx: instance };
-		else {
-			const cls = instance.constructor;
-			if (cls && typeof cls[name] === "function") resolved = { fn: cls[name], ctx: cls };
+		const cached = cache?.get(name);
+		if (cached !== undefined) return cached;
+		let resolved: ResolvedMethod | null = null;
+		if (typeof instance[name] === "function") {
+			resolved = { fn: instance[name] as (...args: any[]) => unknown, ctx: instance };
+		} else {
+			const cls = instance.constructor as unknown as AnyRecord | undefined;
+			if (cls && typeof cls[name] === "function") {
+				resolved = { fn: cls[name] as (...args: any[]) => unknown, ctx: cls };
+			}
 		}
 		if (!cache) { cache = new Map(); this._methodCache.set(instance, cache); }
 		cache.set(name, resolved);
@@ -441,21 +493,21 @@ class ModManagerBase {
 	}
 
 	// 兼容旧名称
-	_resolveMethod(instance, name) {
+	_resolveMethod(instance: AnyRecord | null, name: string): ResolvedMethod | null {
 		return this._resolveModMethod(instance, name);
 	}
 
-	_buildMethodLists() {
-		this._methodLists = new Map(LIFECYCLE_METHODS.map(n => [n, []]));
+	_buildMethodLists(): void {
+		this._methodLists = new Map(LIFECYCLE_METHODS.map((n): [string, MethodEntry[]] => [n, []]));
 		for (const [name, instance] of Object.entries(this.modInstances)) {
 			for (const methodName of LIFECYCLE_METHODS) {
 				const m = this._resolveModMethod(instance, methodName);
-				if (m) this._methodLists.get(methodName).push({ name, ...m });
+				if (m) this._methodLists.get(methodName)?.push({ name, ...m });
 			}
 		}
 	}
 
-	_initInstance(instance, ModClass, name, mergedConfig, loggerName) {
+	_initInstance(instance: AnyRecord, ModClass: ModClass, name: string, mergedConfig: AnyRecord, loggerName: string): void {
 		instance.modName = name;
 		instance.config = mergedConfig;
 		if (typeof ModClass === "function") ModClass.config = mergedConfig;
@@ -464,27 +516,28 @@ class ModManagerBase {
 		injectModDependencies(instance, ModClass);
 	}
 
-	_storageKey(name) { return `mod_${name}`; }
+	_storageKey(name: string): string { return `mod_${name}`; }
 
-	_trackDestroy(name, instance) {
+	_trackDestroy(name: string, instance: AnyRecord): void {
 		const m = this._resolveModMethod(instance, "onDestroy") || this._resolveModMethod(instance, "destroy");
 		if (m) this._destroyMethods[name] = m;
 	}
 
-	_startInstance(name, instance) {
+	_startInstance(name: string, instance: AnyRecord): void {
 		const m = this._resolveModMethod(instance, "onStart") || this._resolveModMethod(instance, "start");
 		if (!m) return;
 		try { m.fn.apply(m.ctx); }
 		catch (e) {
+			const err = e as Error;
 			logger.error(`${this._label} Mod ${name} start execution error`);
-			logger.debug(e.stack || e.message);
+			logger.debug(err.stack ?? err.message);
 		}
 	}
 
-	_afterUnload() {}
+	_afterUnload(_name: string, _instance: AnyRecord): void {}
 
 	// 卸载单个实例；子类通过 _afterUnload 处理 SAPI / 命令刷新等差异
-	unload(name) {
+	unload(name: string): boolean {
 		const instance = this.modInstances[name];
 		if (!instance) return false;
 		const dm = this._destroyMethods[name]
@@ -501,7 +554,7 @@ class ModManagerBase {
 		return true;
 	}
 
-	callModMethod(methodName, ...args) {
+	callModMethod(methodName: string, ...args: unknown[]): void {
 		let list = this._methodLists.get(methodName);
 		if (!list) {
 			list = [];
@@ -515,24 +568,30 @@ class ModManagerBase {
 			try { fn.apply(ctx, args); }
 			catch (e) {
 				logger.error(`${this._label} Mod ${name}.${methodName} execution error`);
-				logger.debug(e.message);
+				logger.debug((e as Error).message);
 			}
 		}
 	}
 
-	getMod(modName) { return this.modInstances[modName] || null; }
-	getAllMods() { return { ...this.modInstances }; }
+	getMod(modName: string): AnyRecord | null { return this.modInstances[modName] ?? null; }
+	getAllMods(): Record<string, AnyRecord> { return { ...this.modInstances }; }
 }
 
 // ==================== Client Mod Manager ====================
 
 export class ClientModManager extends ModManagerBase {
-	static loadedMod = {};
+	static loadedMod: Record<string, ModClass> = {};
 
-	get _label() { return "Client"; }
-	_storageKey(name) { return `client_${this.client?.id || "unknown"}_${name}`; }
+	client: Client | null;
+	commands: Record<"normal" | "user" | "op" | "owner", Command[]>;
+	_commandIndex: Map<string, { cmd: Command; tier: string; mod: string }>;
+	sapi: SAPIMessageHandler | null;
+	_playerMessageCallback: ((data: CommandResponse) => Promise<void>) | null;
 
-	_afterUnload(name) {
+	override get _label(): string { return "Client"; }
+	override _storageKey(name: string): string { return `client_${this.client?.id || "unknown"}_${name}`; }
+
+	override _afterUnload(name: string, _instance?: AnyRecord): void {
 		if (this.sapi && typeof this.sapi.clearMod === "function") this.sapi.clearMod(name);
 		if (this.client?.utils && typeof this.client.utils.removeOwner === "function") this.client.utils.removeOwner(name);
 		eventBus.clearMod(`client_${this.client?.id || "unknown"}_${name}`);
@@ -560,15 +619,17 @@ export class ClientModManager extends ModManagerBase {
 		for (const entry of enabled) {
 			if (ClientModManager.loadedMod[entry.name]) continue;
 			try {
+				if (!entry.entry.client) continue;
 				const modPath = resolveCaseInsensitivePath(entry.path, entry.entry.client);
+				if (!modPath) throw new Error("entry file not found");
 				const modModule = await import(resolveModuleUrl(modPath));
-				const modClass = modModule.default;
+				const modClass = modModule.default as ModClass | undefined;
 				if (!modClass) throw new Error("no default export");
 				entry.clientClass = modClass;
 				ClientModManager.loadedMod[entry.name] = modClass;
 				logger.info(`Client Mod ${entry.name} loaded`);
 			} catch (e) {
-				logger.error(`Client Mod ${entry.name} load failed: ${e.message}`);
+				logger.error(`Client Mod ${entry.name} load failed: ${(e as Error).message}`);
 			}
 		}
 	}
@@ -577,7 +638,7 @@ export class ClientModManager extends ModManagerBase {
 		await ClientModManager.syncClasses();
 	}
 
-	constructor(client) {
+	constructor(client: Client) {
 		super();
 		this.client = client;
 		this.commands = { normal: [], user: [], op: [], owner: [] };
@@ -590,7 +651,7 @@ export class ClientModManager extends ModManagerBase {
 		this.message();
 	}
 
-	instantiate() {
+	instantiate(): void {
 		// Load default client mods first
 		for (const [name, ModClass] of Object.entries(DEFAULT_CLIENT_MODS)) {
 			if (!ClientModManager.loadedMod[name]) {
@@ -601,44 +662,46 @@ export class ClientModManager extends ModManagerBase {
 			try { this._instantiateMod(name, ModClass); }
 			catch (e) {
 				logger.error(`Client Mod ${name} instantiation failed`);
-				logger.debug(e.message);
+				logger.debug((e as Error).message);
 			}
 		}
 		this._buildMethodLists();
 		this._collectCommands();
 	}
 
-	_instantiateMod(name, ModClass) {
-		const mergedConfig = this._mergedConfigFor(name, ModClass);
+	_instantiateMod(name: string, ModClass: ModClass): AnyRecord {
+		const mergedConfig = this._mergedConfigFor(name);
 		// 构造函数可能读取 ModClass.config，必须在实例化前赋值
 		if (typeof ModClass === "function") ModClass.config = mergedConfig;
-		const instance = new ModClass(this.client);
+		const client = this.client;
+		if (!client) throw new Error("client is not available");
+		const instance = new ModClass(client);
 
 		// 部分 Mod 不在 constructor 中保存 client，这里兜底
-		if (!instance.client) instance.client = this.client;
+		if (!instance.client) instance.client = client;
 		this._initInstance(instance, ModClass, name, mergedConfig, `Client:${name}`);
 
 		// 客户端 Mod 的进程内事件总线（仅主客户端的 Mod 之间）
-		instance.emit = (event, data) => {
+		instance.emit = (event: string, data?: unknown) => {
 			if (this.client !== Current.client) return;
 			for (const [mn, mod] of Object.entries(this.modInstances)) {
 				if (mod._listeners && mod._listeners[event]) {
 					for (const cb of mod._listeners[event]) {
-						try { cb(data); } catch (e) { logger.error(`EventBus: ${mn}.${event} execution error`); }
+						try { cb(data); } catch { logger.error(`EventBus: ${mn}.${event} execution error`); }
 					}
 				}
 			}
 		};
-		instance.on = (event, callback) => {
+		instance.on = (event: string, callback: (data: unknown) => void) => {
 			instance._listeners = instance._listeners || {};
 			instance._listeners[event] = instance._listeners[event] || [];
 			instance._listeners[event].push(callback);
 		};
-		instance.off = (event) => { if (instance._listeners) delete instance._listeners[event]; };
+		instance.off = (event: string) => { if (instance._listeners) delete instance._listeners[event]; };
 
 		instance.sapi = this._createModSAPI(name);
 		this.modInstances[name] = instance;
-		this.client[name] = instance;
+		if (this.client) this.client[name] = instance;
 
 		this._trackDestroy(name, instance);
 		this._startInstance(name, instance);
@@ -646,7 +709,7 @@ export class ClientModManager extends ModManagerBase {
 	}
 
 	// 客户端 Mod 配置：注册表配置 / 内置 Mod 的 lib/<name>.config.json / 全局配置
-	_mergedConfigFor(name) {
+	_mergedConfigFor(name: string): AnyRecord {
 		const entry = modRegistry.getByName(name);
 		if (entry) return modRegistry.getMergedConfig(entry.id);
 		if (DEFAULT_CLIENT_MODS[name]) {
@@ -655,11 +718,11 @@ export class ClientModManager extends ModManagerBase {
 				return { ...config, ...JSON.parse(fs.readFileSync(cfgPath, "utf-8")) };
 			} catch {}
 		}
-		return config;
+		return config as AnyRecord;
 	}
 
-	_collectCommands() {
-		const TIERS = ["normal", "user", "op", "owner"];
+	_collectCommands(): void {
+		const TIERS = ["normal", "user", "op", "owner"] as const;
 		this.commands = { normal: [], user: [], op: [], owner: [] };
 		this._commandIndex = new Map();
 
@@ -671,7 +734,7 @@ export class ClientModManager extends ModManagerBase {
 			try {
 				cmdMap = commandMethod.call(instance);
 			} catch (e) {
-				logger.error(`Client Mod ${name} command collection failed: ${e.message}`);
+				logger.error(`Client Mod ${name} command collection failed: ${(e as Error).message}`);
 				continue;
 			}
 			if (!cmdMap || typeof cmdMap !== "object") {
@@ -692,19 +755,19 @@ export class ClientModManager extends ModManagerBase {
 						logger.warning(`Client Mod ${name} registered an invalid command in "${tier}"`);
 						continue;
 					}
-					if (this._commandIndex.has(cmd.name)) {
-						const prev = this._commandIndex.get(cmd.name);
+					const prev = this._commandIndex.get(cmd.name);
+					if (prev) {
 						logger.warning(`Duplicate command "${cmd.name}" from mod ${name} ignored (already provided by ${prev.mod})`);
 						continue;
 					}
-					this.commands[tier].push(cmd);
-					this._commandIndex.set(cmd.name, { cmd, tier, mod: name });
+					this.commands[tier].push(cmd as Command);
+					this._commandIndex.set(cmd.name, { cmd: cmd as Command, tier, mod: name });
 				}
 			}
 		}
 	}
 
-	async reload(name) {
+	async reload(name: string): Promise<{ success: boolean; message: string }> {
 		const entry = modRegistry.getByName(name);
 		const isDefault = !entry && DEFAULT_CLIENT_MODS[name];
 
@@ -717,9 +780,10 @@ export class ClientModManager extends ModManagerBase {
 		try {
 			const modPath = isDefault
 				? path.join(path.dirname(fileURLToPath(import.meta.url)), `${name}.js`)
-				: resolveCaseInsensitivePath(entry.path, entry.entry.client);
+				: resolveCaseInsensitivePath(entry?.path ?? "", entry?.entry.client ?? "");
+			if (!modPath) return { success: false, message: `Client Mod "${name}" entry file not found` };
 			const modModule = await import(resolveModuleUrl(modPath, Date.now()));
-			const modClass = modModule.default;
+			const modClass = modModule.default as ModClass | undefined;
 			if (!modClass) return { success: false, message: `Client Mod "${name}" no default export` };
 			if (entry) entry.clientClass = modClass;
 			ClientModManager.loadedMod[name] = modClass;
@@ -729,14 +793,15 @@ export class ClientModManager extends ModManagerBase {
 			logger.info(`Client Mod ${name} reloaded`);
 			return { success: true, message: `Client Mod ${name} reloaded` };
 		} catch (e) {
-			logger.error(`Client Mod ${name} reload failed: ${e.message}`);
-			return { success: false, message: `Client Mod ${name} reload failed: ${e.message}` };
+			const message = (e as Error).message;
+			logger.error(`Client Mod ${name} reload failed: ${message}`);
+			return { success: false, message: `Client Mod ${name} reload failed: ${message}` };
 		}
 	}
 
 	// 全量同步：新启用的 Mod 会实例化，已禁用/移除的会被卸载
-	async reloadAll() {
-		const success = [], failed = [];
+	async reloadAll(): Promise<{ success: string[]; failed: string[] }> {
+		const success: string[] = [], failed: string[] = [];
 
 		// 1) 卸载 loadedMod 中已不存在的实例
 		for (const name of Object.keys(this.modInstances)) {
@@ -755,7 +820,7 @@ export class ClientModManager extends ModManagerBase {
 					this._collectCommands();
 					success.push(name);
 				} catch (e) {
-					logger.error(`Client Mod ${name} instantiation failed: ${e.message}`);
+					logger.error(`Client Mod ${name} instantiation failed: ${(e as Error).message}`);
 					failed.push(name);
 				}
 			} else {
@@ -766,10 +831,10 @@ export class ClientModManager extends ModManagerBase {
 		return { success, failed };
 	}
 
-	static async reloadAllClients() {
+	static async reloadAllClients(): Promise<{ success: string[]; failed: string[] }> {
 		// 先按 modRegistry 同步类注册表，否则新导入/启用的 Mod 永远不会加载
 		await ClientModManager.syncClasses();
-		const success = [], failed = [];
+		const success: string[] = [], failed: string[] = [];
 		for (const [client, manager] of Current.clientMods) {
 			if (!manager || typeof manager.reloadAll !== "function") continue;
 			const r = await manager.reloadAll();
@@ -779,7 +844,7 @@ export class ClientModManager extends ModManagerBase {
 		return { success, failed };
 	}
 
-	_createModSAPI(modName) {
+	_createModSAPI(modName: string): ModSAPI | null {
 		const hub = this.sapi;
 		if (!hub) return null;
 		return {
@@ -790,11 +855,11 @@ export class ClientModManager extends ModManagerBase {
 		};
 	}
 
-	message() {
+	message(): void {
 		// 分发器读取 this.commands 的动态内容，无需因 reload 重新订阅
 		if (this._playerMessageCallback) return;
 
-		this._playerMessageCallback = async (data) => {
+		this._playerMessageCallback = async (data: CommandResponse) => {
 			const sender = data?.body?.sender;
 			const msg = data?.body?.message;
 			const type = data?.body?.type;
@@ -814,30 +879,25 @@ export class ClientModManager extends ModManagerBase {
 			try {
 				tokens = Command.parseArgs(msg);
 			} catch (e) {
-				this._tellError(sender, e.message);
+				this._tellError(sender, (e as Error).message);
 				return;
 			}
 			if (!tokens.length) return;
 
-			const PermissionManager = await import("./permission.js").then(m => m.default);
-			const permission = await PermissionManager.query(sender);
-			if (permission instanceof Error) {
-				this._tellError(sender, permission.message);
-				return;
-			}
+			const permission = PermissionManager.query(sender);
 			if (permission < 0) {
 				this._tellError(sender, "command permission error");
 				return;
 			}
 
-			const commandName = tokens[0];
+			const commandName = tokens[0] ?? "";
 			const entry = this._commandIndex.get(commandName.slice(prefix.length));
 			if (!entry) {
 				this._tellError(sender, `unknown command ${commandName}`);
 				return;
 			}
 
-			const required = TIER_LEVELS[entry.tier];
+			const required = TIER_LEVELS[entry.tier] ?? 0;
 			if (permission < required) {
 				this._tellError(sender, "permission denied");
 				return;
@@ -851,40 +911,41 @@ export class ClientModManager extends ModManagerBase {
 		}
 	}
 
-	_tellError(sender, message) {
+	_tellError(sender: string, message: unknown): void {
 		if (!this.client) return;
-		const text = `§cCommand | §fError > §i${message}`;
+		const text = `§cCommand | §fError > §i${String(message)}`;
 		if (sender) this.client.tell(text, sender);
 		else this.client.tellAll(text);
 	}
 
-	_runCommand(cmd, sender, tokens) {
+	_runCommand(cmd: Command, sender: string, tokens: string[]): void {
 		try {
-			const onError = (e) => {
+			const onError = (e: Error) => {
 				this._tellError(sender, e.message);
-				logger.debug(e.stack || e.message);
+				logger.debug(e.stack ?? e.message);
 			};
 			const result = typeof cmd.executeTokens === "function"
 				? cmd.executeTokens(sender, tokens, onError)
 				: cmd.execute(sender, tokens.join(" "), onError);
 			if (result && !result.status && result.message) this._tellError(sender, result.message);
 		} catch (e) {
-			logger.error(`Command ${cmd.name} execution error: ${e.message}`);
-			this._tellError(sender, e.message);
+			const message = (e as Error).message;
+			logger.error(`Command ${cmd.name} execution error: ${message}`);
+			this._tellError(sender, message);
 		}
 	}
 
-	log(sender, msg, type) {
+	log(sender: string, msg: string, type: string): void {
 		if (type === "chat" && this.client === Current.client) messageLogger.log(`<${sender}> ${msg}`);
 	}
 
 	// 兼容旧调用：按命令列表依次尝试（terminal 与外部 Mod 可能仍在使用）
-	execute(sender, msg, cmds) {
+	execute(sender: string, msg: string, cmds: Command[]): boolean {
 		let tokens;
 		try {
 			tokens = Command.parseArgs(msg);
 		} catch (e) {
-			this._tellError(sender, e.message);
+			this._tellError(sender, (e as Error).message);
 			return false;
 		}
 		for (const cmd of cmds) {
@@ -894,7 +955,7 @@ export class ClientModManager extends ModManagerBase {
 				return false;
 			}
 			// 旧版 Command：execute() 自带解析，只能在匹配时执行
-			const result = cmd.execute(sender, msg, (e) => this._tellError(sender, e.message));
+			const result = cmd.execute(sender, msg, (e: Error) => this._tellError(sender, e.message));
 			if (result) {
 				if (!result.status && result.message) this._tellError(sender, result.message);
 				return false;
@@ -903,13 +964,13 @@ export class ClientModManager extends ModManagerBase {
 		return true;
 	}
 
-	destroy() {
+	destroy(): void {
 		// 用实例化时解析好的 onDestroy/destroy，兼容只实现了 destroy() 的 Mod
 		for (const [name, dm] of Object.entries(this._destroyMethods)) {
 			try { dm.fn.apply(dm.ctx); }
 			catch (e) {
 				logger.error(`Client Mod ${name}.onDestroy execution error`);
-				logger.debug(e.message);
+				logger.debug((e as Error).message);
 			}
 		}
 		this._destroyMethods = {};
@@ -920,7 +981,7 @@ export class ClientModManager extends ModManagerBase {
 			instance.sapi = null;
 			eventBus.clearMod(`client_${clientId}_${name}`);
 			StorageManager.clearStore(`client_${clientId}_${name}`);
-			this.client[name] = null;
+			if (this.client) this.client[name] = null;
 		}
 		this.client = null;
 		this.modInstances = {};
@@ -934,14 +995,14 @@ export class ClientModManager extends ModManagerBase {
 // ==================== Server Mod Manager (Singleton) ====================
 
 export class ServerModManager extends ModManagerBase {
-	static _instance = null;
+	static _instance: ServerModManager | null = null;
 
-	static loadedMod = {};
+	static loadedMod: Record<string, ModClass> = {};
 
-	get _label() { return "Server"; }
-	_storageKey(name) { return `server_${name}`; }
+	override get _label(): string { return "Server"; }
+	override _storageKey(name: string): string { return `server_${name}`; }
 
-	_afterUnload(name) {
+	override _afterUnload(name: string): void {
 		eventBus.clearMod(name);
 	}
 
@@ -958,15 +1019,17 @@ export class ServerModManager extends ModManagerBase {
 		for (const entry of enabled) {
 			if (ServerModManager.loadedMod[entry.name]) continue;
 			try {
+				if (!entry.entry.server) continue;
 				const modPath = resolveCaseInsensitivePath(entry.path, entry.entry.server);
+				if (!modPath) throw new Error("entry file not found");
 				const modModule = await import(resolveModuleUrl(modPath));
-				const modClass = modModule.default;
+				const modClass = modModule.default as ModClass | undefined;
 				if (!modClass) throw new Error("no default export");
 				entry.serverClass = modClass;
 				ServerModManager.loadedMod[entry.name] = modClass;
 				logger.info(`Server Mod ${entry.name} loaded`);
 			} catch (e) {
-				logger.error(`Server Mod ${entry.name} load failed: ${e.message}`);
+				logger.error(`Server Mod ${entry.name} load failed: ${(e as Error).message}`);
 			}
 		}
 	}
@@ -990,7 +1053,7 @@ export class ServerModManager extends ModManagerBase {
 		this._instantiate();
 	}
 
-	_instantiate() {
+	_instantiate(): void {
 		for (const [name, ModClass] of Object.entries(ServerModManager.loadedMod)) {
 			this._createInstance(name, ModClass);
 		}
@@ -998,24 +1061,24 @@ export class ServerModManager extends ModManagerBase {
 	}
 
 	// 实例化单个服务端 Mod（_instantiate / reload 共用）
-	_createInstance(name, ModClass) {
+	_createInstance(name: string, ModClass: ModClass): AnyRecord | null {
 		const entry = modRegistry.getByName(name);
-		const mergedConfig = entry ? modRegistry.getMergedConfig(entry.id) : config;
+		const mergedConfig = entry ? modRegistry.getMergedConfig(entry.id) : (config as AnyRecord);
 		// 构造函数可能读取 ModClass.config，必须在实例化前赋值
 		if (typeof ModClass === "function") ModClass.config = mergedConfig;
 
-		let instance;
+		let instance: AnyRecord;
 		try {
 			instance = new ModClass();
 		} catch (e) {
-			logger.error(`Server Mod ${name} instantiation failed: ${e.message}`);
+			logger.error(`Server Mod ${name} instantiation failed: ${(e as Error).message}`);
 			return null;
 		}
 
 		this._initInstance(instance, ModClass, name, mergedConfig, `Server:${name}`);
-		instance.emit = (event, data) => eventBus.emit(event, data, name);
-		instance.on = (event, callback) => eventBus.on(event, name, callback);
-		instance.off = (event) => eventBus.off(event, name);
+		instance.emit = (event: string, data?: unknown) => eventBus.emit(event, data, name);
+		instance.on = (event: string, callback: (data: unknown) => void) => eventBus.on(event, name, callback);
+		instance.off = (event: string) => eventBus.off(event, name);
 
 		this.modInstances[name] = instance;
 		this._trackDestroy(name, instance);
@@ -1023,11 +1086,11 @@ export class ServerModManager extends ModManagerBase {
 		return instance;
 	}
 
-	static _inst() {
+	static _inst(): ServerModManager | null {
 		return ServerModManager._instance;
 	}
 
-	async reload(name) {
+	async reload(name: string): Promise<{ success: boolean; message: string }> {
 		const entry = modRegistry.getByName(name);
 		if (!entry || !entry.entry.server) {
 			return { success: false, message: `Server Mod "${name}" not found` };
@@ -1038,8 +1101,9 @@ export class ServerModManager extends ModManagerBase {
 		try {
 			const timestamp = Date.now();
 			const modPath = resolveCaseInsensitivePath(entry.path, entry.entry.server);
+			if (!modPath) return { success: false, message: `Server Mod "${name}" entry file not found` };
 			const modModule = await import(resolveModuleUrl(modPath, timestamp));
-			const modClass = modModule.default;
+			const modClass = modModule.default as ModClass | undefined;
 			if (!modClass) return { success: false, message: `Server Mod "${name}" no default export` };
 
 			entry.serverClass = modClass;
@@ -1051,14 +1115,15 @@ export class ServerModManager extends ModManagerBase {
 			logger.info(`Server Mod ${name} reloaded`);
 			return { success: true, message: `Server Mod ${name} reloaded` };
 		} catch (e) {
-			logger.error(`Server Mod ${name} reload failed: ${e.message}`);
-			return { success: false, message: `Server Mod ${name} reload failed: ${e.message}` };
+			const message = (e as Error).message;
+			logger.error(`Server Mod ${name} reload failed: ${message}`);
+			return { success: false, message: `Server Mod ${name} reload failed: ${message}` };
 		}
 	}
 
 	// 全量同步：实例化新启用的 Mod，卸载已禁用/移除的 Mod，其余重载
-	async reloadAll() {
-		const success = [], failed = [];
+	async reloadAll(): Promise<{ success: string[]; failed: string[] }> {
+		const success: string[] = [], failed: string[] = [];
 
 		for (const name of Object.keys(this.modInstances)) {
 			if (!ServerModManager.loadedMod[name]) {
@@ -1083,41 +1148,38 @@ export class ServerModManager extends ModManagerBase {
 		return { success, failed };
 	}
 
-	static async reloadAll() {
+	static async reloadAll(): Promise<{ success: string[]; failed: string[] }> {
 		await ServerModManager.syncClasses();
 		const inst = ServerModManager._instance;
 		if (!inst) return { success: [], failed: [] };
 		return inst.reloadAll();
 	}
 
-	static getLoadedModNames() {
+	static getLoadedModNames(): string[] {
 		return Object.keys(ServerModManager.loadedMod);
 	}
 
-	static attachMainClient(client) {
+	static attachMainClient(client: Client): void {
 		ServerModManager._inst()?.callModMethod("onMainClientConnect", client);
 	}
 
-	static onClientConnect(client, isMainClient) {
+	static onClientConnect(client: Client, isMainClient: boolean): void {
 		ServerModManager._inst()?.callModMethod("onClientConnect", client, isMainClient);
 	}
 
-	static onMessage(client, data) {
+	static onMessage(client: Client, data: CommandResponse): void {
 		ServerModManager._inst()?.callModMethod("onMessage", client, data);
 	}
 
-	static onClientDisconnect(client, isMainClient) {
+	static onClientDisconnect(client: Client, isMainClient: boolean): void {
 		ServerModManager._inst()?.callModMethod("onClientDisconnect", client, isMainClient);
 	}
 
-	static onMainClientSwitch(oldClient, newClient) {
+	static onMainClientSwitch(oldClient: Client, newClient: Client): void {
 		ServerModManager._inst()?.callModMethod("onMainClientSwitch", oldClient, newClient);
 	}
 
-	getMod(modName) { return this.modInstances[modName] || null; }
-	getAllMods() { return { ...this.modInstances }; }
-
-	static destroy() {
+	static destroy(): void {
 		const inst = ServerModManager._instance;
 		if (!inst) return;
 		// 先调用所有 onDestroy
@@ -1125,7 +1187,7 @@ export class ServerModManager extends ModManagerBase {
 			try { dm.fn.apply(dm.ctx); }
 			catch (e) {
 				logger.error(`Server Mod ${name}.onDestroy execution error`);
-				logger.debug(e.message);
+				logger.debug((e as Error).message);
 			}
 		}
 		for (const name of Object.keys(inst.modInstances)) {
@@ -1168,7 +1230,7 @@ export async function checkModDependencies() {
 				const r = await installNpmDependency(parsed.name, projectRoot);
 				if (!r.skipped) logger.info(`npm package "${r.name}" installed for mod "${label}"`);
 			} catch (e) {
-				logger.error(`Failed to install npm package "${parsed.name}" for mod "${label}": ${e.message}`);
+				logger.error(`Failed to install npm package "${parsed.name}" for mod "${label}": ${(e as Error).message}`);
 			}
 		}
 	}

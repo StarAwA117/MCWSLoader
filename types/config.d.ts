@@ -1,0 +1,106 @@
+/**
+ * 全局配置结构（config.json）
+ *
+ * 允许额外字段：Mod 自身配置会与全局配置合并，第三方 Mod 可自由扩展。
+ */
+
+export interface RateLimitConfig {
+	enabled?: boolean;
+	windowMs?: number;
+	maxPerWindow?: number;
+}
+
+export interface CommandConfig {
+	maxLength?: number;
+	rateLimit?: RateLimitConfig;
+}
+
+export interface ConnectionConfig {
+	maxConnections?: number;
+	enableMaxConnections?: boolean;
+	enableConnectionRateLimit?: boolean;
+	rateLimitWindow?: number;
+	rateLimitMax?: number;
+	perMessageDeflate?: boolean;
+	maxPayload?: number;
+}
+
+export interface WsConfig {
+	name: string;
+	port: number;
+	connection?: ConnectionConfig;
+	checkDependenciesOnLoad?: boolean;
+}
+
+export interface AuthConfig {
+	maxAttempts?: number;
+	windowMs?: number;
+	lockoutMs?: number;
+	password?: string;
+	salt?: string;
+	passwordHash?: string;
+}
+
+export interface WebConfig {
+	port?: number;
+	auth?: AuthConfig;
+	ui?: { allowedOrigins?: string[] };
+}
+
+export interface SapiConfig {
+	gmsg: string;
+	smsg: string;
+}
+
+export interface UtilsConfig {
+	tellAllToTell?: boolean;
+	enablePolling?: boolean;
+}
+
+export interface AppConfig {
+	ws: WsConfig;
+	command?: CommandConfig;
+	web?: WebConfig;
+	sapi: SapiConfig;
+	utils?: UtilsConfig;
+	logLevel?: string;
+	commandPrefix?: string;
+	language?: string;
+	/** Mod 可扩展的任意字段 */
+	[key: string]: unknown;
+}
+
+/** 一条 SAPI 消息 */
+export interface SapiMessage {
+	mod?: string;
+	type?: string;
+	data?: unknown;
+}
+
+/** Mod 收到的 PlayerMessage 包 */
+export interface PlayerMessageBody {
+	sender?: string;
+	message?: string;
+	type?: string;
+}
+
+/** Minecraft WebSocket 返回包（只声明使用到的字段） */
+export interface CommandResponse {
+	header?: {
+		requestId?: string;
+		messagePurpose?: string;
+		eventName?: string;
+	};
+	body?: {
+		statusCode?: number;
+		statusMessage?: string;
+		details?: unknown;
+		players?: string;
+		localplayername?: string;
+		inventory?: unknown;
+		sender?: string;
+		message?: string;
+		type?: string;
+		[key: string]: unknown;
+	};
+}

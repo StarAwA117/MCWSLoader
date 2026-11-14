@@ -1,10 +1,11 @@
-import http from "http";
-import fs from "fs";
-import path from "path";
-import crypto from "crypto";
-import { exec, execFile } from "child_process";
-import { promisify } from "util";
-import { fileURLToPath } from "url";
+import http from "node:http";
+import type { IncomingMessage, ServerResponse } from "node:http";
+import fs from "node:fs";
+import path from "node:path";
+import crypto from "node:crypto";
+import { exec, execFile } from "node:child_process";
+import { promisify } from "node:util";
+import { fileURLToPath } from "node:url";
 import { config, reloadConfig, ServerModManager, ClientModManager, modRegistry } from "../lib/mods.js";
 import Current from "../lib/current.js";
 import PermissionManager from "../lib/permission.js";
@@ -13,6 +14,14 @@ import { logger } from "../lib/logger.js";
 import { collectCommands as collectTerminalCommands } from "../lib/readline.js";
 import { parseMultipartBody } from "../lib/multipart.js";
 import { extractZip, resolveModRoot, readManifest, copyMerge, removeDir, sanitizeFolderName, installDependencies, makeTempDir, makeTempPath, moveDir } from "../lib/modinstall.js";
+import type { Client } from "../types/client.js";
+import type { ModEntry } from "../types/mod.js";
+
+type AnyRecord = Record<string, any>;
+interface AuthState {
+	attempts: number[];
+	lockedUntil: number;
+}
 
 const execAsync = promisify(exec);
 const execFileAsync = promisify(execFile);
@@ -30,34 +39,35 @@ const AUTH_LOCKOUT_MS = authConfig.lockoutMs || 60000;
 
 const GITHUB_API = "https://api.github.com/repos/StarAwA117/MCWSLoader";
 const REPO_ROOT = path.resolve(__dirname, "..");
-const CURRENT_VERSION = JSON.parse(fs.readFileSync(path.join(REPO_ROOT, "package.json"), "utf-8")).version;
+const CURRENT_VERSION = (JSON.parse(fs.readFileSync(path.join(REPO_ROOT, "package.json"), "utf-8")) as { version: string }).version;
 
-let temporaryPassword = null;
-// 由 ws.js 注入的进程关闭钩子（/api/system/restart 使用）
-let shutdownHandler = null;
+let temporaryPassword: string | null = null;
+// 由 ws.ts 注入的进程关闭钩子（/api/system/restart 使用）
+let shutdownHandler: (() => Promise<void>) | null = null;
 // 请求体上限：防止异常客户端一次占满内存（Mod 导入单独限制）
 const MAX_BODY_BYTES = 2 * 1024 * 1024;
 const MAX_UPLOAD_BYTES = 64 * 1024 * 1024;
 
 // --- Auth rate limiting ---
-const authAttempts = new Map();
+const authAttempts = new Map<string, AuthState>();
 
-function getAuthState(ip) {
+function getAuthState(ip: string): AuthState {
 	const now = Date.now();
 	let state = authAttempts.get(ip);
 	if (!state) {
 		state = { attempts: [], lockedUntil: 0 };
 		authAttempts.set(ip, state);
 	}
-	state.attempts = state.attempts.filter(t => now - t < AUTH_WINDOW_MS);
-	if (state.lockedUntil && now > state.lockedUntil) {
-		state.lockedUntil = 0;
-		state.attempts = [];
+	const lockedState: AuthState = state;
+	lockedState.attempts = lockedState.attempts.filter((t) => now - t < AUTH_WINDOW_MS);
+	if (lockedState.lockedUntil && now > lockedState.lockedUntil) {
+		lockedState.lockedUntil = 0;
+		lockedState.attempts = [];
 	}
-	return state;
+	return lockedState;
 }
 
-function json(res, obj, status = 200) {
+function json(res: ServerResponse, obj: unknown, status = 200): void {
 	if (res.headersSent) return;
 	res.writeHead(status, {
 		"Content-Type": "application/json; charset=utf-8",
@@ -69,20 +79,21 @@ function json(res, obj, status = 200) {
 	res.end(JSON.stringify(obj));
 }
 
-function readBody(req) {
+function readBody(req: IncomingMessage): Promise<string> {
 	return new Promise((resolve, reject) => {
-		let body = "";
+		const chunks: Buffer[] = [];
 		let size = 0;
-		req.on("data", (c) => {
-			size += c.length;
+		req.on("data", (chunk: Buffer) => {
+			size += chunk.length;
 			if (size > MAX_BODY_BYTES) {
 				req.destroy();
 				reject(new Error("Request body too large"));
 				return;
 			}
-			body += c;
+			chunks.push(chunk);
 		});
-		req.on("end", () => resolve(body));
+		// 统一解码，避免 UTF-8 多字节字符跨 chunk 时被截断
+		req.on("end", () => resolve(Buffer.concat(chunks).toString("utf-8")));
 		req.on("error", reject);
 	});
 }
@@ -91,7 +102,7 @@ function readBody(req) {
  * 读取并解析 JSON 请求体。
  * 失败时直接回 400，返回 null。
  */
-async function readJson(req, res) {
+async function readJson(req: IncomingMessage, res: ServerResponse): Promise<AnyRecord | null> {
 	try {
 		const body = await readBody(req);
 		if (!body) return {};
@@ -107,13 +118,19 @@ async function readJson(req, res) {
 /**
  * 按名称查找 Mod；未找到时回 404，返回 null。
  */
-function findMod(name, res) {
+function findMod(name: string, res: ServerResponse): ModEntry | null {
 	const entry = modRegistry.getByName(name);
 	if (!entry) json(res, { ok: false, message: "Mod not found" }, 404);
 	return entry;
 }
 
-function getClientInfo(ws) {
+function getClientInfo(ws: Client): {
+	id: string;
+	ip: string;
+	isMain: boolean;
+	connectedAt: number;
+	localPlayerName: string | null;
+} {
 	return {
 		id: ws.id,
 		ip: ws._socket?.remoteAddress || "unknown",
@@ -123,14 +140,14 @@ function getClientInfo(ws) {
 	};
 }
 
-function listClients() {
+function listClients(): ReturnType<typeof getClientInfo>[] {
 	return [...Current.clientMods.keys()].map(getClientInfo);
 }
 
 const SESSION_TIMEOUT = 24 * 60 * 60 * 1000; // 24 hours
-const sessions = new Map();
+const sessions = new Map<string, { ip: string; createdAt: number }>();
 
-function hashPassword(password) {
+function hashPassword(password: string): Promise<{ salt: string; hash: string }> {
 	return new Promise((resolve, reject) => {
 		const salt = crypto.randomBytes(16).toString("hex");
 		crypto.scrypt(password, salt, 64, (err, derivedKey) => {
@@ -140,7 +157,7 @@ function hashPassword(password) {
 	});
 }
 
-function verifyPassword(password, salt, hash) {
+function verifyPassword(password: string, salt: string, hash: string): Promise<boolean> {
 	return new Promise((resolve, reject) => {
 		crypto.scrypt(password, salt, 64, (err, derivedKey) => {
 			if (err) return reject(err);
@@ -149,7 +166,7 @@ function verifyPassword(password, salt, hash) {
 	});
 }
 
-async function checkPassword(password) {
+async function checkPassword(password: string): Promise<boolean> {
 	const auth = config.web?.auth || {};
 	if (auth.passwordHash && auth.salt) {
 		return await verifyPassword(password, auth.salt, auth.passwordHash);
@@ -164,14 +181,14 @@ async function checkPassword(password) {
 	return false;
 }
 
-function createSession(ip) {
+function createSession(ip: string): string {
 	const token = crypto.randomBytes(32).toString("hex");
 	sessions.set(token, { ip, createdAt: Date.now() });
 	return token;
 }
 
-function validateSession(token) {
-	if (!token) return false;
+function validateSession(token: unknown): boolean {
+	if (typeof token !== "string" || !token) return false;
 	const session = sessions.get(token);
 	if (!session) return false;
 	if (Date.now() - session.createdAt > SESSION_TIMEOUT) {
@@ -182,26 +199,26 @@ function validateSession(token) {
 }
 
 // 定期清理过期会话与登录限流记录，避免长期运行后 Map 无限增长
-function cleanupAuthState() {
+function cleanupAuthState(): void {
 	const now = Date.now();
 	for (const [token, session] of sessions) {
 		if (now - session.createdAt > SESSION_TIMEOUT) sessions.delete(token);
 	}
 	for (const [ip, state] of authAttempts) {
-		state.attempts = state.attempts.filter(t => now - t < AUTH_WINDOW_MS);
+		state.attempts = state.attempts.filter((t) => now - t < AUTH_WINDOW_MS);
 		if (state.attempts.length === 0 && (!state.lockedUntil || now > state.lockedUntil)) authAttempts.delete(ip);
 	}
 }
 const authCleanupTimer = setInterval(cleanupAuthState, 10 * 60 * 1000);
 if (typeof authCleanupTimer.unref === "function") authCleanupTimer.unref();
 
-function writeConfig() {
+function writeConfig(): void {
 	fs.writeFileSync(CONFIG_PATH, JSON.stringify(config, null, "\t") + "\n", "utf-8");
 }
 
 // 只读取日志尾部：日志文件可持续增长，全量读取再 split 会随文件变大而线性变慢
-function readLogTail(filePath, maxLines, maxBytes = 512 * 1024) {
-	let fd;
+function readLogTail(filePath: string, maxLines: number, maxBytes = 512 * 1024): string[] {
+	let fd: number | undefined;
 	try {
 		fd = fs.openSync(filePath, "r");
 		const size = fs.fstatSync(fd).size;
@@ -223,7 +240,7 @@ function readLogTail(filePath, maxLines, maxBytes = 512 * 1024) {
 
 const startTime = Date.now();
 
-const MIME_TYPES = {
+const MIME_TYPES: Record<string, string> = {
 	".html": "text/html; charset=utf-8",
 	".js": "application/javascript; charset=utf-8",
 	".css": "text/css; charset=utf-8",
@@ -246,7 +263,7 @@ const HTML_HEADERS = {
 // index.html 只变语言注入，按文件 mtime + 语言缓存，避免每个请求都读盘
 const htmlCache = { filePath: "", mtimeMs: 0, language: "", html: "" };
 
-function sendHTML(res, filePath) {
+function sendHTML(res: ServerResponse, filePath: string): void {
 	let stat;
 	try {
 		stat = fs.statSync(filePath);
@@ -275,7 +292,7 @@ function sendHTML(res, filePath) {
 	res.end(injected);
 }
 
-function serveStatic(res, filePath) {
+function serveStatic(res: ServerResponse, filePath: string): void {
 	try {
 		const stat = fs.statSync(filePath);
 		if (!stat.isFile()) {
@@ -300,7 +317,7 @@ function serveStatic(res, filePath) {
 	}
 	const ext = path.extname(filePath);
 	const mime = MIME_TYPES[ext] || "application/octet-stream";
-	const headers = {
+	const headers: Record<string, string> = {
 		"Content-Type": mime,
 		"X-Content-Type-Options": "nosniff",
 		"X-Frame-Options": "DENY"
@@ -316,7 +333,7 @@ function serveStatic(res, filePath) {
 }
 
 // 卸载已加载的模组实例（服务端/客户端），不删除文件
-function unloadMod(modEntry) {
+function unloadMod(modEntry: ModEntry | null): void {
 	if (!modEntry) return;
 	if (modEntry.entry?.server) {
 		ServerModManager._inst()?.unload(modEntry.name);
@@ -332,7 +349,7 @@ function unloadMod(modEntry) {
 }
 
 // 拉取并切换到指定 Release（更新/回退共用）
-async function checkoutTag(tag) {
+async function checkoutTag(tag: string): Promise<void> {
 	const opts = { cwd: REPO_ROOT, maxBuffer: 10 * 1024 * 1024 };
 	await execAsync("git fetch --all", opts);
 	await execAsync("git reset --hard HEAD", opts);
@@ -341,7 +358,7 @@ async function checkoutTag(tag) {
 }
 
 // 主客户端切换：同时通知服务端 Mod 并重新挂载 SAPI
-function switchMainClient(target) {
+function switchMainClient(target: Client): void {
 	const prev = Current.client;
 	if (prev === target) return;
 	Current.setMain(target);
@@ -349,7 +366,7 @@ function switchMainClient(target) {
 	ServerModManager.attachMainClient(target);
 }
 
-async function handleAPI(req, res, url) {
+async function handleAPI(req: IncomingMessage, res: ServerResponse, url: URL): Promise<void> {
 	const method = req.method;
 	const pathname = url.pathname;
 
@@ -439,8 +456,9 @@ async function handleAPI(req, res, url) {
 
 		// Config
 		if (pathname === "/api/config" && method === "GET") {
-			const cfg = structuredClone(config);
-			if (cfg.ai?.options?.apiKey) cfg.ai.options.apiKey = "***";
+			const cfg = structuredClone(config) as AnyRecord;
+			const ai = cfg.ai as AnyRecord | undefined;
+			if (ai?.options?.apiKey) ai.options.apiKey = "***";
 			if (cfg.web?.auth) {
 				cfg.web.auth.passwordHash = "";
 				cfg.web.auth.salt = "";
@@ -455,14 +473,17 @@ async function handleAPI(req, res, url) {
 				if (!newCfg.web.auth.passwordHash && config.web?.auth?.passwordHash) newCfg.web.auth.passwordHash = config.web.auth.passwordHash;
 				if (!newCfg.web.auth.salt && config.web?.auth?.salt) newCfg.web.auth.salt = config.web.auth.salt;
 			}
-			if (newCfg.ai?.options && newCfg.ai.options.apiKey === "***" && config.ai?.options?.apiKey) {
-				newCfg.ai.options.apiKey = config.ai.options.apiKey;
+			const newAi = newCfg.ai as AnyRecord | undefined;
+			const currentAi = (config as AnyRecord).ai as AnyRecord | undefined;
+			if (newAi?.options && newAi.options.apiKey === "***" && currentAi?.options?.apiKey) {
+				newAi.options.apiKey = currentAi.options.apiKey;
 			}
 			try {
 				fs.writeFileSync(CONFIG_PATH, JSON.stringify(newCfg, null, "\t") + "\n", "utf-8");
 			} catch (e) {
-				logger.error("Config save failed: " + e.message);
-				return json(res, { ok: false, message: "Failed to write config: " + e.message }, 500);
+				const message = (e as Error).message;
+				logger.error("Config save failed: " + message);
+				return json(res, { ok: false, message: "Failed to write config: " + message }, 500);
 			}
 			reloadConfig();
 			return json(res, { ok: true, message: "Config saved" });
@@ -486,7 +507,7 @@ async function handleAPI(req, res, url) {
 				auth.salt = salt;
 				auth.passwordHash = hash;
 				await writeConfig();
-				sessions.delete(authToken);
+				if (typeof authToken === "string") sessions.delete(authToken);
 				return json(res, { ok: true, message: "Password updated, please login again" });
 			} catch (e) {
 				return json(res, { ok: false, message: "Password update failed" }, 500);
@@ -551,14 +572,14 @@ async function handleAPI(req, res, url) {
 			const overwrite = url.searchParams.get("overwrite") === "1";
 			const modDir = path.join(__dirname, "..", "mod");
 			const tmpBase = path.join(__dirname, "..", "tmp");
-			let tempDir = null;
-			let backupPath = null;
-			let folderName = null;
+			let tempDir: string | null = null;
+			let backupPath: string | null = null;
+			let folderName: string | null = null;
 			let installed = false;
-			let manifest = null;
-			let existingEntry = null;
+			let manifest: import("../types/mod.js").ModManifest | null = null;
+			let existingEntry: ModEntry | null = null;
 			// 先清理临时文件再回响应，避免响应早于清理完成
-			const finish = (payload, status) => {
+			const finish = (payload: unknown, status = 200): void => {
 				if (tempDir) removeDir(tempDir);
 				if (backupPath) removeDir(backupPath);
 				return json(res, payload, status);
@@ -574,7 +595,7 @@ async function handleAPI(req, res, url) {
 					return finish({ ok: false, code: "INVALID_FORMAT", message: "File too large" }, 413);
 				}
 
-				const chunks = [];
+				const chunks: Buffer[] = [];
 				let received = 0;
 				for await (const chunk of req) {
 					received += chunk.length;
@@ -585,7 +606,7 @@ async function handleAPI(req, res, url) {
 				}
 				const parts = parseMultipartBody(Buffer.concat(chunks), contentType);
 				const filePart = parts?.file;
-				if (!filePart || !filePart.buffer) {
+				if (!filePart || filePart.type !== "file") {
 					return finish({ ok: false, code: "INVALID_FORMAT", message: "No file uploaded" }, 400);
 				}
 
@@ -641,7 +662,8 @@ async function handleAPI(req, res, url) {
 				collectTerminalCommands(ServerModManager, ClientModManager);
 				return finish({ ok: true, name: manifest.name, folder: folderName });
 			} catch (e) {
-				logger.error("Mod import failed: " + e.message);
+				const err = e as Error & { code?: string };
+				logger.error("Mod import failed: " + err.message);
 				// 导入中途失败：恢复现场，避免留下半成品
 				if (installed && folderName) {
 					const targetDir = path.join(modDir, folderName);
@@ -654,7 +676,7 @@ async function handleAPI(req, res, url) {
 							backupPath = null;
 							logger.warning(`Mod "${folderName}" import failed, rolled back to previous version`);
 						} catch (re) {
-							logger.error(`Rollback failed for "${folderName}": ${re.message}`);
+							logger.error(`Rollback failed for "${folderName}": ${(re as Error).message}`);
 						}
 					} else {
 						// 全新安装失败：删除半成品并从 mods_config.json 移除
@@ -669,7 +691,7 @@ async function handleAPI(req, res, url) {
 						collectTerminalCommands(ServerModManager, ClientModManager);
 					} catch {}
 				}
-				return finish({ ok: false, code: e.code || "INSTALL_FAILED", message: e.message }, 500);
+				return finish({ ok: false, code: err.code || "INSTALL_FAILED", message: err.message }, 500);
 			}
 		}
 
@@ -712,7 +734,7 @@ async function handleAPI(req, res, url) {
 							}
 						}
 					} catch (e) {
-						logger.error(`Mod ${modEntry.name} hot reload failed: ${e.message}`);
+						logger.error(`Mod ${modEntry.name} hot reload failed: ${(e as Error).message}`);
 					}
 					collectTerminalCommands(ServerModManager, ClientModManager);
 					return json(res, r);
@@ -725,7 +747,7 @@ async function handleAPI(req, res, url) {
 			}
 
 			if (action === "reload" && method === "POST") {
-				const results = { server: null, client: null };
+				const results: { server: unknown; client: unknown } = { server: null, client: null };
 				if (modEntry.entry.server) {
 					const sm = ServerModManager._inst();
 					results.server = sm ? await sm.reload(modEntry.name) : { success: false, message: "Server mod manager not initialized" };
@@ -761,7 +783,7 @@ async function handleAPI(req, res, url) {
 					try {
 						fs.writeFileSync(configPath, JSON.stringify(newConfig, null, "\t") + "\n", "utf-8");
 					} catch (e) {
-						return json(res, { ok: false, message: "Failed to write config: " + e.message }, 500);
+						return json(res, { ok: false, message: "Failed to write config: " + (e as Error).message }, 500);
 					}
 					// 同步注册表与合并配置缓存，否则之后的 reload 仍会拿到旧配置
 					modEntry.config = newConfig;
@@ -788,13 +810,14 @@ async function handleAPI(req, res, url) {
 			const cmds = [];
 			if (Current.client?.clientMod) {
 				const cm = Current.client.clientMod;
+				const buckets = cm.commands as Record<string, Command[]>;
 				for (const level of ["normal", "user", "op", "owner"]) {
-					for (const cmd of (cm.commands[level] || [])) {
+					for (const cmd of buckets[level] ?? []) {
 						cmds.push({
 							name: `${Command.commandPrefix}${cmd.name}`,
 							description: cmd.description,
 							level,
-							params: cmd.parameters.map(p => ({ type: Array.isArray(p[0]) ? "enum" : p[0], desc: p[1], optional: p[2] }))
+							params: cmd.parameters.map((p) => ({ type: Array.isArray(p[0]) ? "enum" : p[0], desc: p[1], optional: p[2] }))
 						});
 					}
 				}
@@ -860,12 +883,12 @@ async function handleAPI(req, res, url) {
 			setTimeout(async () => {
 				try { if (shutdownHandler) await shutdownHandler(); } catch {}
 				// 先释放 WebUI 端口，否则新进程会 EADDRINUSE
-				await new Promise((resolve) => {
+				await new Promise<void>((resolve) => {
 					const timer = setTimeout(resolve, 1000);
 					server.close(() => { clearTimeout(timer); resolve(); });
 				});
 				const { spawn } = await import("child_process");
-				spawn(process.argv[0], process.argv.slice(1), { detached: true, stdio: "inherit" }).unref();
+				spawn(process.execPath, process.argv.slice(1), { detached: true, stdio: "inherit" }).unref();
 				process.exit(0);
 			}, 500);
 			return;
@@ -905,12 +928,12 @@ async function handleAPI(req, res, url) {
 		}
 
 		// Update
-		async function githubFetch(apiPath) {
+		async function githubFetch(apiPath: string): Promise<AnyRecord> {
 			const response = await fetch(`${GITHUB_API}${apiPath}`, {
 				headers: { "Accept": "application/vnd.github+json", "User-Agent": "MCWSLoader-UpdateChecker" }
 			});
 			if (!response.ok) throw new Error(`GitHub API request failed: HTTP ${response.status}`);
-			return response.json();
+			return (await response.json()) as AnyRecord;
 		}
 
 		if (pathname === "/api/update/check" && method === "GET") {
@@ -919,16 +942,17 @@ async function handleAPI(req, res, url) {
 				const latestVersion = release.tag_name?.replace(/^v/, "") || null;
 				return json(res, { current: CURRENT_VERSION, latest: latestVersion, hasUpdate: latestVersion && latestVersion !== CURRENT_VERSION, releaseName: release.name || null, releaseBody: release.body || null, publishedAt: release.published_at || null });
 			} catch (e) {
-				return json(res, { current: CURRENT_VERSION, latest: null, hasUpdate: false, error: e.message }, 502);
+				return json(res, { current: CURRENT_VERSION, latest: null, hasUpdate: false, error: (e as Error).message }, 502);
 			}
 		}
 
 		if (pathname === "/api/update/tags" && method === "GET") {
 			try {
 				const releases = await githubFetch("/releases?per_page=100");
-				return json(res, { tags: releases.map(r => ({ name: r.tag_name, name: r.name || r.tag_name, commit: r.target_commitish || null })) });
+				const list = Array.isArray(releases) ? (releases as AnyRecord[]) : [];
+				return json(res, { tags: list.map((r) => ({ name: r.tag_name, title: r.name || r.tag_name, commit: r.target_commitish || null })) });
 			} catch (e) {
-				return json(res, { tags: [], error: e.message }, 502);
+				return json(res, { tags: [], error: (e as Error).message }, 502);
 			}
 		}
 
@@ -941,7 +965,7 @@ async function handleAPI(req, res, url) {
 				json(res, { ok: true, message: "Update complete, exiting. Please restart manually." });
 				setTimeout(() => process.exit(0), 2000);
 			} catch (e) {
-				return json(res, { ok: false, message: "Update failed: " + e.message });
+				return json(res, { ok: false, message: "Update failed: " + (e as Error).message });
 			}
 		}
 
@@ -955,18 +979,18 @@ async function handleAPI(req, res, url) {
 				json(res, { ok: true, message: "Rollback complete, exiting. Please restart manually." });
 				setTimeout(() => process.exit(0), 2000);
 			} catch (e) {
-				return json(res, { ok: false, message: "Rollback failed: " + e.message });
+				return json(res, { ok: false, message: "Rollback failed: " + (e as Error).message });
 			}
 		}
 
 		json(res, { error: "Not Found" }, 404);
 	} catch (e) {
-		json(res, { ok: false, message: e.message }, 400);
+		json(res, { ok: false, message: (e as Error).message }, 400);
 	}
 }
 
 const server = http.createServer((req, res) => {
-	const url = new URL(req.url, "http://127.0.0.1");
+	const url = new URL(req.url ?? "/", "http://127.0.0.1");
 	if (url.pathname.startsWith("/api/")) {
 		// 兑底：处理器内部异常不应变成 unhandled rejection（Node 会因此退出进程）
 		handleAPI(req, res, url).catch((e) => {
@@ -991,10 +1015,10 @@ const server = http.createServer((req, res) => {
 	serveStatic(res, filePath);
 });
 
-export function startWebServer(onShutdown = null) {
+export function startWebServer(onShutdown: (() => Promise<void>) | null = null): Promise<void> {
 	if (typeof onShutdown === "function") shutdownHandler = onShutdown;
-	return new Promise((resolve, reject) => {
-		const onError = (err) => {
+	return new Promise<void>((resolve, reject) => {
+		const onError = (err: Error): void => {
 			server.off("listening", onListening);
 			reject(err);
 		};

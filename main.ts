@@ -1,16 +1,20 @@
-import fs from "fs";
-import { execSync } from "child_process";
-import path from "path";
-import { fileURLToPath } from "url";
+import fs from "node:fs";
+import { execSync } from "node:child_process";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const NM = path.join(__dirname, "node_modules");
 
-function needInstall() {
+interface PackageJson {
+	dependencies?: Record<string, string>;
+}
+
+function needInstall(): boolean {
 	if (!fs.existsSync(NM)) return true;
-	const pkg = JSON.parse(fs.readFileSync(path.join(__dirname, "package.json"), "utf-8"));
-	const deps = Object.keys(pkg.dependencies || {});
-	return deps.some(d => !fs.existsSync(path.join(NM, d)));
+	const pkg = JSON.parse(fs.readFileSync(path.join(__dirname, "package.json"), "utf-8")) as PackageJson;
+	const deps = Object.keys(pkg.dependencies ?? {});
+	return deps.some((dep) => !fs.existsSync(path.join(NM, dep)));
 }
 
 if (needInstall()) {
@@ -19,7 +23,7 @@ if (needInstall()) {
 		execSync("npm install", { cwd: __dirname, stdio: "inherit" });
 		console.log("< 依赖安装完成");
 	} catch (e) {
-		console.error("< 依赖安装失败:", e.message);
+		console.error("< 依赖安装失败:", (e as Error).message);
 		process.exit(1);
 	}
 }
@@ -32,11 +36,11 @@ if (!fs.existsSync(configPath) && fs.existsSync(configExamplePath)) {
 }
 
 if (fs.existsSync(configPath)) {
-	const cfg = JSON.parse(fs.readFileSync(configPath, "utf-8"));
+	const cfg = JSON.parse(fs.readFileSync(configPath, "utf-8")) as { language?: string };
 	if (!cfg.language) {
-		const lang = (process.env.LANG || process.env.LC_ALL || "").toLowerCase();
+		const lang = (process.env.LANG ?? process.env.LC_ALL ?? "").toLowerCase();
 		cfg.language = lang.startsWith("zh") ? "zh-CN" : "en";
-		fs.writeFileSync(configPath, JSON.stringify(cfg, null, "\t") + "\n", "utf-8");
+		fs.writeFileSync(configPath, `${JSON.stringify(cfg, null, "\t")}\n`, "utf-8");
 		console.log("< 已写入默认语言设置:", cfg.language);
 	}
 }

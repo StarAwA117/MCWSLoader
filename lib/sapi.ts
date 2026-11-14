@@ -1,11 +1,19 @@
 import { logger } from "./logger.js";
 import { config } from "./mods.js";
+import type { Client } from "../types/client.js";
 
 /**
  * SAPI 命令不存在时 Minecraft 返回的状态码
- * @type {number}
  */
 const COMMAND_NOT_FOUND = -2147483648;
+
+export interface SapiMessage {
+	mod?: string;
+	type?: string;
+	data?: unknown;
+}
+
+export type SapiHandler = (msg: SapiMessage) => void;
 
 /**
  * SAPI (Server API) 消息桥
@@ -23,23 +31,23 @@ const COMMAND_NOT_FOUND = -2147483648;
  * 命令不存在时自动停止轮询，并每 45 秒重试一次；命令恢复后自动重新开始。
  */
 export class SAPIMessageHandler {
-	/**
-	 * @param {Object} client - 客户端连接（WebSocket）
-	 */
-	constructor(client) {
+	client: Client | null;
+	/** null=未检测，false=不存在，true=存在 */
+	commandExists: boolean | null = null;
+	polling = false;
+	pollTimer: NodeJS.Timeout | null = null;
+	retryTimer: NodeJS.Timeout | null = null;
+
+	/** 处理器注册表: modName -> Map<type, callback> */
+	handlers = new Map<string, Map<string, SapiHandler>>();
+	pollInterval = 1000;
+	idlePollInterval = 3000;
+	retryInterval = 45_000;
+	_idlePolls = 0;
+	destroyed = false;
+
+	constructor(client: Client) {
 		this.client = client;
-		// null=未检测，false=不存在，true=存在
-		this.commandExists = null;
-		this.polling = false;
-		this.pollTimer = null;
-		this.retryTimer = null;
-		// 处理器注册表: modName -> Map<type, callback>
-		this.handlers = new Map();
-		this.pollInterval = 1000;
-		this.idlePollInterval = 3000;
-		this._idlePolls = 0;
-		this.retryInterval = 45_000;
-		this.destroyed = false;
 		this.start();
 	}
 
@@ -47,24 +55,26 @@ export class SAPIMessageHandler {
 
 	/**
 	 * 注册消息处理器
-	 * @param {string} modName - Mod 名称
-	 * @param {string} type - 消息类型，"*" 表示该 Mod 的全部类型
-	 * @param {Function} callback - 处理函数
+	 * @param type 消息类型，"*" 表示该 Mod 的全部类型
 	 */
-	register(modName, type, callback) {
+	register(modName: string, type: string, callback: SapiHandler): void {
 		if (!modName || typeof type !== "string" || typeof callback !== "function") return;
-		if (!this.handlers.has(modName)) this.handlers.set(modName, new Map());
-		this.handlers.get(modName).set(type, callback);
+		let handlers = this.handlers.get(modName);
+		if (!handlers) {
+			handlers = new Map();
+			this.handlers.set(modName, handlers);
+		}
+		handlers.set(type, callback);
 	}
 
-	unregister(modName, type) {
-		const modHandlers = this.handlers.get(modName);
-		if (!modHandlers) return;
-		modHandlers.delete(type);
-		if (modHandlers.size === 0) this.handlers.delete(modName);
+	unregister(modName: string, type: string): void {
+		const handlers = this.handlers.get(modName);
+		if (!handlers) return;
+		handlers.delete(type);
+		if (handlers.size === 0) this.handlers.delete(modName);
 	}
 
-	clearMod(modName) {
+	clearMod(modName: string): void {
 		this.handlers.delete(modName);
 	}
 
@@ -72,12 +82,9 @@ export class SAPIMessageHandler {
 
 	/**
 	 * 以指定 Mod 的身份发送消息
-	 * @param {string} modName
-	 * @param {string} type
-	 * @param {Object} data
-	 * @returns {Promise<boolean>} 是否发送成功
+	 * @returns 是否发送成功
 	 */
-	async send(modName, type, data = {}) {
+	async send(modName: string, type: string, data: unknown = {}): Promise<boolean> {
 		if (!this.client || this.destroyed) return false;
 
 		const result = await this._sendMessage(modName, type, data);
@@ -93,14 +100,16 @@ export class SAPIMessageHandler {
 	}
 
 	/**
-	 * @returns {Promise<boolean|null>} true 成功；false 失败；null 命令不存在
+	 * @returns true 成功；false 失败；null 命令不存在
 	 */
-	async _sendMessage(mod, type, data = {}) {
-		if (!this.client) return false;
+	async _sendMessage(mod: string, type: string, data: unknown = {}): Promise<boolean | null> {
+		const client = this.client;
+		if (!client) return false;
 
 		const message = JSON.stringify({ mod, type, data });
-		if (Buffer.byteLength(message, "utf8") > 400) {
-			logger.warning(`SAPI message too long: ${Buffer.byteLength(message, "utf8")} bytes`);
+		const messageBytes = Buffer.byteLength(message, "utf8");
+		if (messageBytes > 400) {
+			logger.warning(`SAPI message too long: ${messageBytes} bytes`);
 			return false;
 		}
 
@@ -108,14 +117,15 @@ export class SAPIMessageHandler {
 		const command = `${config.sapi.smsg} "${escaped}"`;
 
 		const maxLength = config.command?.maxLength ?? 461;
-		if (Buffer.byteLength(command, "utf8") > maxLength) {
-			logger.warning(`SAPI command too long: ${Buffer.byteLength(command, "utf8")} bytes`);
+		const commandBytes = Buffer.byteLength(command, "utf8");
+		if (commandBytes > maxLength) {
+			logger.warning(`SAPI command too long: ${commandBytes} bytes`);
 			return false;
 		}
 
 		try {
-			const result = await this.client.runCommand(command);
-			const statusCode = result?.body?.statusCode;
+			const result = await client.runCommand(command);
+			const statusCode = result.body?.statusCode;
 			if (statusCode === COMMAND_NOT_FOUND) return null;
 			if (statusCode === 0) {
 				logger.debug(`SAPI send success: ${mod}/${type}`);
@@ -124,14 +134,14 @@ export class SAPIMessageHandler {
 			logger.debug(`SAPI send failed: statusCode=${statusCode}`);
 			return false;
 		} catch (e) {
-			logger.debug(`SAPI sendMessage failed: ${e.message}`);
+			logger.debug(`SAPI sendMessage failed: ${(e as Error).message}`);
 			return false;
 		}
 	}
 
 	// ==================== 轮询 ====================
 
-	start() {
+	start(): void {
 		if (this.polling || !this.client || this.destroyed) return;
 		this.polling = true;
 		if (this.retryTimer) {
@@ -139,10 +149,10 @@ export class SAPIMessageHandler {
 			this.retryTimer = null;
 		}
 		logger.debug("SAPI start polling");
-		this._poll();
+		void this._poll();
 	}
 
-	stop() {
+	stop(): void {
 		if (!this.polling) return;
 		this.polling = false;
 		if (this.pollTimer) {
@@ -152,7 +162,7 @@ export class SAPIMessageHandler {
 		logger.debug("SAPI stop polling");
 	}
 
-	async _poll() {
+	async _poll(): Promise<void> {
 		if (!this.polling || !this.client || this.destroyed) return;
 
 		try {
@@ -181,91 +191,87 @@ export class SAPIMessageHandler {
 			if (messages.length > 0) this._idlePolls = 0;
 			else this._idlePolls++;
 		} catch (e) {
-			logger.debug(`SAPI polling error: ${e.message}`);
+			logger.debug(`SAPI polling error: ${(e as Error).message}`);
 			this._idlePolls++;
 		}
 
 		if (this.polling) {
 			const delay = this._idlePolls >= 5 ? this.idlePollInterval : this.pollInterval;
-			this.pollTimer = setTimeout(() => this._poll(), delay);
+			this.pollTimer = setTimeout(() => void this._poll(), delay);
 		}
 	}
 
-	/**
-	 * 检测 /gmsg 是否存在
-	 * @returns {Promise<boolean>}
-	 */
-	async _detect() {
-		if (!this.client) return false;
+	/** 检测 /gmsg 是否存在 */
+	async _detect(): Promise<boolean> {
+		const client = this.client;
+		if (!client) return false;
 		try {
-			const data = await this.client.runCommand(config.sapi.gmsg);
-			return data?.body?.statusCode !== COMMAND_NOT_FOUND;
+			const data = await client.runCommand(config.sapi.gmsg);
+			return data.body?.statusCode !== COMMAND_NOT_FOUND;
 		} catch (e) {
-			logger.debug(`SAPI check failed: ${e.message}`);
+			logger.debug(`SAPI check failed: ${(e as Error).message}`);
 			return false;
 		}
 	}
 
 	/**
 	 * 取回等待处理的消息列表
-	 * @returns {Promise<Array|null>} null 表示命令不存在
+	 * @returns null 表示命令不存在
 	 */
-	async _getMessages() {
-		if (!this.client) return [];
+	async _getMessages(): Promise<SapiMessage[] | null> {
+		const client = this.client;
+		if (!client) return [];
 		try {
-			const data = await this.client.runCommand(config.sapi.gmsg);
-			if (data?.body?.statusCode === COMMAND_NOT_FOUND) return null;
+			const data = await client.runCommand(config.sapi.gmsg);
+			if (data.body?.statusCode === COMMAND_NOT_FOUND) return null;
 
-			const statusMessage = data?.body?.statusMessage;
+			const statusMessage = data.body?.statusMessage;
 			if (!statusMessage) return [];
 			try {
-				const messages = JSON.parse(statusMessage);
-				return Array.isArray(messages) ? messages : [];
+				const messages = JSON.parse(statusMessage) as unknown;
+				return Array.isArray(messages) ? (messages as SapiMessage[]) : [];
 			} catch {
 				return [];
 			}
 		} catch (e) {
-			logger.debug(`SAPI getMessages failed: ${e.message}`);
+			logger.debug(`SAPI getMessages failed: ${(e as Error).message}`);
 			return [];
 		}
 	}
 
 	// ==================== 消息路由 ====================
 
-	/**
-	 * 按 mod 字段路由；mod 未注册时广播给所有通配处理器
-	 * @param {{ mod: string, type: string, data: Object }} msg
-	 */
-	_handleMessage(msg) {
+	/** 按 mod 字段路由；mod 未注册时广播给所有通配处理器 */
+	_handleMessage(msg: SapiMessage): void {
 		if (!msg || typeof msg !== "object") return;
 
 		const { mod, type, data } = msg;
-		const msgData = { mod, type, data };
-		const modHandlers = typeof mod === "string" ? this.handlers.get(mod) : undefined;
+		const msgData: SapiMessage = { mod, type, data };
+		const handlers = typeof mod === "string" ? this.handlers.get(mod) : undefined;
 
-		if (modHandlers) {
-			this._callHandler(modHandlers.get(type), msgData);
-			this._callHandler(modHandlers.get("*"), msgData);
+		if (handlers) {
+			this._callHandler(handlers.get(type ?? ""), msgData);
+			this._callHandler(handlers.get("*"), msgData);
 		} else {
-			for (const handlers of this.handlers.values()) {
-				this._callHandler(handlers.get("*"), msgData);
+			for (const group of this.handlers.values()) {
+				this._callHandler(group.get("*"), msgData);
 			}
 		}
 	}
 
-	_callHandler(handler, msg) {
+	_callHandler(handler: SapiHandler | undefined, msg: SapiMessage): void {
 		if (typeof handler !== "function") return;
 		try {
 			handler(msg);
 		} catch (e) {
-			logger.error(`SAPI message handling error: ${msg.type}`);
-			logger.debug(e.message);
+			logger.error(`SAPI message handling error: ${msg.type ?? ""}`);
+			logger.debug((e as Error).message);
 		}
 	}
 
 	// ==================== 启停 ====================
 
-	_disable() {
+	_disable(): void {
 		if (this.commandExists === false) return;
 		this.commandExists = false;
 		this.stop();
@@ -273,14 +279,14 @@ export class SAPIMessageHandler {
 		this._scheduleRetry();
 	}
 
-	_enable() {
+	_enable(): void {
 		if (this.commandExists === true) return;
 		this.commandExists = true;
 		logger.info("SAPI command restored, bridge enabled");
 		this.start();
 	}
 
-	_scheduleRetry() {
+	_scheduleRetry(): void {
 		if (this.retryTimer || this.destroyed) return;
 		this.retryTimer = setTimeout(async () => {
 			this.retryTimer = null;
@@ -294,7 +300,7 @@ export class SAPIMessageHandler {
 		}, this.retryInterval);
 	}
 
-	destroy() {
+	destroy(): void {
 		this.destroyed = true;
 		this.stop();
 		if (this.retryTimer) {
