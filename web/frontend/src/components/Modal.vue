@@ -63,7 +63,7 @@ function onKeydown(e: KeyboardEvent): void {
 					v-if="state.type === 'input' || state.type === 'password'"
 					ref="inputRef"
 					v-model="state.inputValue"
-					type="text"
+					:type="state.type === 'password' ? 'password' : 'text'"
 					:placeholder="state.inputPlaceholder"
 					style="margin-top: 12px; width: 100%; padding: 8px 12px; border-radius: var(--radius); border: 1px solid var(--border); background: var(--bg-input); color: var(--text); font-size: 14px; font-family: inherit; outline: none;"
 				/>

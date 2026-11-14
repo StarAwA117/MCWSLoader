@@ -1,0 +1,1 @@
+import{x as u,G as a}from"./vendor-BhQKYgjF.js";function c(t,i,o={}){const{immediate:r=!0}=o;let e=null;async function n(){if(!(typeof document<"u"&&document.hidden))try{await t()}catch{}}return u(()=>{r&&n(),e=setInterval(()=>void n(),i)}),a(()=>{e&&clearInterval(e),e=null}),{refresh:n}}export{c as u};
