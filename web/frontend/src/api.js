@@ -48,7 +48,11 @@ async function request(path, options = {}) {
 
 // 登录接口不需要 token，且 401 响应体里带有锁定/剩余次数信息，不能走 request()
 export async function loginWithPassword(pwd) {
-	const res = await fetch(`${BASE}/login?pwd=${encodeURIComponent(pwd)}`);
+	const res = await fetch(`${BASE}/login`, {
+		method: "POST",
+		headers: { "Content-Type": "application/json" },
+		body: JSON.stringify({ password: pwd })
+	});
 	return parseResponse(res);
 }
 
@@ -83,7 +87,6 @@ export const api = {
 	setMainClient: (id) => request(`/clients/${id}/set-main`, { method: "POST" }),
 	disconnectClient: (id) => request(`/clients/${id}/disconnect`, { method: "POST" }),
 	getLogs: (name = "app", lines = 200) => request(`/logs?name=${encodeURIComponent(name)}&lines=${lines}`),
-	getLiveLogs: () => request("/logs/live"),
 	getChatLog: () => request("/chat"),
 	sendChat: (message) => request("/chat", { method: "POST", body: JSON.stringify({ message }) }),
 	getProcess: () => request("/system/process"),

@@ -490,7 +490,7 @@ deop 撤回op权限, op 给予op权限。
 				// (新会话/pa:new/自动重置后都会归 0) => 首条消息附带系统人设
 				const isFresh = (this.tokenUsage.get(sender) || 0) === 0;
 				// 注入玩家 ID 与权限: 仅主人(FLT18355)可让 AI 执行 bash, 其他人只能聊天
-				const perm = await PermissionManager.query(sender);
+				const perm = await this.PermissionManager.query(sender);
 				const isOwner = perm === 3;
 				const permRule = isOwner
 					? `当前玩家: ${sender}（主人）\n可以执行 bash 命令、读取/编辑文件, 但仅在玩家明确要求时执行。`

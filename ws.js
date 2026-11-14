@@ -15,9 +15,11 @@ const connectionAttempts = new Map();
 const connCfg = (config.ws && config.ws.connection) || {};
 const RATE_LIMIT_WINDOW = (connCfg.rateLimitWindow !== undefined) ? connCfg.rateLimitWindow : 60000;
 const RATE_LIMIT_MAX = (connCfg.rateLimitMax !== undefined) ? connCfg.rateLimitMax : 10;
+// WebUI 的开关此前没有生效，始终按 rateLimitMax 限流
+const ENABLE_RATE_LIMIT = connCfg.enableConnectionRateLimit !== false;
 
 function isRateLimited(ip) {
-	if (RATE_LIMIT_MAX === 0) return false;
+	if (!ENABLE_RATE_LIMIT || RATE_LIMIT_MAX <= 0) return false;
 	const now = Date.now();
 	const attempts = connectionAttempts.get(ip) || [];
 	const recentAttempts = attempts.filter((time) => now - time < RATE_LIMIT_WINDOW);
@@ -40,7 +42,7 @@ const cleanupTimer = setInterval(() => {
 		if (recent.length === 0) connectionAttempts.delete(ip);
 		else connectionAttempts.set(ip, recent);
 	}
-}, RATE_LIMIT_WINDOW);
+}, Math.max(1000, RATE_LIMIT_WINDOW));
 
 // Active connection tracking for max connections limit
 const currentConnections = new Set();
@@ -114,7 +116,7 @@ server.on("connection", (ws) => {
 		return;
 	}
 	currentConnections.add(ws);
-	recordConnectionAttempt(clientIP);
+	if (ENABLE_RATE_LIMIT && RATE_LIMIT_MAX > 0) recordConnectionAttempt(clientIP);
 
 	logger.info("Client connected: " + clientIP);
 

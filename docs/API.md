@@ -18,6 +18,31 @@ MCWSLoader exposes several programmatic APIs for Mod development and a REST API 
 
 ## Mod System
 
+### Injected API
+
+Every Mod (client and server) receives the same core API, injected onto the
+instance after construction (and mirrored onto the class as statics):
+
+| Property | Description |
+|----------|-------------|
+| `this.modName` | Mod name from `manifest.json` |
+| `this.config` | Global `config.json` merged with the Mod's own `config.json` |
+| `this.storage` | Per-Mod key/value store (`get/set/has/delete/clear/keys/values/entries`) |
+| `this.logger` | Logger prefixed with `Client:<name>` / `Server:<name>` |
+| `this.emit/on/off` | Event bus (`in-process` for client Mods, global for server Mods) |
+| `this.sapi.on/off/send/exists` | Client Mods only: SAPI message bridge |
+| `this.client` | Client Mods only: the WebSocket connection |
+| `this.Command` | Command builder (see [Command Framework](#command-framework)) |
+| `this.Current` | Global runtime state (`client`, `clientMods`, `properties`) |
+| `this.PermissionManager` | Permission queries (`query/add/remove/get/set`) |
+| `this.ServerModManager` / `this.ClientModManager` | Manager classes |
+| `this.reloadConfig` | Re-read `config.json` into the shared `config` object |
+| `this.fs`, `this.path`, `this.fileURLToPath`, `this.exec`, `this.readline` | Node / terminal helpers |
+
+Client Mods also get `client.<modName>` pointing at their instance. Only the
+members relevant to a Mod are injected; server Mods do not receive `client`
+or `sapi`.
+
 ### ClientModManager
 
 Manages client-side Mods. One instance per WebSocket connection.
@@ -99,8 +124,8 @@ class MyMod {
 | `.addOptionalString/.addOptionalInteger/.addOptionalFloat/.addOptionalBoolean/.addOptionalEnum(values)` | `Command` | Add an optional parameter |
 | `.setFunc((sender, ...args) => ...)` | `Command` | Handler; a returned Promise is awaited for errors |
 | `.matches(tokens)` | `boolean` | Whether `Command.parseArgs(text)` targets this command |
-| `.execute(commander, text)` | `{ status, message } \| false` | Parse and run; `false` when the name does not match |
-| `.executeTokens(commander, tokens)` | `{ status, message } \| false` | Run with pre-parsed tokens (used by the dispatcher) |
+| `.execute(commander, text, onError?)` | `{ status, message } \| false` | Parse and run; `false` when the name does not match |
+| `.executeTokens(commander, tokens, onError?)` | `{ status, message } \| false` | Run with pre-parsed tokens; `onError` receives async handler rejections |
 | `Command.parseArgs(text)` | `string[]` | Split text into tokens, honoring double-quoted arguments |
 
 `commands()` (or `onCommand()`) may return any of `normal`, `user`, `op`, `owner`.
@@ -278,7 +303,7 @@ REST API served by the WebUI backend. All endpoints require `X-Auth-Token` heade
 
 | Method | Endpoint | Auth | Description |
 |--------|----------|:----:|-------------|
-| `GET` | `/api/login?pwd=<password>` | No | Login, returns `{ ok, token }` |
+| `POST` | `/api/login` | No | Login with `{ password }`, returns `{ ok, token }` (GET `?pwd=` still accepted) |
 
 ### Status
 
@@ -345,7 +370,6 @@ REST API served by the WebUI backend. All endpoints require `X-Auth-Token` heade
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | `GET` | `/api/logs?name=app&lines=200` | Read log file |
-| `GET` | `/api/logs/live` | Recent in-memory log buffer |
 
 ### Chat
 

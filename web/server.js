@@ -32,25 +32,12 @@ const GITHUB_API = "https://api.github.com/repos/StarAwA117/MCWSLoader";
 const REPO_ROOT = path.resolve(__dirname, "..");
 const CURRENT_VERSION = JSON.parse(fs.readFileSync(path.join(REPO_ROOT, "package.json"), "utf-8")).version;
 
-let logBuffer = [];
 let temporaryPassword = null;
-let updating = false;
-let rollingBack = false;
 // 由 ws.js 注入的进程关闭钩子（/api/system/restart 使用）
 let shutdownHandler = null;
-const LOG_BUFFER_MAX = 500;
-// 请求体上限：防止异常客户端一次占满内存（Mod 导入走 multipart 流式处理，不受此限）
+// 请求体上限：防止异常客户端一次占满内存（Mod 导入单独限制）
 const MAX_BODY_BYTES = 2 * 1024 * 1024;
-
-const originalLog = logger.log.bind(logger);
-logger.log = function (message, type) {
-	originalLog(message, type);
-	if (type && ["info", "warning", "error", "debug"].includes(type)) {
-		const entry = { time: Date.now(), type, message };
-		logBuffer.push(entry);
-		if (logBuffer.length > LOG_BUFFER_MAX) logBuffer.shift();
-	}
-};
+const MAX_UPLOAD_BYTES = 64 * 1024 * 1024;
 
 // --- Auth rate limiting ---
 const authAttempts = new Map();
@@ -100,6 +87,32 @@ function readBody(req) {
 	});
 }
 
+/**
+ * 读取并解析 JSON 请求体。
+ * 失败时直接回 400，返回 null。
+ */
+async function readJson(req, res) {
+	try {
+		const body = await readBody(req);
+		if (!body) return {};
+		const data = JSON.parse(body);
+		if (!data || typeof data !== "object" || Array.isArray(data)) throw new Error("not an object");
+		return data;
+	} catch {
+		json(res, { ok: false, message: "Invalid request format" }, 400);
+		return null;
+	}
+}
+
+/**
+ * 按名称查找 Mod；未找到时回 404，返回 null。
+ */
+function findMod(name, res) {
+	const entry = modRegistry.getByName(name);
+	if (!entry) json(res, { ok: false, message: "Mod not found" }, 404);
+	return entry;
+}
+
 function getClientInfo(ws) {
 	return {
 		id: ws.id,
@@ -108,6 +121,10 @@ function getClientInfo(ws) {
 		connectedAt: ws._connectedAt || Date.now(),
 		localPlayerName: ws.localPlayerName || null
 	};
+}
+
+function listClients() {
+	return [...Current.clientMods.keys()].map(getClientInfo);
 }
 
 const SESSION_TIMEOUT = 24 * 60 * 60 * 1000; // 24 hours
@@ -219,15 +236,42 @@ const MIME_TYPES = {
 	".woff": "font/woff"
 };
 
+const HTML_HEADERS = {
+	"Content-Type": "text/html; charset=utf-8",
+	"X-Content-Type-Options": "nosniff",
+	"X-Frame-Options": "DENY",
+	"Cache-Control": "no-store"
+};
+
+// index.html 只变语言注入，按文件 mtime + 语言缓存，避免每个请求都读盘
+const htmlCache = { filePath: "", mtimeMs: 0, language: "", html: "" };
+
 function sendHTML(res, filePath) {
+	let stat;
+	try {
+		stat = fs.statSync(filePath);
+	} catch {
+		res.writeHead(404, { "X-Content-Type-Options": "nosniff" });
+		res.end("Not Found");
+		return;
+	}
+
+	const language = String(config.language ?? "zh-CN");
+	if (htmlCache.filePath === filePath && htmlCache.mtimeMs === stat.mtimeMs && htmlCache.language === language) {
+		res.writeHead(200, HTML_HEADERS);
+		res.end(htmlCache.html);
+		return;
+	}
+
 	const html = fs.readFileSync(filePath, "utf-8");
-	const injected = html.replace("<head>", `<head><script>window.__LANGUAGE__="${config.language}";</script>`);
-	res.writeHead(200, {
-		"Content-Type": "text/html; charset=utf-8",
-		"X-Content-Type-Options": "nosniff",
-		"X-Frame-Options": "DENY",
-		"Cache-Control": "no-store"
-	});
+	// JSON.stringify 后转义 "<"，避免配置里的语言值逃出 <script>
+	const lang = JSON.stringify(language).replace(/</g, "\\u003c");
+	const injected = html.replace("<head>", `<head><script>window.__LANGUAGE__=${lang};</script>`);
+	htmlCache.filePath = filePath;
+	htmlCache.mtimeMs = stat.mtimeMs;
+	htmlCache.language = language;
+	htmlCache.html = injected;
+	res.writeHead(200, HTML_HEADERS);
 	res.end(injected);
 }
 
@@ -287,6 +331,15 @@ function unloadMod(modEntry) {
 	}
 }
 
+// 拉取并切换到指定 Release（更新/回退共用）
+async function checkoutTag(tag) {
+	const opts = { cwd: REPO_ROOT, maxBuffer: 10 * 1024 * 1024 };
+	await execAsync("git fetch --all", opts);
+	await execAsync("git reset --hard HEAD", opts);
+	await execFileAsync("git", ["checkout", "-f", tag], opts);
+	await execAsync("npm install", { ...opts, timeout: 300000 });
+}
+
 // 主客户端切换：同时通知服务端 Mod 并重新挂载 SAPI
 function switchMainClient(target) {
 	const prev = Current.client;
@@ -313,8 +366,15 @@ async function handleAPI(req, res, url) {
 	}
 
 	// Login endpoint (no auth required)
-	if (pathname === "/api/login" && method === "GET") {
-		const password = url.searchParams.get("pwd") || "";
+	if (pathname === "/api/login" && (method === "GET" || method === "POST")) {
+		let password = "";
+		if (method === "GET") {
+			password = url.searchParams.get("pwd") || "";
+		} else {
+			const payload = await readJson(req, res);
+			if (!payload) return;
+			password = String(payload.password || "");
+		}
 		const ip = req.socket.remoteAddress || "unknown";
 
 		const state = getAuthState(ip);
@@ -328,7 +388,6 @@ async function handleAPI(req, res, url) {
 			state.attempts = [];
 			state.lockedUntil = 0;
 
-			
 			const token = createSession(ip);
 			logger.info(`WebUI login success: IP=${ip}`);
 			return json(res, { ok: true, token, expiresIn: SESSION_TIMEOUT });
@@ -352,8 +411,7 @@ async function handleAPI(req, res, url) {
 	try {
 		// Status
 		if (pathname === "/api/status" && method === "GET") {
-			const clients = [];
-			for (const [ws] of Current.clientMods) clients.push(getClientInfo(ws));
+			const clients = listClients();
 			return json(res, {
 				server: { uptime: Date.now() - startTime, wsPort: config.ws.port, name: config.ws.name, webPort: WEB_PORT },
 				connections: { count: Current.clientMods.size, mainClient: Current.client?.id || null, clients },
@@ -368,11 +426,8 @@ async function handleAPI(req, res, url) {
 			return json(res, { language: config.language });
 		}
 		if (pathname === "/api/language" && method === "POST") {
-			const authToken = req.headers["x-auth-token"];
-			if (!validateSession(authToken)) return json(res, { ok: false, message: "Unauthorized" }, 401);
-			const body = await readBody(req);
-			let payload;
-			try { payload = JSON.parse(body); } catch { return json(res, { ok: false, message: "Invalid request format" }, 400); }
+			const payload = await readJson(req, res);
+			if (!payload) return;
 			const lang = String(payload.language || "");
 			const allowed = ["zh-CN", "en"];
 			if (!allowed.includes(lang)) return json(res, { ok: false, message: "Unsupported language" }, 400);
@@ -384,7 +439,7 @@ async function handleAPI(req, res, url) {
 
 		// Config
 		if (pathname === "/api/config" && method === "GET") {
-			const cfg = JSON.parse(JSON.stringify(config));
+			const cfg = structuredClone(config);
 			if (cfg.ai?.options?.apiKey) cfg.ai.options.apiKey = "***";
 			if (cfg.web?.auth) {
 				cfg.web.auth.passwordHash = "";
@@ -393,16 +448,8 @@ async function handleAPI(req, res, url) {
 			return json(res, cfg);
 		}
 		if (pathname === "/api/config" && method === "PUT") {
-			const body = await readBody(req);
-			let newCfg;
-			try {
-				newCfg = JSON.parse(body);
-			} catch {
-				return json(res, { ok: false, message: "Invalid request format" }, 400);
-			}
-			if (!newCfg || typeof newCfg !== "object") {
-				return json(res, { ok: false, message: "Invalid request format" }, 400);
-			}
+			const newCfg = await readJson(req, res);
+			if (!newCfg) return;
 			// GET /api/config 会对敏感字段脱敏，保存时不能把脱敏后的值写回磁盘
 			if (newCfg.web?.auth) {
 				if (!newCfg.web.auth.passwordHash && config.web?.auth?.passwordHash) newCfg.web.auth.passwordHash = config.web.auth.passwordHash;
@@ -423,11 +470,9 @@ async function handleAPI(req, res, url) {
 
 		// Auth: change password
 		if (pathname === "/api/auth/change-password" && method === "POST") {
+			const payload = await readJson(req, res);
+			if (!payload) return;
 			const authToken = req.headers["x-auth-token"];
-			if (!validateSession(authToken)) return json(res, { ok: false, message: "Unauthorized" }, 401);
-			const body = await readBody(req);
-			let payload;
-			try { payload = JSON.parse(body); } catch { return json(res, { ok: false, message: "Invalid request format" }, 400); }
 			const oldPassword = String(payload.oldPassword || "");
 			const newPassword = String(payload.newPassword || "");
 			if (!newPassword) return json(res, { ok: false, message: "New password is required" }, 400);
@@ -454,8 +499,8 @@ async function handleAPI(req, res, url) {
 			return json(res, perm);
 		}
 		if (pathname === "/api/permissions" && method === "PUT") {
-			const body = await readBody(req);
-			const perm = JSON.parse(body);
+			const perm = await readJson(req, res);
+			if (!perm) return;
 			const result = await PermissionManager.set(perm);
 			if (result instanceof Error) throw result;
 			return json(res, { ok: true });
@@ -524,8 +569,20 @@ async function handleAPI(req, res, url) {
 					return finish({ ok: false, code: "INVALID_FORMAT", message: "Invalid content type" }, 400);
 				}
 
+				const declared = Number(req.headers["content-length"] || 0);
+				if (declared > MAX_UPLOAD_BYTES) {
+					return finish({ ok: false, code: "INVALID_FORMAT", message: "File too large" }, 413);
+				}
+
 				const chunks = [];
-				for await (const chunk of req) chunks.push(chunk);
+				let received = 0;
+				for await (const chunk of req) {
+					received += chunk.length;
+					if (received > MAX_UPLOAD_BYTES) {
+						return finish({ ok: false, code: "INVALID_FORMAT", message: "File too large" }, 413);
+					}
+					chunks.push(chunk);
+				}
 				const parts = parseMultipartBody(Buffer.concat(chunks), contentType);
 				const filePart = parts?.file;
 				if (!filePart || !filePart.buffer) {
@@ -616,144 +673,114 @@ async function handleAPI(req, res, url) {
 			}
 		}
 
-		// Mod delete
-		const modDeleteMatch = pathname.match(/^\/api\/mods\/(.+)\/delete$/);
-		if (modDeleteMatch && method === "POST") {
-			const modName = decodeURIComponent(modDeleteMatch[1]);
-			const modEntry = modRegistry.getByName(modName);
-			if (!modEntry) return json(res, { ok: false, message: "Mod not found" }, 404);
-			unloadMod(modEntry);
-			const r = modRegistry.remove(modEntry.id);
-			if (!r.ok) return json(res, { ok: false, message: r.message }, 500);
-			await ServerModManager.reloadAll();
-			await ClientModManager.reloadAllClients();
-			collectTerminalCommands(ServerModManager, ClientModManager);
-			return json(res, { ok: true, name: modEntry.name });
-		}
+		// Mod actions: delete / enable / disable / reload / config / manifest / readme
+		const modRoute = pathname.match(/^\/api\/mods\/(.+)\/(delete|enable|disable|reload|config|manifest|readme)$/);
+		if (modRoute) {
+			const modName = decodeURIComponent(modRoute[1]);
+			const action = modRoute[2];
+			const modEntry = findMod(modName, res);
+			if (!modEntry) return;
 
-		// Mod enable/disable
-		const modEnableMatch = pathname.match(/^\/api\/mods\/(.+)\/enable$/);
-		if (modEnableMatch && method === "POST") {
-			const modName = decodeURIComponent(modEnableMatch[1]);
-			const modEntry = modRegistry.getByName(modName);
-			if (!modEntry) return json(res, { ok: false, message: "Mod not found" }, 404);
-			const r = modRegistry.enable(modEntry.id);
-			if (r.ok) {
-				try {
-					await ServerModManager.syncClasses();
-					const sm = ServerModManager._inst();
-					if (sm && modEntry.entry.server) await sm.reload(modEntry.name);
+			if (action === "delete" && method === "POST") {
+				unloadMod(modEntry);
+				const r = modRegistry.remove(modEntry.id);
+				if (!r.ok) return json(res, { ok: false, message: r.message }, 500);
+				await ServerModManager.reloadAll();
+				await ClientModManager.reloadAllClients();
+				collectTerminalCommands(ServerModManager, ClientModManager);
+				return json(res, { ok: true, name: modEntry.name });
+			}
 
-					if (modEntry.entry.client) {
-						await ClientModManager.syncClasses();
-						const modClass = ClientModManager.loadedMod[modEntry.name];
-						for (const [, mgr] of Current.clientMods) {
-							if (!mgr || !modClass) continue;
-							mgr.unload(modEntry.name);
-							mgr._instantiateMod(modEntry.name, modClass);
-							mgr._buildMethodLists();
-							mgr._collectCommands();
+			if ((action === "enable" || action === "disable") && method === "POST") {
+				const enabling = action === "enable";
+				if (enabling) {
+					const r = modRegistry.enable(modEntry.id);
+					try {
+						await ServerModManager.syncClasses();
+						const sm = ServerModManager._inst();
+						if (sm && modEntry.entry.server) await sm.reload(modEntry.name);
+
+						if (modEntry.entry.client) {
+							await ClientModManager.syncClasses();
+							const modClass = ClientModManager.loadedMod[modEntry.name];
+							for (const [, mgr] of Current.clientMods) {
+								if (!mgr || !modClass) continue;
+								mgr.unload(modEntry.name);
+								mgr._instantiateMod(modEntry.name, modClass);
+								mgr._buildMethodLists();
+								mgr._collectCommands();
+							}
 						}
+					} catch (e) {
+						logger.error(`Mod ${modEntry.name} hot reload failed: ${e.message}`);
 					}
-				} catch (e) {
-					logger.error(`Mod ${modEntry.name} hot reload failed: ${e.message}`);
+					collectTerminalCommands(ServerModManager, ClientModManager);
+					return json(res, r);
+				}
+
+				unloadMod(modEntry);
+				const r = modRegistry.disable(modEntry.id);
+				collectTerminalCommands(ServerModManager, ClientModManager);
+				return json(res, r);
+			}
+
+			if (action === "reload" && method === "POST") {
+				const results = { server: null, client: null };
+				if (modEntry.entry.server) {
+					const sm = ServerModManager._inst();
+					results.server = sm ? await sm.reload(modEntry.name) : { success: false, message: "Server mod manager not initialized" };
+				}
+				if (modEntry.entry.client) {
+					const successes = [], faileds = [];
+					for (const [, mgr] of Current.clientMods) {
+						if (!mgr || typeof mgr.reload !== "function") continue;
+						const r = await mgr.reload(modEntry.name);
+						r.success ? successes.push("ok") : faileds.push("fail");
+					}
+					results.client = { success: successes.length, failed: faileds.length };
+				}
+				collectTerminalCommands(ServerModManager, ClientModManager);
+				return json(res, { ok: true, results });
+			}
+
+			if (action === "config") {
+				const configPath = path.join(modEntry.path, "config.json");
+				if (method === "GET") {
+					const hasExample = fs.existsSync(path.join(modEntry.path, "config.example.json"));
+					if (!fs.existsSync(configPath) && !hasExample) {
+						return json(res, { ok: false, message: "Mod has no config file" }, 404);
+					}
+					const modConfig = fs.existsSync(configPath)
+						? JSON.parse(fs.readFileSync(configPath, "utf-8"))
+						: {};
+					return json(res, { ok: true, config: modConfig });
+				}
+				if (method === "PUT") {
+					const newConfig = await readJson(req, res);
+					if (!newConfig) return;
+					try {
+						fs.writeFileSync(configPath, JSON.stringify(newConfig, null, "\t") + "\n", "utf-8");
+					} catch (e) {
+						return json(res, { ok: false, message: "Failed to write config: " + e.message }, 500);
+					}
+					// 同步注册表与合并配置缓存，否则之后的 reload 仍会拿到旧配置
+					modEntry.config = newConfig;
+					modRegistry.invalidateConfigCache(modEntry.id);
+					return json(res, { ok: true, message: "Config saved" });
 				}
 			}
-			collectTerminalCommands(ServerModManager, ClientModManager);
-			return json(res, r);
-		}
-		const modDisableMatch = pathname.match(/^\/api\/mods\/(.+)\/disable$/);
-		if (modDisableMatch && method === "POST") {
-			const modName = decodeURIComponent(modDisableMatch[1]);
-			const modEntry = modRegistry.getByName(modName);
-			if (!modEntry) return json(res, { ok: false, message: "Mod not found" }, 404);
-			unloadMod(modEntry);
-			const r = modRegistry.disable(modEntry.id);
-			collectTerminalCommands(ServerModManager, ClientModManager);
-			return json(res, r);
-		}
 
-		// Mod hot reload
-		const modReloadMatch = pathname.match(/^\/api\/mods\/(.+)\/reload$/);
-		if (modReloadMatch && method === "POST") {
-			const modName = decodeURIComponent(modReloadMatch[1]);
-			const modEntry = modRegistry.getByName(modName);
-			if (!modEntry) return json(res, { ok: false, message: "Mod not found" }, 404);
-			const results = { server: null, client: null };
-			if (modEntry.entry.server) {
-				const sm = ServerModManager._inst();
-				results.server = sm ? await sm.reload(modEntry.name) : { success: false, message: "Server mod manager not initialized" };
+			if (action === "manifest" && method === "GET") {
+				const manifestPath = path.join(modEntry.path, "manifest.json");
+				if (!fs.existsSync(manifestPath)) return json(res, { ok: false, message: "Manifest file not found" }, 404);
+				return json(res, { ok: true, manifest: JSON.parse(fs.readFileSync(manifestPath, "utf-8")) });
 			}
-			if (modEntry.entry.client) {
-				const successes = [], faileds = [];
-				for (const [, mgr] of Current.clientMods) {
-					if (!mgr || typeof mgr.reload !== "function") continue;
-					const r = await mgr.reload(modEntry.name);
-					r.success ? successes.push("ok") : faileds.push("fail");
-				}
-				results.client = { success: successes.length, failed: faileds.length };
-			}
-			collectTerminalCommands(ServerModManager, ClientModManager);
-			return json(res, { ok: true, results });
-		}
 
-		// Mod config
-		const modConfigMatch = pathname.match(/^\/api\/mods\/(.+)\/config$/);
-		if (modConfigMatch && method === "GET") {
-			const modName = decodeURIComponent(modConfigMatch[1]);
-			const modEntry = modRegistry.getByName(modName);
-			if (!modEntry) return json(res, { ok: false, message: "Mod not found" }, 404);
-			const configPath = path.join(modEntry.path, "config.json");
-			const examplePath = path.join(modEntry.path, "config.example.json");
-			if (!fs.existsSync(configPath) && !fs.existsSync(examplePath)) {
-				return json(res, { ok: false, message: "Mod has no config file" }, 404);
+			if (action === "readme" && method === "GET") {
+				const readmePath = path.join(modEntry.path, "README.md");
+				if (!fs.existsSync(readmePath)) return json(res, { ok: false, message: "No README file" });
+				return json(res, { ok: true, readme: fs.readFileSync(readmePath, "utf-8") });
 			}
-			let modConfig = {};
-			if (fs.existsSync(configPath)) {
-				modConfig = JSON.parse(fs.readFileSync(configPath, "utf-8"));
-			}
-			return json(res, { ok: true, config: modConfig });
-		}
-		if (modConfigMatch && method === "PUT") {
-			const modName = decodeURIComponent(modConfigMatch[1]);
-			const modEntry = modRegistry.getByName(modName);
-			if (!modEntry) return json(res, { ok: false, message: "Mod not found" }, 404);
-			const body = await readBody(req);
-			let newConfig;
-			try {
-				newConfig = JSON.parse(body);
-			} catch {
-				return json(res, { ok: false, message: "Invalid request format" }, 400);
-			}
-			const configPath = path.join(modEntry.path, "config.json");
-			fs.writeFileSync(configPath, JSON.stringify(newConfig, null, "\t") + "\n", "utf-8");
-			// 同步注册表缓存，否则之后的 reload 仍会拿到旧配置
-			modEntry.config = newConfig;
-			return json(res, { ok: true, message: "Config saved" });
-		}
-
-		// Mod manifest
-		const modManifestMatch = pathname.match(/^\/api\/mods\/(.+)\/manifest$/);
-		if (modManifestMatch && method === "GET") {
-			const modName = decodeURIComponent(modManifestMatch[1]);
-			const modEntry = modRegistry.getByName(modName);
-			if (!modEntry) return json(res, { ok: false, message: "Mod not found" }, 404);
-			const manifestPath = path.join(modEntry.path, "manifest.json");
-			if (!fs.existsSync(manifestPath)) return json(res, { ok: false, message: "Manifest file not found" }, 404);
-			const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf-8"));
-			return json(res, { ok: true, manifest });
-		}
-
-		// Mod README
-		const modReadmeMatch = pathname.match(/^\/api\/mods\/(.+)\/readme$/);
-		if (modReadmeMatch && method === "GET") {
-			const modName = decodeURIComponent(modReadmeMatch[1]);
-			const modEntry = modRegistry.getByName(modName);
-			if (!modEntry) return json(res, { ok: false, message: "Mod not found" }, 404);
-			const readmePath = path.join(modEntry.path, "README.md");
-			if (!fs.existsSync(readmePath)) return json(res, { ok: false, message: "No README file" });
-			const readme = fs.readFileSync(readmePath, "utf-8");
-			return json(res, { ok: true, readme });
 		}
 
 		// Commands
@@ -767,7 +794,7 @@ async function handleAPI(req, res, url) {
 							name: `${Command.commandPrefix}${cmd.name}`,
 							description: cmd.description,
 							level,
-							params: cmd.parameters.map(p => ({ type: typeof p[0] === "object" ? "enum" : p[0], desc: p[1], optional: p[2] }))
+							params: cmd.parameters.map(p => ({ type: Array.isArray(p[0]) ? "enum" : p[0], desc: p[1], optional: p[2] }))
 						});
 					}
 				}
@@ -775,8 +802,9 @@ async function handleAPI(req, res, url) {
 			return json(res, cmds);
 		}
 		if (pathname === "/api/command" && method === "POST") {
-			const body = await readBody(req);
-			const { command } = JSON.parse(body);
+			const payload = await readJson(req, res);
+			if (!payload) return;
+			const { command } = payload;
 			if (!command) throw new Error("Command cannot be empty");
 			if (!Current.client) throw new Error("Main client not connected");
 			const result = await Current.client.runCommand(command);
@@ -785,15 +813,15 @@ async function handleAPI(req, res, url) {
 
 		// Clients
 		if (pathname === "/api/clients" && method === "GET") {
-			const clients = [];
-			for (const [ws] of Current.clientMods) clients.push(getClientInfo(ws));
-			return json(res, clients);
+			return json(res, listClients());
 		}
 		const clientTellMatch = pathname.match(/^\/api\/clients\/(.+)\/tell$/);
 		if (clientTellMatch && method === "POST") {
-			const clientId = clientTellMatch[1];
-			const body = await readBody(req);
-			const { message } = JSON.parse(body);
+			const clientId = decodeURIComponent(clientTellMatch[1]);
+			const payload = await readJson(req, res);
+			if (!payload) return;
+			const { message } = payload;
+			if (typeof message !== "string" || !message) return json(res, { ok: false, message: "Message is required" }, 400);
 			for (const [ws] of Current.clientMods) {
 				if (ws.id === clientId) { ws.tell(message); return json(res, { ok: true }); }
 			}
@@ -831,6 +859,11 @@ async function handleAPI(req, res, url) {
 			json(res, { ok: true, message: "Restarting..." });
 			setTimeout(async () => {
 				try { if (shutdownHandler) await shutdownHandler(); } catch {}
+				// 先释放 WebUI 端口，否则新进程会 EADDRINUSE
+				await new Promise((resolve) => {
+					const timer = setTimeout(resolve, 1000);
+					server.close(() => { clearTimeout(timer); resolve(); });
+				});
 				const { spawn } = await import("child_process");
 				spawn(process.argv[0], process.argv.slice(1), { detached: true, stdio: "inherit" }).unref();
 				process.exit(0);
@@ -848,9 +881,6 @@ async function handleAPI(req, res, url) {
 			if (!fs.existsSync(logPath)) return json(res, { lines: [] });
 			return json(res, { lines: readLogTail(logPath, lines) });
 		}
-		if (pathname === "/api/logs/live" && method === "GET") {
-			return json(res, { lines: logBuffer.slice(-100) });
-		}
 
 		// Chat
 		if (pathname === "/api/chat" && method === "GET") {
@@ -859,8 +889,10 @@ async function handleAPI(req, res, url) {
 			return json(res, { lines: readLogTail(logPath, 100) });
 		}
 		if (pathname === "/api/chat" && method === "POST") {
-			const body = await readBody(req);
-			const { message } = JSON.parse(body);
+			const payload = await readJson(req, res);
+			if (!payload) return;
+			const { message } = payload;
+			if (typeof message !== "string" || !message) return json(res, { ok: false, message: "Message is required" }, 400);
 			if (!Current.client) throw new Error("Main client not connected");
 			Current.client.tellAll(message);
 			return json(res, { ok: true });
@@ -874,11 +906,11 @@ async function handleAPI(req, res, url) {
 
 		// Update
 		async function githubFetch(apiPath) {
-			const res = await fetch(`${GITHUB_API}${apiPath}`, {
+			const response = await fetch(`${GITHUB_API}${apiPath}`, {
 				headers: { "Accept": "application/vnd.github+json", "User-Agent": "MCWSLoader-UpdateChecker" }
 			});
-			if (!res.ok) throw new Error(`GitHub API request failed: HTTP ${res.status}`);
-			return res.json();
+			if (!response.ok) throw new Error(`GitHub API request failed: HTTP ${response.status}`);
+			return response.json();
 		}
 
 		if (pathname === "/api/update/check" && method === "GET") {
@@ -901,38 +933,28 @@ async function handleAPI(req, res, url) {
 		}
 
 		if (pathname === "/api/update/do" && method === "POST") {
-			updating = true;
 			try {
 				const release = await githubFetch("/releases/latest");
 				const targetTag = release.tag_name;
 				if (!targetTag) throw new Error("Cannot get latest version tag");
-				await execAsync("git fetch --all", { cwd: REPO_ROOT, maxBuffer: 10 * 1024 * 1024 });
-				await execAsync("git reset --hard HEAD", { cwd: REPO_ROOT, maxBuffer: 10 * 1024 * 1024 });
-				await execFileAsync("git", ["checkout", "-f", targetTag], { cwd: REPO_ROOT, maxBuffer: 10 * 1024 * 1024 });
-				await execAsync("npm install", { cwd: REPO_ROOT, maxBuffer: 10 * 1024 * 1024, timeout: 300000 });
+				await checkoutTag(targetTag);
 				json(res, { ok: true, message: "Update complete, exiting. Please restart manually." });
 				setTimeout(() => process.exit(0), 2000);
 			} catch (e) {
-				updating = false;
 				return json(res, { ok: false, message: "Update failed: " + e.message });
 			}
 		}
 
 		if (pathname === "/api/update/rollback" && method === "POST") {
-			const body = await readBody(req);
-			let targetTag = null;
-			try { targetTag = JSON.parse(body).tag; } catch {}
+			const payload = await readJson(req, res);
+			if (!payload) return;
+			const { tag: targetTag } = payload;
 			if (!targetTag) return json(res, { ok: false, message: "Please specify rollback version tag" }, 400);
-			rollingBack = true;
 			try {
-				await execAsync("git fetch --all", { cwd: REPO_ROOT, maxBuffer: 10 * 1024 * 1024 });
-				await execAsync("git reset --hard HEAD", { cwd: REPO_ROOT, maxBuffer: 10 * 1024 * 1024 });
-				await execFileAsync("git", ["checkout", "-f", targetTag], { cwd: REPO_ROOT, maxBuffer: 10 * 1024 * 1024 });
-				await execAsync("npm install", { cwd: REPO_ROOT, maxBuffer: 10 * 1024 * 1024, timeout: 300000 });
+				await checkoutTag(targetTag);
 				json(res, { ok: true, message: "Rollback complete, exiting. Please restart manually." });
 				setTimeout(() => process.exit(0), 2000);
 			} catch (e) {
-				rollingBack = false;
 				return json(res, { ok: false, message: "Rollback failed: " + e.message });
 			}
 		}
@@ -958,13 +980,26 @@ const server = http.createServer((req, res) => {
 	}
 	let filePath = path.join(DIST_DIR, url.pathname);
 	if (filePath.endsWith("/") || filePath.endsWith(path.sep)) filePath = path.join(filePath, "index.html");
+
+	// 路径穿越保护：解析后必须仍在 dist 目录内
+	const resolvedPath = path.resolve(filePath);
+	if (resolvedPath !== DIST_DIR && !resolvedPath.startsWith(DIST_DIR + path.sep)) {
+		res.writeHead(403, { "X-Content-Type-Options": "nosniff" });
+		res.end("Forbidden");
+		return;
+	}
 	serveStatic(res, filePath);
 });
 
 export function startWebServer(onShutdown = null) {
 	if (typeof onShutdown === "function") shutdownHandler = onShutdown;
-	return new Promise((resolve) => {
-		server.listen(WEB_PORT, "0.0.0.0", () => {
+	return new Promise((resolve, reject) => {
+		const onError = (err) => {
+			server.off("listening", onListening);
+			reject(err);
+		};
+		const onListening = () => {
+			server.off("error", onError);
 			const hasCustomPassword = !!(config.web?.auth?.passwordHash || config.web?.auth?.password);
 			if (!hasCustomPassword) {
 				temporaryPassword = crypto.randomBytes(8).toString("hex");
@@ -973,7 +1008,10 @@ export function startWebServer(onShutdown = null) {
 			const source = hasCustomPassword ? "config file" : "random";
 			logger.info(`WebUI started: http://127.0.0.1:${WEB_PORT}/login [${source}]`);
 			resolve();
-		});
+		};
+		server.once("error", onError);
+		server.once("listening", onListening);
+		server.listen(WEB_PORT, "0.0.0.0");
 	});
 }
 
