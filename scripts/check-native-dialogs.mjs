@@ -22,6 +22,7 @@ walk(root);
 
 const nativeGlobal = /\b(?:window|globalThis)\.(alert|confirm|prompt)\s*\(/g;
 const bareDialog = /(?<![\w.$])(alert|confirm|prompt)\s*\(/g;
+const nativeSelect = /<select\b|<datalist\b/i;
 const errors = [];
 
 for (const file of files) {
@@ -30,7 +31,8 @@ for (const file of files) {
 
 	for (const [pattern, message] of [
 		[nativeGlobal, "uses a native window/globalThis dialog"],
-		[bareDialog, "uses an alert/confirm/prompt-style call; use useModal().notify/ask/input/choose"]
+		[bareDialog, "uses an alert/confirm/prompt-style call; use useModal().notify/ask/input/choose"],
+		[nativeSelect, "uses a native select/datalist popup; use <SelectMenu>"]
 	]) {
 		pattern.lastIndex = 0;
 		if (!pattern.test(source)) continue;
@@ -44,4 +46,4 @@ if (errors.length) {
 	process.exit(1);
 }
 
-console.log(`No native alert/confirm/prompt dialogs found in ${files.length} frontend files.`);
+console.log(`No native dialogs or select popups found in ${files.length} frontend files.`);

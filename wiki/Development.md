@@ -87,8 +87,9 @@ server changes. The active theme is applied only after **Save**.
 
 ## WebUI dialogs
 
-Do not use browser-native `alert` / `confirm` / `prompt`. All prompts go through
-the themed `useModal()` helper:
+Do not use browser-native `alert` / `confirm` / `prompt`, `<select>` or
+`<datalist>` controls. All prompts go through the themed `useModal()` helper;
+dropdowns use the themed `SelectMenu` component.
 
 | Helper | Result |
 |--------|--------|

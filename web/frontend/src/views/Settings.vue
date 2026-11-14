@@ -6,6 +6,7 @@ import { useModal } from "../composables/useModal";
 import { useI18n } from "../composables/useI18n";
 import SettingsCard from "../components/SettingsCard.vue";
 import SwitchToggle from "../components/SwitchToggle.vue";
+import SelectMenu from "../components/SelectMenu.vue";
 import UpdatePanel from "../components/UpdatePanel.vue";
 import { useTheme } from "../composables/useTheme";
 import { THEME_DEFINITIONS } from "../theme";
@@ -57,6 +58,11 @@ async function refresh() {
 	config.value = data && typeof data === "object" && "ws" in data ? data : null;
 	if (config.value) setTheme(config.value.web?.ui?.theme ?? "star");
 }
+
+const logLevels = computed(() => ["debug", "info", "warning", "error"].map((value) => ({
+	value,
+	label: t(`settings.${value}`)
+})));
 
 function selectTheme(theme: string): void {
 	if (!config.value) return;
@@ -365,12 +371,11 @@ onMounted(refresh);
 					</div>
 					<div class="form-group" style="margin-top: 10px;">
 						<label>{{ t('settings.logLevel') }}</label>
-						<select v-model="config.logLevel">
-							<option value="debug">{{ t('settings.debug') }}</option>
-							<option value="info">{{ t('settings.info') }}</option>
-							<option value="warning">{{ t('settings.warning') }}</option>
-							<option value="error">{{ t('settings.error') }}</option>
-						</select>
+						<SelectMenu
+							id="logLevel"
+							v-model="config.logLevel"
+							:options="logLevels"
+						/>
 					</div>
 				</SettingsCard>
 

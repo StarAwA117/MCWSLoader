@@ -2,6 +2,7 @@
 import { modalState as state, closeModal as close } from "../composables/useModal";
 import { ref, watch } from "vue";
 import { useI18n } from "../composables/useI18n";
+import SelectMenu from "./SelectMenu.vue";
 
 const { t } = useI18n();
 
@@ -75,14 +76,12 @@ function onKeydown(e: KeyboardEvent): void {
 					:placeholder="state.inputPlaceholder2"
 					style="margin-top: 8px; width: 100%; padding: 8px 12px; border-radius: var(--radius); border: 1px solid var(--border); background: var(--bg-input); color: var(--text); font-size: 14px; font-family: inherit; outline: none;"
 				/>
-				<select
+				<SelectMenu
 					v-if="state.type === 'choice'"
 					v-model="state.selected"
-					class="modal-select"
+					:options="state.choices"
 					style="margin-top: 12px;"
-				>
-					<option v-for="choice in state.choices" :key="choice.value" :value="choice.value">{{ choice.label }}</option>
-				</select>
+				/>
 			</div>
 			<div class="modal-footer">
 				<button v-if="state.showCancel" class="btn btn-ghost btn-sm" @click="onCancel">{{ t('modal.cancel') }}</button>
