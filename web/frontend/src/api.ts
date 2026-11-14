@@ -65,6 +65,7 @@ export async function loginWithPassword(pwd: string): Promise<ApiResult> {
 
 export const api = {
 	getStatus: (): Promise<ApiResult> => request("/status"),
+	logout: () => request("/logout", { method: "POST" }),
 	getConfig: () => request("/config"),
 	saveConfig: (cfg: unknown) => request("/config", { method: "PUT", body: JSON.stringify(cfg) }),
 	getPermissions: () => request("/permissions"),

@@ -101,7 +101,7 @@ usePolling(refresh, 3000);
 	cursor: pointer;
 	transition: background 0.15s;
 }
-.client-card:hover { background: var(--border); }
+.client-card:hover { background: var(--border); transform: translate3d(2px, 0, 0); }
 
 .client-meta {
 	font-size: 12px;

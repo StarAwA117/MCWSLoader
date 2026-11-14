@@ -6,7 +6,7 @@ import crypto from "node:crypto";
 import { exec, execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { fileURLToPath } from "node:url";
-import { config, reloadConfig, ServerModManager, ClientModManager, modRegistry } from "../lib/mods.js";
+import { config, reloadConfig, ServerModManager, ClientModManager, modRegistry, sanitizeConfigObject } from "../lib/mods.js";
 import Current from "../lib/current.js";
 import PermissionManager from "../lib/permission.js";
 import Command from "../lib/command.js";
@@ -228,7 +228,7 @@ const authCleanupTimer = setInterval(cleanupAuthState, 10 * 60 * 1000);
 if (typeof authCleanupTimer.unref === "function") authCleanupTimer.unref();
 
 function writeConfig(): void {
-	fs.writeFileSync(CONFIG_PATH, JSON.stringify(config, null, "\t") + "\n", "utf-8");
+	fs.writeFileSync(CONFIG_PATH, JSON.stringify(config, null, "\t") + "\n", { encoding: "utf-8", mode: 0o600 });
 }
 
 // 只读取日志尾部：日志文件可持续增长，全量读取再 split 会随文件变大而线性变慢
@@ -463,6 +463,12 @@ async function handleAPI(req: IncomingMessage, res: ServerResponse, url: URL): P
 	}
 
 	try {
+		// Logout: 服务端销毁当前会话，而不是只清前端 token
+		if (pathname === "/api/logout" && method === "POST") {
+			if (typeof token === "string") sessions.delete(token);
+			return json(res, { ok: true });
+		}
+
 		// Status
 		if (pathname === "/api/status" && method === "GET") {
 			const clients = listClients();
@@ -503,8 +509,9 @@ async function handleAPI(req: IncomingMessage, res: ServerResponse, url: URL): P
 			return json(res, cfg);
 		}
 		if (pathname === "/api/config" && method === "PUT") {
-			const newCfg = await readJson(req, res);
-			if (!newCfg) return;
+			const payload = await readJson(req, res);
+			if (!payload) return;
+			const newCfg = sanitizeConfigObject(payload);
 			// GET /api/config 会对敏感字段脱敏，保存时不能把脱敏后的值写回磁盘
 			if (newCfg.web?.auth) {
 				if (!newCfg.web.auth.passwordHash && config.web?.auth?.passwordHash) newCfg.web.auth.passwordHash = config.web.auth.passwordHash;
@@ -516,7 +523,7 @@ async function handleAPI(req: IncomingMessage, res: ServerResponse, url: URL): P
 				newAi.options.apiKey = currentAi.options.apiKey;
 			}
 			try {
-				fs.writeFileSync(CONFIG_PATH, JSON.stringify(newCfg, null, "\t") + "\n", "utf-8");
+				fs.writeFileSync(CONFIG_PATH, JSON.stringify(newCfg, null, "\t") + "\n", { encoding: "utf-8", mode: 0o600 });
 			} catch (e) {
 				const message = (e as Error).message;
 				logger.error("Config save failed: " + message);
@@ -544,7 +551,8 @@ async function handleAPI(req: IncomingMessage, res: ServerResponse, url: URL): P
 				auth.salt = salt;
 				auth.passwordHash = hash;
 				await writeConfig();
-				if (typeof authToken === "string") sessions.delete(authToken);
+				// 密码变更后让所有已登录会话立即失效
+				sessions.clear();
 				return json(res, { ok: true, message: "Password updated, please login again" });
 			} catch (e) {
 				return json(res, { ok: false, message: "Password update failed" }, 500);
@@ -815,10 +823,11 @@ async function handleAPI(req: IncomingMessage, res: ServerResponse, url: URL): P
 					return json(res, { ok: true, config: modConfig });
 				}
 				if (method === "PUT") {
-					const newConfig = await readJson(req, res);
-					if (!newConfig) return;
+					const payload = await readJson(req, res);
+					if (!payload) return;
+					const newConfig = sanitizeConfigObject(payload);
 					try {
-						fs.writeFileSync(configPath, JSON.stringify(newConfig, null, "\t") + "\n", "utf-8");
+						fs.writeFileSync(configPath, JSON.stringify(newConfig, null, "\t") + "\n", { encoding: "utf-8", mode: 0o600 });
 					} catch (e) {
 						return json(res, { ok: false, message: "Failed to write config: " + (e as Error).message }, 500);
 					}

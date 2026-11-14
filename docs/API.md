@@ -336,7 +336,8 @@ Cross-origin browser clients are rejected unless their origin is listed in
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| `POST` | `/api/auth/change-password` | Change the WebUI password (`{ oldPassword, newPassword }`). The startup temporary password is accepted as `oldPassword`. Invalidates the current session. |
+| `POST` | `/api/auth/change-password` | Change the WebUI password (`{ oldPassword, newPassword }`). The startup temporary password is accepted as `oldPassword`. Invalidates **all** sessions. |
+| `POST` | `/api/logout` | Destroy the current session token server-side |
 
 ### Configuration
 

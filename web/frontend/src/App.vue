@@ -5,6 +5,7 @@ import { routes } from "./router";
 import Modal from "./components/Modal.vue";
 import { useModal } from "./composables/useModal";
 import { useI18n } from "./composables/useI18n";
+import { api } from "./api";
 
 const { confirm } = useModal();
 const { t } = useI18n();
@@ -22,6 +23,9 @@ onMounted(() => {
 
 watch(() => route.path, () => {
 	authChecked.value = !!sessionStorage.getItem("auth_token");
+	// 切换页面时回到顶部；尊重系统“减少动态效果”设置
+	const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+	window.scrollTo({ top: 0, behavior: reduceMotion ? "auto" : "smooth" });
 });
 
 const isLoginPage = computed(() => route.path === "/login");
@@ -52,10 +56,11 @@ function navigate(path: string): void {
 
 async function logout() {
 	const ok = await confirm(t("modal.confirmLogout"));
-	if (ok) {
-		sessionStorage.removeItem("auth_token");
-		router.replace("/login");
-	}
+	if (!ok) return;
+	// 优先让服务端销毁会话；离线/超时也不阻止本地退出
+	await api.logout().catch(() => {});
+	sessionStorage.removeItem("auth_token");
+	router.replace("/login");
 }
 
 watch(sidebarOpen, (v) => {
@@ -121,7 +126,7 @@ watch(sidebarOpen, (v) => {
 			</div>
 		</aside>
 
-		<main class="main-content">
+		<main :key="route.path" class="main-content">
 			<router-view />
 		</main>
 	</div>

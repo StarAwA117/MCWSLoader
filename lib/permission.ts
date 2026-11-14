@@ -41,6 +41,7 @@ function normalize(data: unknown): PermissionData {
 
 function load(): PermissionData {
 	try {
+		fs.chmodSync(PERMISSION_FILE, 0o600);
 		return normalize(JSON.parse(fs.readFileSync(PERMISSION_FILE, "utf-8")));
 	} catch {
 		return { ...EMPTY, op: [], user: [], blocker: [] };
@@ -48,7 +49,7 @@ function load(): PermissionData {
 }
 
 function save(data: PermissionData): void {
-	fs.writeFileSync(PERMISSION_FILE, JSON.stringify(data, null, 2), "utf-8");
+	fs.writeFileSync(PERMISSION_FILE, JSON.stringify(data, null, 2), { encoding: "utf-8", mode: 0o600 });
 }
 
 export default class PermissionManager {

@@ -117,6 +117,8 @@ export async function extractZip(zipPath: string, destDir: string): Promise<void
 export function readManifest(dir: string): ModManifest | null {
 	const manifestPath = resolveCaseInsensitivePath(dir, "manifest.json");
 	if (!manifestPath) return null;
+	// manifest 只是一份元数据，限制大小避免异常文件占用内存
+	if (fs.statSync(manifestPath).size > 2 * 1024 * 1024) return null;
 	return JSON.parse(fs.readFileSync(manifestPath, "utf-8")) as ModManifest;
 }
 

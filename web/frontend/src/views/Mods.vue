@@ -355,8 +355,8 @@ onBeforeUnmount(unlockScroll);
 
 
 /* SwitchToggle 在 Mods 列表中的既有动效（比设置页稍慢并带投影） */
-.mod-card :deep(.slider) { transition: background 0.25s; }
-.mod-card :deep(.slider)::before { transition: transform 0.25s; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15); }
+.mod-card :deep(.slider) { transition: background-color var(--dur-base) var(--ease-in-out); }
+.mod-card :deep(.slider)::before { transition: transform 260ms var(--ease-spring); box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15); }
 
 .manifest-info p { margin: 6px 0; font-size: 14px; }
 .manifest-info b { color: var(--text-secondary); }

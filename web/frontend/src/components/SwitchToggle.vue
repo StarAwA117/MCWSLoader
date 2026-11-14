@@ -52,7 +52,7 @@ function onChange(event: Event): void {
 	position: absolute;
 	inset: 0;
 	background: var(--border);
-	transition: 0.2s;
+	transition: background-color var(--dur-base) var(--ease-in-out);
 	border-radius: 24px;
 }
 
@@ -64,7 +64,7 @@ function onChange(event: Event): void {
 	left: 3px;
 	bottom: 3px;
 	background: white;
-	transition: 0.2s;
+	transition: transform 260ms var(--ease-spring);
 	border-radius: 50%;
 }
 

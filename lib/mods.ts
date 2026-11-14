@@ -34,6 +34,29 @@ const DEFAULT_CLIENT_MODS: Record<string, ModClass> = { tool: DefaultTool as unk
 // 权限等级对应表（与 PermissionManager 保持一致）
 const TIER_LEVELS: Record<string, number> = { normal: 0, user: 1, op: 2, owner: 3 };
 
+// 配置合并时丢弃这些键，防止 __proto__ 原型污染
+const UNSAFE_CONFIG_KEYS = new Set(["__proto__", "prototype", "constructor"]);
+
+export function isUnsafeConfigKey(key: string): boolean {
+	return UNSAFE_CONFIG_KEYS.has(key);
+}
+
+/** 深拷贝并移除 __proto__ / prototype / constructor */
+export function sanitizeConfigObject<T>(value: T): T {
+	if (Array.isArray(value)) {
+		return value.map((item) => sanitizeConfigObject(item)) as T;
+	}
+	if (value && typeof value === "object") {
+		const out: AnyRecord = {};
+		for (const [key, item] of Object.entries(value as AnyRecord)) {
+			if (isUnsafeConfigKey(key)) continue;
+			out[key] = sanitizeConfigObject(item);
+		}
+		return out as T;
+	}
+	return value;
+}
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const MOD_DIR = path.resolve(__dirname, "..", "mod");
@@ -48,7 +71,10 @@ try {
 } catch (e) {
 	throw new Error(`Failed to read config.json: ${(e as Error).message}`);
 }
-export const config = JSON.parse(rawConfig) as AppConfig;
+export const config = sanitizeConfigObject(JSON.parse(rawConfig)) as AppConfig;
+
+// 配置可能包含密码哈希，启动时收紧权限（Windows 上 chmod 语义有限，忽略失败）
+try { fs.chmodSync(CONFIG_PATH, 0o600); } catch { /* ignore */ }
 
 // 兼容旧版配置结构，将 safety/顶层 rateLimit 迁移到新路径
 function normalizeConfig(cfg: AnyRecord): AnyRecord {
@@ -104,7 +130,7 @@ function sanitizePrefix(prefix: unknown): string {
 }
 
 export function reloadConfig(): AppConfig {
-	const fresh = JSON.parse(fs.readFileSync(CONFIG_PATH, "utf-8")) as AppConfig;
+	const fresh = sanitizeConfigObject(JSON.parse(fs.readFileSync(CONFIG_PATH, "utf-8"))) as AppConfig;
 	const prevPrefix = Command.commandPrefix;
 	for (const k of Object.keys(config)) delete config[k];
 	Object.assign(config, fresh);
@@ -123,6 +149,7 @@ function mergeDeep(target: AnyRecord, ...sources: Array<AnyRecord | null | undef
 	for (const source of sources) {
 		if (!source) continue;
 		for (const key of Object.keys(source)) {
+			if (isUnsafeConfigKey(key)) continue;
 			if (source[key] && typeof source[key] === "object" && !Array.isArray(source[key])) {
 				if (!target[key] || typeof target[key] !== "object") target[key] = {};
 				mergeDeep(target[key], source[key]);
@@ -218,6 +245,9 @@ class ModRegistry {
 
 			if (!fs.existsSync(configPath) && fs.existsSync(configExamplePath)) {
 				fs.copyFileSync(configExamplePath, configPath);
+			}
+			if (fs.existsSync(configPath)) {
+				try { fs.chmodSync(configPath, 0o600); } catch { /* ignore */ }
 			}
 
 			// 配置损坏时回退为空对象，不应因此丢掉整个 Mod
