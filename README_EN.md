@@ -2,105 +2,43 @@ English | [简体中文](./README.md)
 
 # MCWSLoader
 
-Minecraft Bedrock Edition WebSocket bridge server. Connects clients via the built-in WebSocket API and injects commands and automation through a Mod system.
+Minecraft Bedrock Edition WebSocket bridge server. Connects clients through the game's built-in WebSocket API, injects commands and automation through a Mod system, and ships with a web management UI.
 
 ## Features
 
-- In-game command execution and automation (Litematic building import, image to pixel art, .mcfunction, etc.)
+- In-game command execution and automation (Litematic, image to pixel art, .mcfunction, etc.)
 - AI chat and AI command execution (OpenAI-compatible API)
-- MIDI music playback, region fill/copy, permission management
-- Client/Server layered Mod loading, with `.wsmod` / `.zip` import, automatic dependency download, overwrite install and rollback on failure
-- Web management interface (default port 50005), with online config, Mod management, log viewer, and version updates
+- MIDI music, region fill/copy, permission management
+- Client/server layered Mod loading with `.wsmod` / `.zip` import, dependency install and rollback
+- Web management UI (default 50005) and Android / Windows client shell
 
 ## Quick Start
 
-Requires Node.js 22+.
+Requires **Node.js 22+**.
 
 ```bash
 npm install
 npm start
 ```
 
-The core server is written in TypeScript and runs through `tsx`. Type-check with:
+- WebUI: `http://127.0.0.1:50005`
+- In game: `/connect 127.0.0.1:8080`
+- On first run, `config.json` is created from `config.example.json`
 
-```bash
-npm run typecheck
-```
-
-On first run, `config.json` is automatically initialized from `config.example.json`. After startup, visit the WebUI at `http://127.0.0.1:50005` to configure settings online.
-
-In-game, connect with `/connect 127.0.0.1:8080`.
-
-## Configuration
-
-Main keys in `config.json` (see [`config.example.json`](./config.example.json) for the full file):
-
-| Key | Description |
-|-----|-------------|
-| `ws.name` / `ws.port` / `ws.host` | Server name, WebSocket port (default 8080), bind address (default `127.0.0.1`; use `0.0.0.0` for LAN) |
-| `ws.connection.*` | Max connections, connection rate limit, `perMessageDeflate`, `maxPayload`, `allowedIPs`, `requireApproval` |
-| `ws.checkDependenciesOnLoad` | Check and auto-install the npm dependencies declared by Mods on startup (default on) |
-| `command.maxLength` | Maximum length of a single command |
-| `command.rateLimit.*` | Command forwarding rate limit (default 1024 per 50ms; excess is deferred to the next window) |
-| `command.playerRateLimit.*` | Per-player chat command limit (default 10 per 5 seconds) |
-| `commandPrefix` | In-game command prefix (default `$`) |
-| `command.allowShellExec` | Allow the owner to run `t:exec` shell commands (default `false`) |
-| `web.port` | WebUI port (default 50005) |
-| `web.auth.*` | Login attempt limit and lockout window |
-
-Legacy configs (`safety.*`, top-level `rateLimit`) are migrated automatically on read — no manual edit needed.
-
-## Security
-
-- The WebSocket server listens on `127.0.0.1` by default; set `ws.host` to `0.0.0.0` for LAN access
-- Vanilla MCBE `/connect` cannot send tokens or custom headers, so there is no real handshake auth. Mitigations:
-  - Non-loopback clients start **pending** (`requireApproval`); all packets are dropped until approved in the WebUI
-  - `allowedIPs` accepts IP/CIDR allowlists, e.g. `["192.168.1.0/24"]`
-- Browser origins are rejected unless explicitly listed in `web.ui.allowedOrigins`
-- WebUI login only accepts `POST /api/login`; the password never appears in a URL
-- `t:exec` is disabled unless `command.allowShellExec` is enabled
-- Mod archives are checked for zip-slip, symlinks and extraction size limits
-- Mod npm dependencies are installed with `--ignore-scripts`
-
-## WebUI Features
-
-After startup, visit `http://127.0.0.1:50005` to open the management panel:
-
-- **Dashboard**: server status, uptime, connected clients, process info
-- **Mods**: enable/disable/reload, import `.wsmod` / `.zip`, delete, view manifest and readme (reload and delete ask for confirmation first)
-- **Commands**: execute Bedrock commands and view results
-- **Clients**: view connected clients, switch main client
-- **Logs**: view runtime logs and chat history
-- **Config**: edit server, connection, command rate limit, dependency check and WebUI settings online
-- **Update**: check GitHub latest release, select version to update or rollback
-
-## Mods
-
-Import a `.wsmod` / `.zip` archive with the import button in the WebUI:
-
-- The archive must contain a `manifest.json` (at the root or inside a single top-level folder)
-- If a Mod with the same name exists, you are asked whether to overwrite; files not present in the archive are kept
-- A failed overwrite rolls back to the previous version; a failed fresh install is cleaned up
-- The optional `dependencies` field declares npm dependencies (a list of package names); missing ones are installed with `npm install`
-
-See the [Mods documentation](./docs/mods.md).
-
-## Self-Update
-
-The WebUI has a built-in updater that detects the latest GitHub Release version, with support for:
-- One-click update to the latest version
-- Rollback to any selected Release version from the version list
-- Automatic restart prompt after update
-
-## Commands
-
-Type `$t:help` in game chat for command help (`$` is `commandPrefix`, configurable). Full command reference in [docs](./docs/).
+The server binds to `127.0.0.1` by default. Read
+[Security](https://github.com/StarAwA117/MCWSLoader/wiki/Security) before exposing it to a LAN.
 
 ## Documentation
 
-- [Mods](./docs/mods.md): Mod layout, `manifest.json`, dependencies, import/delete
-- [Commands](./docs/command.md): in-game and terminal command reference
-- [API](./docs/API.md): REST API and Mod development API
+Full documentation lives in the Wiki:
+
+- [Configuration](https://github.com/StarAwA117/MCWSLoader/wiki/Configuration)
+- [Security](https://github.com/StarAwA117/MCWSLoader/wiki/Security)
+- [Commands](https://github.com/StarAwA117/MCWSLoader/wiki/Commands)
+- [Mods](https://github.com/StarAwA117/MCWSLoader/wiki/Mods)
+- [API](https://github.com/StarAwA117/MCWSLoader/wiki/API)
+- [Android / Windows App](https://github.com/StarAwA117/MCWSLoader/wiki/App)
+- [Development](https://github.com/StarAwA117/MCWSLoader/wiki/Development)
 
 ## License
 

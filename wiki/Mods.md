@@ -73,7 +73,7 @@ Bundled Mods that use npm packages declare them, for example:
 | `morews` | `ws` |
 | `music` | `midi-file` |
 
-The entry file must `export default` a class; see [API Reference](./API.md) for
+The entry file must `export default` a class; see [API Reference](API) for
 the Mod lifecycle and the injected APIs (`client`, `Command`, `eventBus`,
 `storage`, `permission`, …).
 
@@ -166,7 +166,7 @@ WebUI (or restart). The Mod is registered on the next scan.
 
 ## Import / overwrite / rollback
 
-`POST /api/mods/import` (see [API Reference](./API.md)) behaves as follows:
+`POST /api/mods/import` (see [API Reference](API)) behaves as follows:
 
 1. The archive is extracted to a temporary directory and its manifest is
    validated.
