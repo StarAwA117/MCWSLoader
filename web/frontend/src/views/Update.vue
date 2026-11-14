@@ -3,6 +3,8 @@ import { ref, onMounted, onBeforeUnmount } from "vue";
 import { api } from "../api";
 import { useModal } from "../composables/useModal";
 import { useI18n } from "../composables/useI18n";
+import { useScrollLock } from "../composables/useScrollLock";
+import ModalShell from "../components/ModalShell.vue";
 
 const { confirm, alert } = useModal();
 const { t } = useI18n();
@@ -17,8 +19,7 @@ const selectedTag = ref(null);
 const showModal = ref(false);
 const modalStatus = ref({ loading: false, message: "" });
 
-function lockScroll() { document.body.classList.add("modal-open"); }
-function unlockScroll() { document.body.classList.remove("modal-open"); }
+const { lock: lockScroll, unlock: unlockScroll } = useScrollLock();
 function openModal() {
 	selectedTag.value = latestVersion.value ? `v${latestVersion.value}` : (tags.value[0]?.name || null);
 	modalStatus.value = { loading: false, message: "" };
@@ -141,25 +142,18 @@ onBeforeUnmount(unlockScroll);
 		<p v-if="actionStatus.message" style="margin-top: 12px; font-size: 13px;">{{ actionStatus.message }}</p>
 	</div>
 
-	<div v-if="showModal" class="modal-overlay" @click.self="closeModal">
-		<div class="modal">
-			<div class="modal-header">
-				<h3>{{ t('update.selectVersion') }}</h3>
-				<button class="modal-close" @click="closeModal">&times;</button>
-			</div>
-			<div class="modal-body">
-				<label style="font-size: 13px; color: var(--text-muted); display: block; margin-bottom: 6px;">{{ t('update.availableReleases') }}</label>
-				<select v-model="selectedTag" class="modal-select" :disabled="modalStatus.loading">
-					<option v-for="tag in tags" :key="tag.name" :value="tag.name">{{ tag.name }}</option>
-				</select>
-				<p v-if="modalStatus.message" style="margin-top: 12px; font-size: 13px;">{{ modalStatus.message }}</p>
-			</div>
-			<div class="modal-footer">
-				<button class="btn btn-ghost" @click="closeModal" :disabled="modalStatus.loading">{{ t('modal.cancel') }}</button>
-				<button class="btn btn-primary" @click="confirmAction" :disabled="modalStatus.loading">
-					{{ modalStatus.loading ? t('update.processing') : getActionLabel() }}
-				</button>
-			</div>
-		</div>
-	</div>
+	<ModalShell v-if="showModal" @close="closeModal">
+		<template #title>{{ t('update.selectVersion') }}</template>
+		<label style="font-size: 13px; color: var(--text-muted); display: block; margin-bottom: 6px;">{{ t('update.availableReleases') }}</label>
+		<select v-model="selectedTag" class="modal-select" :disabled="modalStatus.loading">
+			<option v-for="tag in tags" :key="tag.name" :value="tag.name">{{ tag.name }}</option>
+		</select>
+		<p v-if="modalStatus.message" style="margin-top: 12px; font-size: 13px;">{{ modalStatus.message }}</p>
+		<template #footer>
+			<button class="btn btn-ghost" @click="closeModal" :disabled="modalStatus.loading">{{ t('modal.cancel') }}</button>
+			<button class="btn btn-primary" @click="confirmAction" :disabled="modalStatus.loading">
+				{{ modalStatus.loading ? t('update.processing') : getActionLabel() }}
+			</button>
+		</template>
+	</ModalShell>
 </template>

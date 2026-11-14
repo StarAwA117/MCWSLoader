@@ -2,6 +2,7 @@
 import { ref, onMounted } from "vue";
 import { api } from "../api";
 import { useI18n } from "../composables/useI18n";
+import LogOutput from "../components/LogOutput.vue";
 
 const { t } = useI18n();
 
@@ -50,10 +51,16 @@ onMounted(() => { output.value = []; });
 			</button>
 		</div>
 
-		<div v-if="output.length" class="log-viewer" style="max-height: 200px; margin-bottom: 16px;">
+		<LogOutput v-if="output.length" max-height="200px" :lines="output" class="command-output">
 			<div v-for="(line, i) in output" :key="i" class="log-line" :class="line.type === 'error' ? 'error' : line.type === 'success' ? 'info' : ''">
 				{{ line.type === 'input' ? '> ' : '' }}{{ line.text }}
 			</div>
-		</div>
+		</LogOutput>
 	</div>
 </template>
+
+<style scoped>
+.command-output {
+	margin-bottom: 16px;
+}
+</style>

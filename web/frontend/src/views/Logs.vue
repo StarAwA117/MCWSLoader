@@ -1,7 +1,9 @@
 <script setup>
-import { ref, onMounted, onUnmounted, nextTick } from "vue";
+import { ref, nextTick } from "vue";
 import { api } from "../api";
 import { useI18n } from "../composables/useI18n";
+import { usePolling } from "../composables/usePolling";
+import LogOutput from "../components/LogOutput.vue";
 
 const { t } = useI18n();
 
@@ -9,14 +11,14 @@ const logType = ref("app");
 const logLines = ref([]);
 const autoScroll = ref(true);
 const logRef = ref(null);
-let timer = null;
 
 async function refresh() {
 	const res = await api.getLogs(logType.value, 300);
 	logLines.value = res.lines || [];
 	if (autoScroll.value) {
+		// 等 DOM 更新后再滚动到底部
 		await nextTick();
-		if (logRef.value) logRef.value.scrollTop = logRef.value.scrollHeight;
+		logRef.value?.scrollToBottom();
 	}
 }
 
@@ -25,11 +27,14 @@ function setLogType(type) {
 	refresh();
 }
 
-onMounted(() => {
-	refresh();
-	timer = setInterval(refresh, 2000);
-});
-onUnmounted(() => clearInterval(timer));
+function lineClass(line) {
+	if (line.includes("[error]")) return "error";
+	if (line.includes("[warning]")) return "warning";
+	if (line.includes("[debug]")) return "debug";
+	return "info";
+}
+
+usePolling(refresh, 2000);
 </script>
 
 <template>
@@ -55,16 +60,12 @@ onUnmounted(() => clearInterval(timer));
 			</div>
 		</div>
 
-		<div ref="logRef" class="log-viewer" style="height: 500px;">
-			<div v-if="logLines.length === 0" style="color: var(--text-muted); text-align: center; padding: 40px;">
-				{{ t('logs.none') }}
-			</div>
-			<div
-				v-for="(line, i) in logLines"
-				:key="i"
-				class="log-line"
-				:class="line.includes('[error]') ? 'error' : line.includes('[warning]') ? 'warning' : line.includes('[debug]') ? 'debug' : 'info'"
-			>{{ line }}</div>
-		</div>
+		<LogOutput
+			ref="logRef"
+			:lines="logLines"
+			height="500px"
+			:empty-text="t('logs.none')"
+			:line-class="lineClass"
+		/>
 	</div>
 </template>

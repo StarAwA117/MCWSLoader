@@ -32,8 +32,9 @@ Manages client-side Mods. One instance per WebSocket connection.
 
 | Method | Returns | Description |
 |--------|---------|-------------|
-| `ClientModManager.load()` | `Promise<void>` | Load all client Mods from `config.mods.client` |
-| `ClientModManager.reloadAllClients()` | `Promise<{ success: string[], failed: string[] }>` | Reload all Mods on all connected clients |
+| `ClientModManager.load()` | `Promise<void>` | Scan `mod/` manifests and register every enabled client Mod |
+| `ClientModManager.syncClasses()` | `Promise<void>` | Re-sync the class registry after an enable/disable/import (drops removed Mods, imports new ones) |
+| `ClientModManager.reloadAllClients()` | `Promise<{ success: string[], failed: string[] }>` | Sync classes, then reload/instantiate Mods on every connected client |
 
 **Instance Properties:**
 
@@ -49,7 +50,8 @@ Manages client-side Mods. One instance per WebSocket connection.
 | Method | Returns | Description |
 |--------|---------|-------------|
 | `clientMod.reload(name)` | `Promise<{ success: boolean, message: string }>` | Reload a single client Mod by name |
-| `clientMod.reloadAll()` | `Promise<{ success: string[], failed: string[] }>` | Reload all client Mods on this connection |
+| `clientMod.reloadAll()` | `Promise<{ success: string[], failed: string[] }>` | Instantiate newly registered Mods, unload removed ones, reload the rest |
+| `clientMod.unload(name)` | `boolean` | Destroy one Mod instance, remove its subscriptions/SAPI handlers and refresh the command index |
 | `clientMod.getMod(name)` | `Object \| null` | Get a Mod instance by name |
 | `clientMod.getAllMods()` | `Object<string, Object>` | Get all Mod instances |
 | `clientMod.callModMethod(method, ...args)` | `void` | Call a method on all Mod instances |
@@ -86,6 +88,29 @@ class MyMod {
 
 ---
 
+### Command Framework
+
+`Command` is injected into every Mod instance (also available as a static on the class).
+
+| Method | Returns | Description |
+|--------|---------|-------------|
+| `Command.create(name, description)` | `Command` | Create a command definition (name without prefix) |
+| `.addString/.addInteger/.addFloat/.addBoolean/.addEnum(values)` | `Command` | Add a required parameter (chainable) |
+| `.addOptionalString/.addOptionalInteger/.addOptionalFloat/.addOptionalBoolean/.addOptionalEnum(values)` | `Command` | Add an optional parameter |
+| `.setFunc((sender, ...args) => ...)` | `Command` | Handler; a returned Promise is awaited for errors |
+| `.matches(tokens)` | `boolean` | Whether `Command.parseArgs(text)` targets this command |
+| `.execute(commander, text)` | `{ status, message } \| false` | Parse and run; `false` when the name does not match |
+| `.executeTokens(commander, tokens)` | `{ status, message } \| false` | Run with pre-parsed tokens (used by the dispatcher) |
+| `Command.parseArgs(text)` | `string[]` | Split text into tokens, honoring double-quoted arguments |
+
+`commands()` (or `onCommand()`) may return any of `normal`, `user`, `op`, `owner`.
+At dispatch time the chat line is parsed **once**, then only the matching command runs,
+gated by the sender's permission level. Duplicate command names are logged and ignored
+(the first registration wins). The prefix comes from `config.commandPrefix` and must be
+non-empty.
+
+---
+
 ### ServerModManager
 
 Singleton manager for server-side Mods (one per server, not per connection).
@@ -102,13 +127,13 @@ Singleton manager for server-side Mods (one per server, not per connection).
 | Method | Returns | Description |
 |--------|---------|-------------|
 | `ServerModManager.load()` | `Promise<void>` | Load all server Mods from `config.mods.server` |
-| `ServerModManager.reload(modName)` | `Promise<{ success: boolean, message: string }>` | Reload a single server Mod |
-| `ServerModManager.reloadAll()` | `Promise<{ success: string[], failed: string[] }>` | Reload all server Mods |
-| `ServerModManager.getMod(name)` | `Object \| null` | Get a Mod instance by name |
-| `ServerModManager.getAllMods()` | `Object<string, Object>` | Get all Mod instances |
+| `ServerModManager.syncClasses()` | `Promise<void>` | Re-sync the class registry after an enable/disable/import |
+| `ServerModManager.reloadAll()` | `Promise<{ success: string[], failed: string[] }>` | Sync classes, instantiate new Mods, unload removed ones, reload the rest, then re-collect terminal commands |
 | `ServerModManager.getLoadedModNames()` | `string[]` | Get all loaded Mod names |
-| `ServerModManager.getModPath(name)` | `string \| null` | Get the file path for a Mod |
 | `ServerModManager.destroy()` | `void` | Destroy all server Mods |
+
+Instance methods are available through `ServerModManager._inst()`:
+`reload(name)`, `unload(name)`, `getMod(name)`, `getAllMods()`.
 
 **Server Mod Lifecycle:**
 

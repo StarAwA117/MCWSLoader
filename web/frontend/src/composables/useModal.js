@@ -1,5 +1,6 @@
 import { reactive } from "vue";
 import { useI18n } from "./useI18n";
+import { useScrollLock } from "./useScrollLock";
 
 const { t } = useI18n();
 
@@ -17,8 +18,7 @@ const state = reactive({
 	_resolve: null,
 });
 
-function lockScroll() { document.body.classList.add("modal-open"); }
-function unlockScroll() { document.body.classList.remove("modal-open"); }
+const { lock: lockScroll, unlock: unlockScroll } = useScrollLock();
 
 function openModal(options) {
 	state.type = options.type || "alert";

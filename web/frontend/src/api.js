@@ -6,22 +6,12 @@ function getToken() {
 	return sessionStorage.getItem("auth_token") || "";
 }
 
-async function request(path, options = {}) {
-	const res = await fetch(`${BASE}${path}`, {
-		headers: {
-			"Content-Type": "application/json",
-			"X-Auth-Token": getToken()
-		},
-		...options
-	});
-	if (res.status === 401) {
-		sessionStorage.removeItem("auth_token");
-		if (window.location.pathname !== "/login") {
-			window.location.href = "/login";
-		}
-		return { ok: false, message: useI18n().t("common.unauthorized") };
-	}
-	// 非 JSON 响应（空响应体 / 网关错误页等）不应让调用方抛异常
+/**
+ * 解析响应体：空响应体 / 非 JSON（网关错误页）不应让调用方抛异常。
+ * @param {Response} res
+ * @returns {Promise<Object>}
+ */
+async function parseResponse(res) {
 	const text = await res.text().catch(() => "");
 	if (!text) return { ok: false, message: `HTTP ${res.status}` };
 	try {
@@ -31,9 +21,35 @@ async function request(path, options = {}) {
 	}
 }
 
+/**
+ * 带鉴权的请求。401 会清理 token 并跳回登录页。
+ * @param {string} path
+ * @param {RequestInit & { raw?: boolean }} options - raw=true 时不设置 JSON Content-Type（FormData）
+ */
+async function request(path, options = {}) {
+	const { raw = false, headers, ...rest } = options;
+	const res = await fetch(`${BASE}${path}`, {
+		headers: {
+			"X-Auth-Token": getToken(),
+			...(raw ? {} : { "Content-Type": "application/json" }),
+			...headers
+		},
+		...rest
+	});
+	if (res.status === 401) {
+		sessionStorage.removeItem("auth_token");
+		if (window.location.pathname !== "/login") {
+			window.location.href = "/login";
+		}
+		return { ok: false, message: useI18n().t("common.unauthorized") };
+	}
+	return parseResponse(res);
+}
+
+// 登录接口不需要 token，且 401 响应体里带有锁定/剩余次数信息，不能走 request()
 export async function loginWithPassword(pwd) {
 	const res = await fetch(`${BASE}/login?pwd=${encodeURIComponent(pwd)}`);
-	return res.json();
+	return parseResponse(res);
 }
 
 export const api = {
@@ -52,13 +68,8 @@ export const api = {
 	importMod: (file, overwrite = false) => {
 		const form = new FormData();
 		form.append("file", file);
-		return fetch(`/api/mods/import${overwrite ? "?overwrite=1" : ""}`, {
-			method: "POST",
-			body: form,
-			headers: {
-				"X-Auth-Token": getToken()
-			}
-		}).then(res => res.json()).catch(e => ({ ok: false, code: "NETWORK", message: e.message }));
+		return request(`/mods/import${overwrite ? "?overwrite=1" : ""}`, { method: "POST", body: form, raw: true })
+			.catch(e => ({ ok: false, code: "NETWORK", message: e.message }));
 	},
 	deleteMod: (name) => request(`/mods/${encodeURIComponent(name)}/delete`, { method: "POST" }),
 	getModConfig: (name) => request(`/mods/${encodeURIComponent(name)}/config`),
@@ -71,7 +82,7 @@ export const api = {
 	tellClient: (id, message) => request(`/clients/${id}/tell`, { method: "POST", body: JSON.stringify({ message }) }),
 	setMainClient: (id) => request(`/clients/${id}/set-main`, { method: "POST" }),
 	disconnectClient: (id) => request(`/clients/${id}/disconnect`, { method: "POST" }),
-	getLogs: (name = "app", lines = 200) => request(`/logs?name=${name}&lines=${lines}`),
+	getLogs: (name = "app", lines = 200) => request(`/logs?name=${encodeURIComponent(name)}&lines=${lines}`),
 	getLiveLogs: () => request("/logs/live"),
 	getChatLog: () => request("/chat"),
 	sendChat: (message) => request("/chat", { method: "POST", body: JSON.stringify({ message }) }),
@@ -84,38 +95,3 @@ export const api = {
 	rollback: (tag) => request("/update/rollback", { method: "POST", body: JSON.stringify({ tag }) }),
 	changePassword: (oldPassword, newPassword) => request("/auth/change-password", { method: "POST", body: JSON.stringify({ oldPassword, newPassword }) }),
 };
-
-export function useToast() {
-	const toasts = [];
-	function show(message, type = "info", duration = 3000) {
-		const id = Date.now();
-		toasts.push({ id, message, type });
-		setTimeout(() => {
-			const idx = toasts.findIndex(t => t.id === id);
-			if (idx >= 0) toasts.splice(idx, 1);
-		}, duration);
-	}
-	return {
-		toasts,
-		success: (msg) => show(msg, "success"),
-		error: (msg) => show(msg, "error"),
-		info: (msg) => show(msg, "info")
-	};
-}
-
-export function formatUptime(ms) {
-	const s = Math.floor(ms / 1000);
-	const m = Math.floor(s / 60);
-	const h = Math.floor(m / 60);
-	const d = Math.floor(h / 24);
-	if (d > 0) return `${d}天 ${h % 24}时`;
-	if (h > 0) return `${h}时 ${m % 60}分`;
-	if (m > 0) return `${m}分 ${s % 60}秒`;
-	return `${s}秒`;
-}
-
-export function formatBytes(bytes) {
-	if (bytes < 1024) return bytes + " B";
-	if (bytes < 1048576) return (bytes / 1024).toFixed(1) + " KB";
-	return (bytes / 1048576).toFixed(1) + " MB";
-}

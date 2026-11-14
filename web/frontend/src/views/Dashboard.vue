@@ -1,7 +1,9 @@
 <script setup>
-import { ref, onMounted, onUnmounted } from "vue";
-import { api, formatBytes } from "../api";
+import { ref } from "vue";
+import { api } from "../api";
+import { formatBytes, formatDuration } from "../utils/format";
 import { useModal } from "../composables/useModal";
+import { usePolling } from "../composables/usePolling";
 import { useI18n } from "../composables/useI18n";
 
 const { confirm, alert } = useModal();
@@ -9,18 +11,8 @@ const { t } = useI18n();
 
 const status = ref(null);
 const process = ref(null);
-let timer = null;
 
-function formatUptime(ms) {
-	const s = Math.floor(ms / 1000);
-	const m = Math.floor(s / 60);
-	const h = Math.floor(m / 60);
-	const d = Math.floor(h / 24);
-	if (d > 0) return d + t('time.day') + ' ' + (h % 24) + t('time.hour');
-	if (h > 0) return h + t('time.hour') + ' ' + (m % 60) + t('time.minute');
-	if (m > 0) return m + t('time.minute') + ' ' + (s % 60) + t('time.second');
-	return s + t('time.second');
-}
+const formatUptime = (ms) => formatDuration(ms, t);
 
 async function refresh() {
 	try {
@@ -44,12 +36,7 @@ async function restartServer() {
 	if (res.ok) await alert(res.message);
 }
 
-onMounted(() => {
-	refresh();
-	timer = setInterval(refresh, 3000);
-});
-
-onUnmounted(() => clearInterval(timer));
+usePolling(refresh, 3000);
 </script>
 
 <template>

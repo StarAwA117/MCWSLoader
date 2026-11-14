@@ -1,8 +1,10 @@
 <script setup>
-import { ref, onMounted, onUnmounted } from "vue";
+import { ref } from "vue";
 import { api } from "../api";
 import { useModal } from "../composables/useModal";
 import { useI18n } from "../composables/useI18n";
+import { usePolling } from "../composables/usePolling";
+import ModalShell from "../components/ModalShell.vue";
 
 const { alert, confirm } = useModal();
 const { t } = useI18n();
@@ -10,7 +12,6 @@ const { t } = useI18n();
 const clients = ref([]);
 const selected = ref(null);
 const showDetail = ref(false);
-let timer = null;
 
 async function refresh() {
 	clients.value = await api.getClients();
@@ -38,11 +39,7 @@ async function disconnect() {
 	else await alert(res.message);
 }
 
-onMounted(() => {
-	refresh();
-	timer = setInterval(refresh, 3000);
-});
-onUnmounted(() => clearInterval(timer));
+usePolling(refresh, 3000);
 </script>
 
 <template>
@@ -77,25 +74,18 @@ onUnmounted(() => clearInterval(timer));
 	</div>
 
 	<!-- 客户端详情弹窗 -->
-	<div v-if="showDetail && selected" class="modal-overlay" @click.self="showDetail = false">
-		<div class="modal" style="max-width: 420px;">
-			<div class="modal-header">
-				<h3>{{ t('clients.detail') }}</h3>
-				<button class="modal-close" @click="showDetail = false">×</button>
-			</div>
-			<div class="modal-body">
-				<div class="detail-row"><span class="detail-label">{{ t('clients.name') }}</span><span>{{ selected.localPlayerName || t('clients.unnamed') }}</span></div>
-				<div class="detail-row"><span class="detail-label">IP</span><span style="font-family: monospace;">{{ selected.ip }}</span></div>
-				<div class="detail-row"><span class="detail-label">{{ t('clients.uuid') }}</span><span style="font-family: monospace; font-size: 12px;">{{ selected.id }}</span></div>
-				<div class="detail-row"><span class="detail-label">{{ t('clients.role') }}</span><span :class="selected.isMain ? 'badge' : 'tag tag-user'">{{ selected.isMain ? t('clients.mainClient') : t('clients.normal') }}</span></div>
-				<div class="detail-row"><span class="detail-label">{{ t('clients.connectedAt') }}</span><span>{{ new Date(selected.connectedAt).toLocaleString() }}</span></div>
-			</div>
-			<div class="modal-footer">
-				<button v-if="!selected.isMain" class="btn btn-primary btn-sm" @click="setMain">{{ t('clients.switch') }}</button>
-				<button class="btn btn-danger btn-sm" @click="disconnect">{{ t('clients.disconnect') }}</button>
-			</div>
-		</div>
-	</div>
+	<ModalShell v-if="showDetail && selected" max-width="420px" @close="showDetail = false">
+		<template #title>{{ t('clients.detail') }}</template>
+		<div class="detail-row"><span class="detail-label">{{ t('clients.name') }}</span><span>{{ selected.localPlayerName || t('clients.unnamed') }}</span></div>
+		<div class="detail-row"><span class="detail-label">IP</span><span style="font-family: monospace;">{{ selected.ip }}</span></div>
+		<div class="detail-row"><span class="detail-label">{{ t('clients.uuid') }}</span><span style="font-family: monospace; font-size: 12px;">{{ selected.id }}</span></div>
+		<div class="detail-row"><span class="detail-label">{{ t('clients.role') }}</span><span :class="selected.isMain ? 'badge' : 'tag tag-user'">{{ selected.isMain ? t('clients.mainClient') : t('clients.normal') }}</span></div>
+		<div class="detail-row"><span class="detail-label">{{ t('clients.connectedAt') }}</span><span>{{ new Date(selected.connectedAt).toLocaleString() }}</span></div>
+		<template #footer>
+			<button v-if="!selected.isMain" class="btn btn-primary btn-sm" @click="setMain">{{ t('clients.switch') }}</button>
+			<button class="btn btn-danger btn-sm" @click="disconnect">{{ t('clients.disconnect') }}</button>
+		</template>
+	</ModalShell>
 </template>
 
 <style scoped>

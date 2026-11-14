@@ -3,6 +3,8 @@ import { ref, onMounted } from "vue";
 import { api } from "../api";
 import { useModal } from "../composables/useModal";
 import { useI18n } from "../composables/useI18n";
+import SettingsCard from "../components/SettingsCard.vue";
+import SwitchToggle from "../components/SwitchToggle.vue";
 
 const { t, setLocale, locale, availableLocales } = useI18n();
 const { openResetPassword } = useModal();
@@ -96,10 +98,7 @@ onMounted(refresh);
 
 		<div class="tab-content">
 			<div v-if="activeTab === 'server'" class="tab-panel">
-				<div class="card">
-					<div class="card-header">
-						<h2>{{ t('settings.server') }}</h2>
-					</div>
+				<SettingsCard :title="t('settings.server')">
 					<div class="form-row">
 						<div class="form-group">
 							<label>{{ t('settings.serverName') }}</label>
@@ -110,28 +109,19 @@ onMounted(refresh);
 							<input v-model.number="config.ws.port" type="number" />
 						</div>
 					</div>
-				</div>
+				</SettingsCard>
 
-				<div class="card">
-					<div class="card-header">
-						<h2>{{ t('settings.commandPrefix') }}</h2>
-					</div>
+				<SettingsCard :title="t('settings.commandPrefix')">
 					<div class="form-group">
 						<label>{{ t('settings.commandPrefix') }}</label>
 						<input v-model="config.commandPrefix" type="text" maxlength="4" />
 					</div>
-				</div>
+				</SettingsCard>
 
-				<div class="card">
-					<div class="card-header">
-						<h2>{{ t('settings.connectionSettings') }}</h2>
-					</div>
+				<SettingsCard :title="t('settings.connectionSettings')">
 					<div class="switch-row">
 						<span class="switch-label">{{ t('settings.enableMaxConnections') }}</span>
-						<label class="switch">
-							<input id="enableMaxConnections" type="checkbox" v-model="config.ws.connection.enableMaxConnections" />
-							<span class="slider"></span>
-						</label>
+						<SwitchToggle id="enableMaxConnections" v-model="config.ws.connection.enableMaxConnections" />
 					</div>
 					<div class="form-row">
 						<div class="form-group">
@@ -141,10 +131,7 @@ onMounted(refresh);
 					</div>
 					<div class="switch-row" style="margin-top: 10px;">
 						<span class="switch-label">{{ t('settings.enableConnectionRateLimit') }}</span>
-						<label class="switch">
-							<input id="enableConnectionRateLimit" type="checkbox" v-model="config.ws.connection.enableConnectionRateLimit" />
-							<span class="slider"></span>
-						</label>
+						<SwitchToggle id="enableConnectionRateLimit" v-model="config.ws.connection.enableConnectionRateLimit" />
 					</div>
 					<div class="form-row">
 						<div class="form-group">
@@ -156,18 +143,12 @@ onMounted(refresh);
 							<input v-model.number="config.ws.connection.rateLimitMax" type="number" />
 						</div>
 					</div>
-				</div>
+				</SettingsCard>
 
-				<div class="card">
-					<div class="card-header">
-						<h2>{{ t('settings.commandSettings') }}</h2>
-					</div>
+				<SettingsCard :title="t('settings.commandSettings')">
 					<div class="switch-row">
 						<span class="switch-label">{{ t('settings.enableRateLimit') }}</span>
-						<label class="switch">
-							<input id="enableRateLimit" type="checkbox" v-model="config.command.rateLimit.enabled" />
-							<span class="slider"></span>
-						</label>
+						<SwitchToggle id="enableRateLimit" v-model="config.command.rateLimit.enabled" />
 					</div>
 					<div class="form-row">
 						<div class="form-group">
@@ -183,37 +164,25 @@ onMounted(refresh);
 						<label>{{ t('settings.commandMaxLength') }}</label>
 						<input v-model.number="config.command.maxLength" type="number" />
 					</div>
-				</div>
+				</SettingsCard>
 
-				<div class="card">
-					<div class="card-header">
-						<h2>{{ t('settings.dependencySettings') }}</h2>
-					</div>
+				<SettingsCard :title="t('settings.dependencySettings')">
 					<div class="switch-row">
 						<span class="switch-label">{{ t('settings.checkDependenciesOnLoad') }}</span>
-						<label class="switch">
-							<input id="checkDependenciesOnLoad" type="checkbox" v-model="config.ws.checkDependenciesOnLoad" />
-							<span class="slider"></span>
-						</label>
+						<SwitchToggle id="checkDependenciesOnLoad" v-model="config.ws.checkDependenciesOnLoad" />
 					</div>
-				</div>
+				</SettingsCard>
 			</div>
 
 			<div v-if="activeTab === 'webui'" class="tab-panel">
-				<div class="card">
-					<div class="card-header">
-						<h2>{{ t('settings.webui') }}</h2>
-					</div>
+				<SettingsCard :title="t('settings.webui')">
 					<div class="form-group">
 						<label>{{ t('settings.httpPort') }}</label>
 						<input v-model.number="config.web.port" type="number" />
 					</div>
-				</div>
+				</SettingsCard>
 
-				<div class="card">
-					<div class="card-header">
-						<h2>{{ t('settings.auth') }}</h2>
-					</div>
+				<SettingsCard :title="t('settings.auth')">
 					<div class="form-row">
 						<div class="form-group">
 							<label>{{ t('settings.maxAttempts') }}</label>
@@ -234,12 +203,9 @@ onMounted(refresh);
 						</button>
 						<span v-if="resetMessage" style="margin-left: 10px; font-size: 13px; color: #f87171;">{{ resetMessage }}</span>
 					</div>
-				</div>
+				</SettingsCard>
 
-				<div class="card">
-					<div class="card-header">
-						<h2>{{ t('settings.language') }}</h2>
-					</div>
+				<SettingsCard :title="t('settings.language')">
 					<div class="form-row">
 						<div class="form-group">
 							<label>{{ t('settings.languageLabel') }}</label>
@@ -256,12 +222,9 @@ onMounted(refresh);
 							</div>
 						</div>
 					</div>
-				</div>
+				</SettingsCard>
 
-				<div class="card">
-					<div class="card-header">
-						<h2>{{ t('settings.logs') }}</h2>
-					</div>
+				<SettingsCard :title="t('settings.logs')">
 					<div class="form-group">
 						<label>{{ t('settings.logLevel') }}</label>
 						<select v-model="config.logLevel">
@@ -271,7 +234,7 @@ onMounted(refresh);
 							<option value="error">{{ t('settings.error') }}</option>
 						</select>
 					</div>
-				</div>
+				</SettingsCard>
 			</div>
 		</div>
 	</div>
@@ -386,50 +349,6 @@ onMounted(refresh);
 	font-size: 13px;
 	color: var(--text-secondary);
 	font-weight: 500;
-}
-
-.switch {
-	position: relative;
-	display: inline-block;
-	width: 42px;
-	height: 24px;
-	flex-shrink: 0;
-	cursor: pointer;
-}
-
-.switch input {
-	opacity: 0;
-	width: 0;
-	height: 0;
-}
-
-.slider {
-	position: absolute;
-	cursor: pointer;
-	inset: 0;
-	background: var(--border);
-	transition: 0.2s;
-	border-radius: 24px;
-}
-
-.slider::before {
-	position: absolute;
-	content: "";
-	height: 18px;
-	width: 18px;
-	left: 3px;
-	bottom: 3px;
-	background: white;
-	transition: 0.2s;
-	border-radius: 50%;
-}
-
-input:checked + .slider {
-	background: var(--primary);
-}
-
-input:checked + .slider::before {
-	transform: translateX(18px);
 }
 
 .locale-btn {

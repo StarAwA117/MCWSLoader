@@ -70,8 +70,15 @@ export function useI18n() {
 			if (typeof window !== "undefined" && window.__LANGUAGE__ !== locale) {
 				fetch("/api/language", {
 					method: "POST",
-					headers: { "Content-Type": "application/json" },
+					headers: {
+						"Content-Type": "application/json",
+						// 语言切换接口需要登录态
+						"X-Auth-Token": window.sessionStorage.getItem("auth_token") || ""
+					},
 					body: JSON.stringify({ language: locale })
+				}).then((res) => {
+					if (!res.ok) return;
+					window.__LANGUAGE__ = locale;
 				}).catch(() => {});
 			}
 		}

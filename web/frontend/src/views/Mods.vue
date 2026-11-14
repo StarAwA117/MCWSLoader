@@ -4,7 +4,10 @@ import { api } from "../api";
 import ConfigField from "../components/ConfigField.vue";
 import { useI18n } from "../composables/useI18n";
 import { useModal } from "../composables/useModal";
+import { useScrollLock } from "../composables/useScrollLock";
 import { renderMarkdown } from "../utils/markdown";
+import SwitchToggle from "../components/SwitchToggle.vue";
+import ModalShell from "../components/ModalShell.vue";
 
 const { t } = useI18n();
 const { alert: showAlert, confirm: showConfirm } = useModal();
@@ -138,8 +141,7 @@ async function deleteMod(mod) {
 	}
 }
 
-function lockScroll() { document.body.classList.add("modal-open"); }
-function unlockScroll() { document.body.classList.remove("modal-open"); }
+const { lock: lockScroll, unlock: unlockScroll } = useScrollLock();
 function closeModal() { modal.value.open = false; unlockScroll(); }
 
 function buildFields(obj, prefix) {
@@ -236,10 +238,7 @@ onBeforeUnmount(unlockScroll);
 					<div class="mod-name">{{ m.name }}</div>
 					<div v-if="m.description" class="mod-desc">{{ m.description }}</div>
 				</div>
-				<label class="switch" @click.stop>
-					<input type="checkbox" :checked="m.enabled" @change="toggleMod(m)" />
-					<span class="slider"></span>
-				</label>
+				<SwitchToggle :model-value="m.enabled" @change="toggleMod(m)" />
 			</div>
 			<div class="mod-bottom">
 				<button class="icon-btn delete-btn" :title="t('mods.delete')" @click="deleteMod(m)">
@@ -263,38 +262,32 @@ onBeforeUnmount(unlockScroll);
 		</div>
 	</div>
 
-	<div v-if="modal.open" class="modal-overlay" @click.self="closeModal">
-		<div class="modal">
-			<div class="modal-header">
-				<h3>{{ modal.modName }}{{ modal.type === "settings" ? " - " + t('mods.config') : modal.type === "manifest" ? " - " + t('mods.manifest') : " - " + t('mods.readme') }}</h3>
-				<button class="modal-close" @click="closeModal">&times;</button>
-			</div>
-			<div class="modal-body">
-				<div v-if="modal.type === 'settings'">
-					<div v-if="!modal.config" class="empty-state"><p>{{ modal.message || t('common.loading') }}</p></div>
-					<ConfigField v-else v-for="f in modal.fields" :key="f.path" :field="f" :config="modal.config" :depth="0" />
-				</div>
-
-				<div v-if="modal.type === 'manifest'">
-					<div v-if="modal.manifest" class="manifest-info">
-						<p><b>{{ t('mods.name') }}：</b>{{ modal.manifest.name || modal.modName }}</p>
-						<p><b>{{ t('mods.version') }}：</b>{{ modal.manifest.version || t('mods.unknown') }}</p>
-						<p><b>{{ t('mods.description') }}：</b>{{ modal.manifest.description || t('mods.notSet') }}</p>
-						<p><b>{{ t('mods.author') }}：</b>{{ modal.manifest.author || t('mods.unknown') }}</p>
-						<p><b>{{ t('mods.type') }}：</b>{{ modType(modal.mod) }}</p>
-					</div>
-					<div v-else class="empty-state"><p>{{ modal.message || t('mods.noManifest') }}</p></div>
-				</div>
-
-				<div v-if="modal.type === 'readme'" class="modal-markdown" v-html="readmeHtml"></div>
-			</div>
-			<div v-if="modal.type === 'settings' && modal.config" class="modal-footer">
-				<span v-if="modal.message" class="modal-msg">{{ modal.message }}</span>
-				<button class="btn btn-ghost" @click="closeModal">{{ t('modal.cancel') }}</button>
-				<button class="btn btn-primary" @click="saveConfig" :disabled="modal.saving">{{ modal.saving ? t('common.saving') : t('common.save') }}</button>
-			</div>
+	<ModalShell v-if="modal.open" @close="closeModal">
+		<template #title>{{ modal.modName }}{{ modal.type === "settings" ? " - " + t('mods.config') : modal.type === "manifest" ? " - " + t('mods.manifest') : " - " + t('mods.readme') }}</template>
+		<div v-if="modal.type === 'settings'">
+			<div v-if="!modal.config" class="empty-state"><p>{{ modal.message || t('common.loading') }}</p></div>
+			<ConfigField v-else v-for="f in modal.fields" :key="f.path" :field="f" :config="modal.config" :depth="0" />
 		</div>
-	</div>
+
+		<div v-if="modal.type === 'manifest'">
+			<div v-if="modal.manifest" class="manifest-info">
+				<p><b>{{ t('mods.name') }}：</b>{{ modal.manifest.name || modal.modName }}</p>
+				<p><b>{{ t('mods.version') }}：</b>{{ modal.manifest.version || t('mods.unknown') }}</p>
+				<p><b>{{ t('mods.description') }}：</b>{{ modal.manifest.description || t('mods.notSet') }}</p>
+				<p><b>{{ t('mods.author') }}：</b>{{ modal.manifest.author || t('mods.unknown') }}</p>
+				<p><b>{{ t('mods.type') }}：</b>{{ modType(modal.mod) }}</p>
+			</div>
+			<div v-else class="empty-state"><p>{{ modal.message || t('mods.noManifest') }}</p></div>
+		</div>
+
+		<div v-if="modal.type === 'readme'" class="modal-markdown" v-html="readmeHtml"></div>
+
+		<template v-if="modal.type === 'settings' && modal.config" #footer>
+			<span v-if="modal.message" class="modal-msg">{{ modal.message }}</span>
+			<button class="btn btn-ghost" @click="closeModal">{{ t('modal.cancel') }}</button>
+			<button class="btn btn-primary" @click="saveConfig" :disabled="modal.saving">{{ modal.saving ? t('common.saving') : t('common.save') }}</button>
+		</template>
+	</ModalShell>
 </template>
 
 <style scoped>
@@ -328,12 +321,10 @@ onBeforeUnmount(unlockScroll);
 .card-header h2 { font-size: 15px; color: var(--text); font-weight: 600; margin: 0; white-space: nowrap; flex-shrink: 0; }
 .reload-btn { margin-left: auto; white-space: nowrap; flex-shrink: 0; }
 
-.switch { position: relative; display: inline-block; width: 42px; height: 24px; flex-shrink: 0; cursor: pointer; }
-.switch input { opacity: 0; width: 0; height: 0; }
-.slider { position: absolute; inset: 0; background: var(--border); border-radius: 24px; transition: background 0.25s; }
-.slider::before { content: ""; position: absolute; width: 18px; height: 18px; left: 3px; bottom: 3px; background: #fff; border-radius: 50%; transition: transform 0.25s; box-shadow: 0 1px 3px rgba(0,0,0,0.15); }
-.switch input:checked + .slider { background: var(--primary); }
-.switch input:checked + .slider::before { transform: translateX(18px); }
+
+/* SwitchToggle 在 Mods 列表中的既有动效（比设置页稍慢并带投影） */
+.mod-card :deep(.slider) { transition: background 0.25s; }
+.mod-card :deep(.slider)::before { transition: transform 0.25s; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15); }
 
 .manifest-info p { margin: 6px 0; font-size: 14px; }
 .manifest-info b { color: var(--text-secondary); }
