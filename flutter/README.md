@@ -13,7 +13,7 @@ Flutter 只负责：服务器地址、WebView、进度、错误重试、返回�
 ## 目录说明
 
 ```
-mobile/flutter/
+flutter/
 ├── pubspec.yaml
 ├── analysis_options.yaml
 └── lib/
@@ -36,11 +36,11 @@ mobile/flutter/
 推荐生成到新目录，避免覆盖已写好的 `lib/`：
 
 ```bash
-cd mobile
+cd flutter
 flutter create --platforms=android,windows --org com.mcwsloader --project-name mcws_webui app
-cp -r flutter/lib app/lib
-cp flutter/pubspec.yaml app/pubspec.yaml
-cp flutter/analysis_options.yaml app/analysis_options.yaml
+cp -r lib app/lib
+cp pubspec.yaml app/pubspec.yaml
+cp analysis_options.yaml app/analysis_options.yaml
 cd app
 flutter pub get
 ```
