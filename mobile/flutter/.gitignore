@@ -1,0 +1,13 @@
+# Flutter / Dart
+.dart_tool/
+.packages
+.pub-cache/
+.pub/
+build/
+.flutter-plugins
+.flutter-plugins-dependencies
+*.iml
+
+# Generated platform folders (run `flutter create` to regenerate)
+# android/
+# ios/
