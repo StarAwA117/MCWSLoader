@@ -1,13 +1,14 @@
-# MCWSLoader Android App (Flutter WebView)
+# MCWSLoader Desktop / Android App (Flutter)
 
 一个极薄的 Flutter 原生壳：**直接加载现有 WebUI（Vue）**，不重写页面。
 
-这样做的好处：
+使用 `flutter_inappwebview`，一套 Dart 代码覆盖：
 
-- 不需要把 10 个 Vue 页面 / 2.8k 行 UI 重写成 Dart
-- WebUI 更新后 App 自动获得新功能，无需重新发版
-- 保留现有的登录、Mod 管理、日志、命令、设置等全部功能
-- Flutter 只负责：服务器地址、WebView、进度、错误重试、返回键
+- Android（系统 WebView，支持 `<input type="file">`，可用于 Mod 导入）
+- Windows（WebView2）
+- 可选 iOS / macOS
+
+Flutter 只负责：服务器地址、WebView、进度、错误重试、返回键。WebUI 更新后 App 自动获得新功能，无需重新发版。
 
 ## 目录说明
 
@@ -20,29 +21,39 @@ mobile/flutter/
     ├── server_setup_page.dart # 服务器地址输入
     ├── server_store.dart      # 只保存服务器 URL（不保存密码）
     ├── server_url.dart        # URL 规范化（补 http:// 和 50005 端口）
-    └── webui_page.dart        # WebView + 进度 + 错误重试 + 返回键
+    └── webui_page.dart        # InAppWebView + 进度 + 错误重试 + 返回键
 ```
 
-## 构建 APK
+## 环境要求
 
-需要 Flutter 3.22+ 与 Android SDK。当前仓库只包含 Dart 源码，没有提交
-`android/` 平台目录（避免 Flutter 版本差异导致构建失败），首次构建时生成：
+- Flutter **3.32+** / Dart **3.8+**（`flutter_inappwebview` 6.x 要求）
+- Android 构建：Android SDK
+- Windows 构建：Windows 10/11 + Visual Studio 2022（Desktop development with C++）+ WebView2 Runtime
+- 仓库只提交 Dart 源码与 `pubspec.yaml`，**不提交各平台生成目录**，避免 Flutter 版本差异导致构建失败
+
+## 生成平台目录
+
+推荐生成到新目录，避免覆盖已写好的 `lib/`：
 
 ```bash
-# 1. 生成 Android 平台目录（推荐生成到新目录，避免覆盖已写好的 lib/）
 cd mobile
-flutter create --platforms=android --org com.mcwsloader --project-name mcws_webui app
-
-# 2. 把本目录的源码复制进去
+flutter create --platforms=android,windows --org com.mcwsloader --project-name mcws_webui app
 cp -r flutter/lib app/lib
 cp flutter/pubspec.yaml app/pubspec.yaml
 cp flutter/analysis_options.yaml app/analysis_options.yaml
-
 cd app
 flutter pub get
 ```
 
-然后编辑 `android/app/src/main/AndroidManifest.xml`：
+如果只需要 Android：
+
+```bash
+flutter create --platforms=android --org com.mcwsloader --project-name mcws_webui app
+```
+
+## Android
+
+编辑 `android/app/src/main/AndroidManifest.xml`：
 
 ```xml
 <manifest ...>
@@ -64,11 +75,28 @@ flutter build apk --release
 # 产物：build/app/outputs/flutter-apk/app-release.apk
 ```
 
-安装到手机：
+安装：
 
 ```bash
 adb install -r build/app/outputs/flutter-apk/app-release.apk
 ```
+
+## Windows
+
+Windows 不需要改 AndroidManifest；需要安装 **WebView2 Runtime**
+（Windows 11 通常自带，Windows 10 可能需要手动安装）。
+
+```bash
+flutter build windows --release
+# 产物目录：build/windows/x64/runner/Release/
+#   mcws_webui.exe
+#   flutter_windows.dll
+#   data/
+#   flutter_inappwebview_windows_plugin.dll
+```
+
+把整个 `Release/` 目录分发即可；也可以再用 Inno Setup / MSIX 打成安装包。
+Flutter 默认不是单文件 exe，需要连同 DLL 和 `data/` 一起分发。
 
 ## 连接方式
 
@@ -76,35 +104,29 @@ adb install -r build/app/outputs/flutter-apk/app-release.apk
 |---|---|
 | MCWSLoader 与手机在同一台设备（Termux） | `http://127.0.0.1:50005` |
 | MCWSLoader 在电脑上，手机同一局域网 | `http://<电脑局域网IP>:50005` |
+| Windows 与 MCWSLoader 同一台电脑 | `http://127.0.0.1:50005` |
+| Windows 连接另一台机器 | `http://<服务器IP>:50005` |
 
-WebUI 端需要监听局域网（默认 `web.port` 已监听 `0.0.0.0`）：
-
-```json
-{
-	"web": { "port": 50005 }
-}
-```
-
-登录密码仍然由 WebUI 页面处理；App 只保存服务器地址，不保存密码或 token。
+App 只保存服务器地址，不保存密码或 token；登录仍由 WebUI 页面处理。
 
 ## 安全说明
 
 - **HTTP 是明文传输**：登录密码和会话 token 会经过局域网。请只在可信网络使用，
   或通过 HTTPS 反向代理 / WireGuard / Tailscale 访问。
 - 不建议把 WebSocket 端口 8080 暴露到公网；App 只使用 WebUI 的 HTTP 端口。
-- WebUI 已启用 CSP、登录限流、同源 CORS、常量时间密码比较等防护。
+- WebUI 已启用 CSP、登录限流、同源 CORS、常量时间密码比较、客户端批准等防护。
+- 原版 MCBE `/connect` 无法携带 token/header，因此 WebSocket 侧使用
+  “IP 白名单 + 非本机连接人工批准”作为替代（见根目录 README）。
 
 ## 已知限制
 
-- **Mod 导入的文件选择器**：`webview_flutter` 对 `<input type="file">` 的 Android
-  file chooser 支持有限，App 内可能无法选择 `.wsmod` / `.zip`。需要导入 Mod 时
-  请先用手机浏览器打开 WebUI，或改用 `flutter_inappwebview`（它提供文件选择器）。
 - 会话 token 存在 WebView 的 `sessionStorage` 中，App 进程被杀后可能需要重新登录。
-- 目前只针对 Android；如需 iOS，`flutter create --platforms=android,ios` 后
-  在 `Info.plist` 为局域网 HTTP 增加 ATS 例外。
+- Windows 端依赖 WebView2 Runtime；未安装时 WebView 无法初始化。
+- 目前只针对 Android / Windows；如需 iOS，`flutter create --platforms=android,ios`
+  后在 `Info.plist` 为局域网 HTTP 增加 ATS 例外。
 
 ## 后续可选
 
-- 用 `flutter_inappwebview` 替换 `webview_flutter`，补齐文件上传/下载
-- 增加服务器地址历史记录 / 局域网自动发现
-- 增加生物识别解锁（本地锁，不替代 WebUI 密码）
+- 服务器地址历史记录 / 局域网自动发现
+- 生物识别解锁（本地锁，不替代 WebUI 密码）
+- 系统托盘（Windows）与后台保活

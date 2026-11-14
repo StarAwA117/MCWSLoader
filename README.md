@@ -42,6 +42,7 @@ npm run typecheck
 | `ws.checkDependenciesOnLoad` | 启动时是否检查并自动安装 Mod 声明的 npm 依赖（默认开启） |
 | `command.maxLength` | 单条命令最大长度 |
 | `command.rateLimit.*` | 命令转发限流（默认 50ms 内 1024 条，超限自动延后到下一窗口） |
+| `command.playerRateLimit.*` | 单个玩家的聊天命令限流（默认 10 条 / 5 秒） |
 | `commandPrefix` | 游戏内命令前缀（默认 `$`） |
 | `command.allowShellExec` | 是否允许 owner 使用 `t:exec` 执行服务器命令（默认 `false`） |
 | `web.port` | WebUI 端口（默认 50005） |

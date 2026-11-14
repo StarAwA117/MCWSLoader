@@ -39,7 +39,9 @@ if (fs.existsSync(configPath)) {
 	const cfg = JSON.parse(fs.readFileSync(configPath, "utf-8")) as { language?: string };
 	if (!cfg.language) {
 		const lang = (process.env.LANG ?? process.env.LC_ALL ?? "").toLowerCase();
-		cfg.language = lang.startsWith("zh") ? "zh-CN" : "en";
+		cfg.language = (lang.includes("hant") || /zh[_-](tw|hk|mo)/.test(lang))
+			? "zh-TW"
+			: lang.startsWith("zh") ? "zh-CN" : "en";
 		fs.writeFileSync(configPath, `${JSON.stringify(cfg, null, "\t")}\n`, "utf-8");
 		console.log("< 已写入默认语言设置:", cfg.language);
 	}

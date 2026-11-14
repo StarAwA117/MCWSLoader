@@ -642,6 +642,7 @@ export class ClientModManager extends ModManagerBase {
 	_commandIndex: Map<string, { cmd: Command; tier: string; mod: string }>;
 	sapi: SAPIMessageHandler | null;
 	_playerMessageCallback: ((data: CommandResponse) => Promise<void>) | null;
+	_playerRate = new Map<string, number[]>();
 
 	override get _label(): string { return "Client"; }
 	override _storageKey(name: string): string { return `client_${this.client?.id || "unknown"}_${name}`; }
@@ -939,6 +940,11 @@ export class ClientModManager extends ModManagerBase {
 			}
 			if (!tokens.length) return;
 
+			if (this._isPlayerRateLimited(sender)) {
+				this._tellError(sender, "too many commands, please slow down");
+				return;
+			}
+
 			const permission = PermissionManager.query(sender);
 			if (permission < 0) {
 				this._tellError(sender, "command permission error");
@@ -964,6 +970,24 @@ export class ClientModManager extends ModManagerBase {
 		if (this.client && typeof this.client.subscribe === "function") {
 			this.client.subscribe("PlayerMessage", this._playerMessageCallback);
 		}
+	}
+
+	_isPlayerRateLimited(sender: string): boolean {
+		const cfg = config.command?.playerRateLimit;
+		if (cfg?.enabled === false) return false;
+		const windowMs = cfg?.windowMs ?? 5000;
+		const max = cfg?.maxPerWindow ?? 10;
+		if (max <= 0) return false;
+
+		const now = Date.now();
+		const recent = (this._playerRate.get(sender) ?? []).filter((time) => now - time < windowMs);
+		if (recent.length >= max) {
+			this._playerRate.set(sender, recent);
+			return true;
+		}
+		recent.push(now);
+		this._playerRate.set(sender, recent);
+		return false;
 	}
 
 	_tellError(sender: string, message: unknown): void {
@@ -1043,6 +1067,7 @@ export class ClientModManager extends ModManagerBase {
 		this.commands = { normal: [], user: [], op: [], owner: [] };
 		this._commandIndex = new Map();
 		this._methodLists = new Map();
+		this._playerRate.clear();
 	}
 }
 

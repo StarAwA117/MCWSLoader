@@ -23,7 +23,12 @@
 			"windowMs": 50,
 			"maxPerWindow": 1024
 		},
-		"allowShellExec": false
+		"allowShellExec": false,
+		"playerRateLimit": {
+			"enabled": true,
+			"windowMs": 5000,
+			"maxPerWindow": 10
+		}
 	},
 	"web": {
 		"port": 50005,

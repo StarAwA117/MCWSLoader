@@ -1,6 +1,7 @@
 import { reactive, computed } from "vue";
 import type { ComputedRef } from "vue";
 import zhCN from "../locales/zh-CN.json";
+import zhTW from "../locales/zh-TW.json";
 import en from "../locales/en.json";
 
 type Messages = Record<string, any>;
@@ -8,7 +9,7 @@ type Locale = "zh-CN" | "zh-TW" | "en";
 
 const locales: Record<string, Messages> = {
 	"zh-CN": zhCN as Messages,
-	"zh-TW": zhCN as Messages,
+	"zh-TW": zhTW as Messages,
 	en: en as Messages
 };
 
@@ -16,7 +17,8 @@ function detectLocale(): Locale {
 	if (typeof navigator === "undefined") return "en";
 	const nav = navigator as Navigator & { userLanguage?: string };
 	const lang = (nav.language || nav.userLanguage || "en").toLowerCase();
-	if (["zh", "zh-cn", "zh-sg", "zh-tw", "zh-hk", "zh-my"].includes(lang)) return "zh-CN";
+	if (lang.includes("hant") || /^zh-(tw|hk|mo)\b/.test(lang)) return "zh-TW";
+	if (lang === "zh" || lang.startsWith("zh-")) return "zh-CN";
 	return "en";
 }
 
@@ -106,6 +108,6 @@ export function useI18n(): I18n {
 		messages: computed(() => state.messages),
 		t,
 		setLocale,
-		availableLocales: ["zh-CN", "en"]
+		availableLocales: ["zh-CN", "zh-TW", "en"]
 	};
 }

@@ -2,6 +2,8 @@
 
 All commands use the prefix defined in `config.json` (`commandPrefix`, default `$`), so the command named `t:help` is typed as `$t:help` in game chat. Parameters in `[brackets]` are optional.
 
+Chat commands are rate-limited per player (`command.playerRateLimit`, default 10 commands per 5 seconds); excess commands are ignored with a warning.
+
 ## Permission Levels
 
 | Level | Value | Description |

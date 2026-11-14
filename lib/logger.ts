@@ -20,8 +20,19 @@ if (!fs.existsSync(logDir)) {
 // 日志可能包含临时密码/聊天内容，尽量只允许当前用户读取
 try { fs.chmodSync(logDir, 0o700); } catch { /* ignore */ }
 
+/** 单个日志上限与保留的轮转文件数 */
+const MAX_LOG_BYTES = Number(process.env.MCWS_LOG_MAX_BYTES) || 10 * 1024 * 1024;
+const LOG_BACKUPS = 3;
+
+interface LogSink {
+	stream: fs.WriteStream;
+	bytes: number;
+	rotating: boolean;
+	pending: string[];
+}
+
 /** 日志文件流缓存 */
-const logStreams: Record<string, fs.WriteStream> = {};
+const logStreams: Record<string, LogSink> = {};
 
 function getMinLevel(): number {
 	const level = config.logLevel ?? "";
@@ -48,22 +59,89 @@ function localTime(): string {
 	return formatTime(new Date());
 }
 
-function getLogStream(name: string): fs.WriteStream {
-	let stream = logStreams[name];
-	if (!stream) {
-		const logPath = path.join(logDir, `${name}.log`);
-		try { if (fs.existsSync(logPath)) fs.chmodSync(logPath, 0o600); } catch { /* ignore */ }
-		stream = fs.createWriteStream(logPath, { flags: "a", mode: 0o600 });
-		logStreams[name] = stream;
+function logPath(name: string): string {
+	return path.join(logDir, `${name}.log`);
+}
+
+function openLogSink(name: string): LogSink {
+	const file = logPath(name);
+	let bytes = 0;
+	try {
+		if (fs.existsSync(file)) {
+			fs.chmodSync(file, 0o600);
+			bytes = fs.statSync(file).size;
+		}
+	} catch { /* ignore */ }
+	const stream = fs.createWriteStream(file, { flags: "a", mode: 0o600 });
+	const sink: LogSink = { stream, bytes, rotating: false, pending: [] };
+	logStreams[name] = sink;
+	return sink;
+}
+
+function getLogStream(name: string): LogSink {
+	return logStreams[name] ?? openLogSink(name);
+}
+
+/** app.log -> app.log.1 -> app.log.2 -> app.log.3 */
+function startRotation(name: string, oldSink: LogSink): void {
+	if (oldSink.rotating) return;
+	oldSink.rotating = true;
+
+	// 等 end 回调（数据已 flush、fd 即将关闭）后再重命名，避免文件还没创建/仍在写
+	oldSink.stream.end(() => {
+		const base = logPath(name);
+		try { fs.rmSync(`${base}.${LOG_BACKUPS}`, { force: true }); } catch (e) {
+			console.error(`[logger] remove old log failed: ${(e as Error).message}`);
+		}
+		for (let index = LOG_BACKUPS - 1; index >= 1; index--) {
+			const from = `${base}.${index}`;
+			const to = `${base}.${index + 1}`;
+			try { if (fs.existsSync(from)) fs.renameSync(from, to); } catch (e) {
+				console.error(`[logger] rotate ${from} failed: ${(e as Error).message}`);
+			}
+		}
+		try { if (fs.existsSync(base)) fs.renameSync(base, `${base}.1`); } catch (e) {
+			console.error(`[logger] rotate ${base} failed: ${(e as Error).message}`);
+		}
+
+		const fresh = openLogSink(name);
+		const queued = oldSink.pending;
+		oldSink.pending = [];
+		for (const data of queued) {
+			fresh.stream.write(data);
+			fresh.bytes += Buffer.byteLength(data, "utf8");
+		}
+		// 轮转期间积压较多时，新文件可能再次超限；触发下一轮
+		if (fresh.bytes > MAX_LOG_BYTES) startRotation(name, fresh);
+	});
+}
+
+function writeLog(name: string, message: string): void {
+	const data = `${message}\n`;
+	const sink = getLogStream(name);
+
+	// 正在轮转：先排队，完成后由 startRotation 写入新文件
+	if (sink.rotating) {
+		sink.pending.push(data);
+		return;
 	}
-	return stream;
+
+	const bytes = Buffer.byteLength(data, "utf8");
+	if (sink.bytes > 0 && sink.bytes + bytes > MAX_LOG_BYTES) {
+		sink.pending.push(data);
+		startRotation(name, sink);
+		return;
+	}
+
+	sink.stream.write(data);
+	sink.bytes += bytes;
 }
 
 /** 关闭所有日志文件流 */
 export function closeLogStreams(): void {
 	for (const name of Object.keys(logStreams)) {
 		try {
-			logStreams[name]?.end();
+			logStreams[name]?.stream.end();
 		} catch {
 			// ignore
 		}
@@ -108,7 +186,7 @@ export default class Logger {
 
 		if (this.file) {
 			try {
-				getLogStream(this.name).write(`${logMessage}\n`);
+				writeLog(this.name, logMessage);
 			} catch (error) {
 				console.log("Log Error: ", error);
 			}

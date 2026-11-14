@@ -42,6 +42,7 @@ Main keys in `config.json` (see [`config.example.json`](./config.example.json) f
 | `ws.checkDependenciesOnLoad` | Check and auto-install the npm dependencies declared by Mods on startup (default on) |
 | `command.maxLength` | Maximum length of a single command |
 | `command.rateLimit.*` | Command forwarding rate limit (default 1024 per 50ms; excess is deferred to the next window) |
+| `command.playerRateLimit.*` | Per-player chat command limit (default 10 per 5 seconds) |
 | `commandPrefix` | In-game command prefix (default `$`) |
 | `command.allowShellExec` | Allow the owner to run `t:exec` shell commands (default `false`) |
 | `web.port` | WebUI port (default 50005) |

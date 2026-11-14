@@ -13,6 +13,8 @@ export interface RateLimitConfig {
 export interface CommandConfig {
 	maxLength?: number;
 	rateLimit?: RateLimitConfig;
+	/** 单个玩家聊天命令限流（默认 10 条 / 5 秒） */
+	playerRateLimit?: RateLimitConfig;
 	/** 是否允许 owner 通过 t:exec 执行服务器 shell 命令（默认 false） */
 	allowShellExec?: boolean;
 }

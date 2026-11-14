@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:webview_flutter/webview_flutter.dart';
+import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 
 import 'server_url.dart';
 
 /// Flutter 原生壳：直接加载现有 WebUI（Vue）。
-/// 这样不需要重写页面，Android 端只负责 WebView、进度、错误和返回键。
+///
+/// 使用 flutter_inappwebview 而不是 webview_flutter，原因：
+/// - Android 支持 <input type="file">（Mod 导入）
+/// - Windows 通过 WebView2 实现，与 Android 共用同一套 Dart 代码
 class WebUiPage extends StatefulWidget {
   const WebUiPage({super.key, required this.startUri});
 
@@ -15,61 +18,52 @@ class WebUiPage extends StatefulWidget {
 }
 
 class _WebUiPageState extends State<WebUiPage> {
-  late final WebViewController _controller;
+  InAppWebViewController? _controller;
   double _progress = 0;
   bool _loading = true;
   String? _error;
 
-  @override
-  void initState() {
-    super.initState();
-    _controller = WebViewController()
-      ..setJavaScriptMode(JavaScriptMode.unrestricted)
-      ..setBackgroundColor(Colors.white)
-      ..setNavigationDelegate(
-        NavigationDelegate(
-          onProgress: (value) {
-            if (!mounted) return;
-            setState(() => _progress = (value / 100).clamp(0, 1).toDouble());
-          },
-          onPageStarted: (_) {
-            if (!mounted) return;
-            setState(() {
-              _loading = true;
-              _error = null;
-            });
-          },
-          onPageFinished: (_) {
-            if (!mounted) return;
-            setState(() {
-              _loading = false;
-              _progress = 1;
-            });
-          },
-          onWebResourceError: (error) {
-            // 子资源失败不覆盖整页
-            if (error.isForMainFrame == false) return;
-            if (!mounted) return;
-            setState(() {
-              _loading = false;
-              _error = error.description;
-            });
-          },
-        ),
-      )
-      ..loadRequest(widget.startUri);
-  }
+  WebUri get _startUrl => WebUri(widget.startUri.toString());
 
   Future<void> _reload() async {
     setState(() {
       _error = null;
       _loading = true;
     });
-    await _controller.loadRequest(widget.startUri);
+    await _controller?.loadUrl(urlRequest: URLRequest(url: _startUrl));
   }
 
-  void _backToSetup() {
-    Navigator.of(context).pop();
+  Future<void> _handleBack() async {
+    final controller = _controller;
+    if (controller != null && await controller.canGoBack()) {
+      await controller.goBack();
+      return;
+    }
+    if (mounted) Navigator.of(context).pop();
+  }
+
+  void _markLoaded() {
+    if (!mounted) return;
+    setState(() {
+      _loading = false;
+      _progress = 1;
+    });
+  }
+
+  void _markStarted() {
+    if (!mounted) return;
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+  }
+
+  void _markFailed(String message) {
+    if (!mounted) return;
+    setState(() {
+      _loading = false;
+      _error = message;
+    });
   }
 
   @override
@@ -80,11 +74,7 @@ class _WebUiPageState extends State<WebUiPage> {
       canPop: false,
       onPopInvokedWithResult: (didPop, _) async {
         if (didPop) return;
-        if (await _controller.canGoBack()) {
-          await _controller.goBack();
-          return;
-        }
-        if (mounted) Navigator.of(context).pop();
+        await _handleBack();
       },
       child: Scaffold(
         appBar: AppBar(
@@ -97,14 +87,37 @@ class _WebUiPageState extends State<WebUiPage> {
             ),
             IconButton(
               tooltip: '更换服务器',
-              onPressed: _backToSetup,
+              onPressed: () => Navigator.of(context).pop(),
               icon: const Icon(Icons.dns_rounded),
             ),
           ],
         ),
         body: Stack(
           children: [
-            WebViewWidget(controller: _controller),
+            InAppWebView(
+              initialUrlRequest: URLRequest(url: _startUrl),
+              initialSettings: InAppWebViewSettings(
+                javaScriptEnabled: true,
+                domStorageEnabled: true,
+                supportZoom: false,
+                mediaPlaybackRequiresUserGesture: false,
+                disableDefaultErrorPage: true,
+              ),
+              onWebViewCreated: (controller) {
+                _controller = controller;
+              },
+              onLoadStart: (_, __) => _markStarted(),
+              onLoadStop: (_, __) => _markLoaded(),
+              onProgressChanged: (_, progress) {
+                if (!mounted) return;
+                setState(() => _progress = (progress / 100).clamp(0, 1).toDouble());
+              },
+              onReceivedError: (_, request, error) {
+                // 子资源失败不覆盖整页
+                if (request.isForMainFrame == false) return;
+                _markFailed(error.description);
+              },
+            ),
             if (_loading)
               const Align(
                 alignment: Alignment.topCenter,
@@ -141,7 +154,7 @@ class _WebUiPageState extends State<WebUiPage> {
                             label: const Text('重试'),
                           ),
                           TextButton(
-                            onPressed: _backToSetup,
+                            onPressed: () => Navigator.of(context).pop(),
                             child: const Text('更换服务器地址'),
                           ),
                         ],

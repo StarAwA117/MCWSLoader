@@ -491,7 +491,7 @@ async function handleAPI(req: IncomingMessage, res: ServerResponse, url: URL): P
 			const payload = await readJson(req, res);
 			if (!payload) return;
 			const lang = String(payload.language || "");
-			const allowed = ["zh-CN", "en"];
+			const allowed = ["zh-CN", "zh-TW", "en"];
 			if (!allowed.includes(lang)) return json(res, { ok: false, message: "Unsupported language" }, 400);
 			config.language = lang;
 			writeConfig();
