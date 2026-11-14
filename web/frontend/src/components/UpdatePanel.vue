@@ -26,6 +26,7 @@ function openModal() {
 	modalStatus.value = { loading: false, message: "" };
 	showModal.value = true;
 	lockScroll();
+	void loadTags();
 }
 function closeModal() {
 	showModal.value = false;
@@ -104,9 +105,9 @@ async function confirmAction() {
 }
 
 onMounted(() => {
+	// Automatic checks happen only at script startup (update.autoCheck).
+	// Opening the System tab must not hit GitHub until the user clicks Check.
 	loadCurrentVersion();
-	checkUpdate();
-	loadTags();
 });
 
 onBeforeUnmount(unlockScroll);
