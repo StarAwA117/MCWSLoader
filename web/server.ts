@@ -16,6 +16,7 @@ import { parseMultipartBody } from "../lib/multipart.js";
 import { extractZip, resolveModRoot, readManifest, copyMerge, removeDir, sanitizeFolderName, installDependencies, makeTempDir, makeTempPath, moveDir } from "../lib/modinstall.js";
 import type { Client } from "../lib/types/client.js";
 import type { ModEntry } from "../lib/types/mod.js";
+import { CURRENT_VERSION, checkForUpdate, latestRelease, listReleases } from "../lib/update.js";
 
 type AnyRecord = Record<string, any>;
 interface AuthState {
@@ -37,9 +38,7 @@ const AUTH_MAX_ATTEMPTS = authConfig.maxAttempts || 3;
 const AUTH_WINDOW_MS = authConfig.windowMs || 60000;
 const AUTH_LOCKOUT_MS = authConfig.lockoutMs || 60000;
 
-const GITHUB_API = "https://api.github.com/repos/StarAwA117/MCWSLoader";
 const REPO_ROOT = path.resolve(__dirname, "..");
-const CURRENT_VERSION = (JSON.parse(fs.readFileSync(path.join(REPO_ROOT, "package.json"), "utf-8")) as { version: string }).version;
 
 let temporaryPassword: string | null = null;
 // 由 ws.ts 注入的进程关闭钩子（/api/system/restart 使用）
@@ -1033,20 +1032,10 @@ async function handleAPI(req: IncomingMessage, res: ServerResponse, url: URL): P
 		}
 
 		// Update
-		async function githubFetch(apiPath: string): Promise<AnyRecord> {
-			const response = await fetch(`${GITHUB_API}${apiPath}`, {
-				headers: { "Accept": "application/vnd.github+json", "User-Agent": "MCWSLoader-UpdateChecker" },
-				signal: AbortSignal.timeout(10000)
-			});
-			if (!response.ok) throw new Error(`GitHub API request failed: HTTP ${response.status}`);
-			return (await response.json()) as AnyRecord;
-		}
-
 		if (pathname === "/api/update/check" && method === "GET") {
 			try {
-				const release = await githubFetch("/releases/latest");
-				const latestVersion = release.tag_name?.replace(/^v/, "") || null;
-				return json(res, { current: CURRENT_VERSION, latest: latestVersion, hasUpdate: latestVersion && latestVersion !== CURRENT_VERSION, releaseName: release.name || null, releaseBody: release.body || null, publishedAt: release.published_at || null });
+				const result = await checkForUpdate(config.update?.allowPrerelease === true);
+				return json(res, result);
 			} catch (e) {
 				return json(res, { current: CURRENT_VERSION, latest: null, hasUpdate: false, error: (e as Error).message }, 502);
 			}
@@ -1054,9 +1043,15 @@ async function handleAPI(req: IncomingMessage, res: ServerResponse, url: URL): P
 
 		if (pathname === "/api/update/tags" && method === "GET") {
 			try {
-				const releases = await githubFetch("/releases?per_page=100");
-				const list = Array.isArray(releases) ? (releases as AnyRecord[]) : [];
-				return json(res, { tags: list.map((r) => ({ name: r.tag_name, title: r.name || r.tag_name, commit: r.target_commitish || null })) });
+				const releases = await listReleases(config.update?.allowPrerelease === true);
+				return json(res, {
+					tags: releases.map((release) => ({
+						name: release.tag,
+						title: release.title,
+						commit: release.commit,
+						prerelease: release.prerelease
+					}))
+				});
 			} catch (e) {
 				return json(res, { tags: [], error: (e as Error).message }, 502);
 			}
@@ -1064,8 +1059,8 @@ async function handleAPI(req: IncomingMessage, res: ServerResponse, url: URL): P
 
 		if (pathname === "/api/update/do" && method === "POST") {
 			try {
-				const release = await githubFetch("/releases/latest");
-				const targetTag = release.tag_name;
+				const release = await latestRelease(config.update?.allowPrerelease === true);
+				const targetTag = release?.tag;
 				if (!targetTag) throw new Error("Cannot get latest version tag");
 				await checkoutTag(targetTag);
 				json(res, { ok: true, message: "Update complete, exiting. Please restart manually." });

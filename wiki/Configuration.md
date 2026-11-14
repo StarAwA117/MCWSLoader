@@ -42,7 +42,11 @@ Most values are reloaded when saved from the WebUI. Listener settings
 	"sapi": { "gmsg": "gmsg", "smsg": "smsg" },
 	"utils": { "tellAllToTell": false, "enablePolling": true },
 	"logLevel": "info",
-	"language": "zh-CN"
+	"language": "zh-CN",
+	"update": {
+		"autoCheck": false,
+		"allowPrerelease": false
+	}
 }
 ```
 
@@ -93,6 +97,18 @@ See [Security](Security) for the reasoning behind `requireApproval` and
 
 Passwords are stored as a scrypt hash plus salt. Change the password in
 **Settings → WebUI → Reset Password**; this invalidates all sessions.
+
+## Updates
+
+Update settings live at the top of **Settings → System**.
+
+| Key | Default | Description |
+|-----|---------|-------------|
+| `update.autoCheck` | `false` | Check GitHub for a newer release once when the script starts. It only logs an available update; it does not download or overwrite code. |
+| `update.allowPrerelease` | `false` | Include GitHub Pre-releases (e.g. `2.0.0-beta.1`) in update checks and the version picker |
+
+The WebUI **Check Update** button and version picker use the same settings.
+The current version is read from `package.json`.
 
 ## Logging and language
 

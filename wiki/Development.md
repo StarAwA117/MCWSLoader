@@ -38,6 +38,7 @@ lib/
   sapi.ts            SAPI message bridge
   logger.ts          rotating file/console logger
   permission.ts      permission.json (owner/op/user/blocker)
+  update.ts          GitHub release checks and SemVer comparison
   ...
 
 web/

@@ -48,5 +48,9 @@
 		"tellAllToTell": false,
 		"enablePolling": true
 	},
-	"language": "zh-CN"
+	"language": "zh-CN",
+	"update": {
+		"autoCheck": false,
+		"allowPrerelease": false
+	}
 }

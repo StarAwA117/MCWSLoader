@@ -67,12 +67,21 @@ export interface UtilsConfig {
 	enablePolling?: boolean;
 }
 
+export interface UpdateConfig {
+	/** 仅在脚本启动时检查一次更新；不会自动安装 */
+	autoCheck?: boolean;
+	/** 检查 GitHub Pre-release（如 2.0.0-beta.1） */
+	allowPrerelease?: boolean;
+}
+
+
 export interface AppConfig {
 	ws: WsConfig;
 	command?: CommandConfig;
 	web?: WebConfig;
 	sapi: SapiConfig;
 	utils?: UtilsConfig;
+	update?: UpdateConfig;
 	logLevel?: string;
 	commandPrefix?: string;
 	language?: string;

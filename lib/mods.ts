@@ -130,7 +130,18 @@ function normalizeConfig(cfg: AnyRecord): AnyRecord {
 	if (cmd.allowShellExec === undefined) cmd.allowShellExec = false;
 	cfg.command = cmd;
 
+	if (!cfg.update || typeof cfg.update !== "object" || Array.isArray(cfg.update)) cfg.update = {};
+	if (cfg.update.autoCheck === undefined) cfg.update.autoCheck = false;
+	if (cfg.update.allowPrerelease === undefined) cfg.update.allowPrerelease = false;
+
 	if (!cfg.web || typeof cfg.web !== "object") cfg.web = {};
+	if (!cfg.sapi || typeof cfg.sapi !== "object" || Array.isArray(cfg.sapi)) cfg.sapi = {};
+	if (!cfg.sapi.gmsg) cfg.sapi.gmsg = "gmsg";
+	if (!cfg.sapi.smsg) cfg.sapi.smsg = "smsg";
+	if (!cfg.utils || typeof cfg.utils !== "object" || Array.isArray(cfg.utils)) cfg.utils = {};
+	if (cfg.utils.tellAllToTell === undefined) cfg.utils.tellAllToTell = false;
+	if (cfg.utils.enablePolling === undefined) cfg.utils.enablePolling = true;
+
 	if (!cfg.web.ui || typeof cfg.web.ui !== "object") cfg.web.ui = {};
 	if (!Array.isArray(cfg.web.ui.allowedOrigins)) cfg.web.ui.allowedOrigins = [];
 	cfg.web.ui.allowedOrigins = cfg.web.ui.allowedOrigins.map((item: unknown) => String(item));
