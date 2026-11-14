@@ -1,0 +1,3 @@
+# Generated WebUI bundle (Vite build output, committed for `npm start`)
+# must not dominate GitHub's language statistics.
+web/frontend/dist/** linguist-generated=true linguist-detectable=false
