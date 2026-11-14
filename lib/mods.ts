@@ -862,7 +862,7 @@ export class ClientModManager extends ModManagerBase {
 
 		try {
 			const modPath = isDefault
-				? path.join(path.dirname(fileURLToPath(import.meta.url)), `${name}.js`)
+				? path.join(path.dirname(fileURLToPath(import.meta.url)), `${name}.ts`)
 				: resolveCaseInsensitivePath(entry?.path ?? "", entry?.entry.client ?? "");
 			if (!modPath) return { success: false, message: `Client Mod "${name}" entry file not found` };
 			const modModule = await import(resolveModuleUrl(modPath, Date.now()));
