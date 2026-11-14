@@ -126,8 +126,12 @@ watch(sidebarOpen, (v) => {
 			</div>
 		</aside>
 
-		<main :key="route.path" class="main-content">
-			<router-view />
+		<main class="main-content">
+			<Transition name="page" mode="out-in">
+				<div :key="route.path" class="page-shell">
+					<router-view />
+				</div>
+			</Transition>
 		</main>
 	</div>
 	<Modal />

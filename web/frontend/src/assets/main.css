@@ -640,12 +640,49 @@ input[type="range"]::-moz-range-thumb {
 
 /* ===== Motion refinement ===== */
 
-.main-content { animation: pageIn var(--dur-slow) var(--ease-out) both; }
+/* 路由切换：淡入 + 轻位移；mode="out-in" 避免两个页面叠加 */
+.page-enter-active {
+	transition: opacity 240ms var(--ease-out), transform 240ms var(--ease-out);
+}
+.page-leave-active {
+	transition: opacity 120ms var(--ease-in-out), transform 120ms var(--ease-in-out);
+}
+.page-enter-from { opacity: 0; transform: translate3d(0, 10px, 0); }
+.page-leave-to { opacity: 0; transform: translate3d(0, -4px, 0); }
 
+/* 卡片：入场错峰，延迟由 --i 控制（模板里最多取 6） */
 .card,
 .stat-card {
 	animation: slideUp var(--dur-slow) var(--ease-out) backwards;
-	transition: transform var(--dur-base) var(--ease-out), box-shadow var(--dur-base) var(--ease-out);
+	animation-delay: calc(var(--i, 0) * 45ms);
+	transition:
+		transform var(--dur-base) var(--ease-out),
+		box-shadow var(--dur-base) var(--ease-out),
+		border-color var(--dur-base) var(--ease-out);
+}
+
+.stats-grid > :nth-child(1) { --i: 0; }
+.stats-grid > :nth-child(2) { --i: 1; }
+.stats-grid > :nth-child(3) { --i: 2; }
+.stats-grid > :nth-child(4) { --i: 3; }
+.stats-grid > :nth-child(5) { --i: 4; }
+.stats-grid > :nth-child(6) { --i: 5; }
+
+.tab-panel > .card:nth-child(1) { --i: 0; }
+.tab-panel > .card:nth-child(2) { --i: 1; }
+.tab-panel > .card:nth-child(3) { --i: 2; }
+.tab-panel > .card:nth-child(4) { --i: 3; }
+.tab-panel > .card:nth-child(5) { --i: 4; }
+.tab-panel > .card:nth-child(6) { --i: 5; }
+
+.client-card {
+	animation: slideUp var(--dur-slow) var(--ease-out) backwards;
+	animation-delay: calc(var(--i, 0) * 40ms);
+}
+
+.mod-card:hover {
+	transform: translate3d(0, -2px, 0);
+	box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
 }
 
 .stat-card:hover { transform: translate3d(0, -2px, 0); }
@@ -661,6 +698,16 @@ input[type="range"]::-moz-range-thumb {
 		transform var(--dur-fast) var(--ease-out);
 }
 .btn:active { transform: scale(0.97); }
+.btn-primary:hover,
+.btn-danger:hover { transform: translate3d(0, -1px, 0); }
+.btn-primary:hover { box-shadow: 0 6px 18px rgba(96, 165, 250, 0.28); }
+.btn-danger:hover { opacity: 1; box-shadow: 0 6px 18px rgba(248, 113, 113, 0.22); }
+.btn-primary:active,
+.btn-danger:active { transform: translate3d(0, 0, 0) scale(0.97); box-shadow: none; }
+.icon-btn svg,
+.nav-icon svg,
+.tab-icon svg { transition: transform var(--dur-base) var(--ease-spring); }
+.icon-btn:hover svg { transform: scale(1.1); }
 .btn:focus-visible,
 .icon-btn:focus-visible,
 .top-bar-item:focus-visible,
@@ -705,8 +752,20 @@ input, select, textarea {
 .sidebar { transition: transform var(--dur-slow) var(--ease-sheet); }
 .sidebar-overlay.open { animation: fadeIn 240ms var(--ease-out) both; }
 
-.modal-overlay { animation: fadeIn var(--dur-base) var(--ease-out) both; }
-.modal { animation: scaleIn 280ms var(--ease-out) both; }
+/* 模态：由父级 <Transition name="modal-pop"> 控制开/关 */
+.modal-overlay { animation: none; }
+.modal { animation: none; }
+.modal-pop-enter-active { transition: opacity 220ms var(--ease-out); }
+.modal-pop-leave-active { transition: opacity 160ms var(--ease-in-out); }
+.modal-pop-enter-from,
+.modal-pop-leave-to { opacity: 0; }
+.modal-pop-enter-active .modal {
+	transition: transform 300ms var(--ease-spring), opacity 200ms var(--ease-out);
+	will-change: transform, opacity;
+}
+.modal-pop-enter-from .modal { transform: translate3d(0, 14px, 0) scale(0.96); opacity: 0; }
+.modal-pop-leave-active .modal { transition: transform 160ms var(--ease-in-out); }
+.modal-pop-leave-to .modal { transform: translate3d(0, 6px, 0) scale(0.98); opacity: 0; }
 
 .tag {
 	transition:
@@ -717,11 +776,26 @@ input, select, textarea {
 
 .login-card { animation: slideUp var(--dur-slow) var(--ease-out) both; }
 
+/* 背景双光源缓慢漂移，让浅色页面有呼吸感（只动 transform，不触发重绘） */
+body::before { animation: glowDriftA 30s var(--ease-in-out) infinite alternate; }
+body::after { animation: glowDriftB 36s var(--ease-in-out) infinite alternate; }
+
+@keyframes glowDriftA {
+	from { transform: translate3d(0, 0, 0) scale(1); }
+	to { transform: translate3d(3%, 4%, 0) scale(1.08); }
+}
+@keyframes glowDriftB {
+	from { transform: translate3d(0, 0, 0) scale(1.05); }
+	to { transform: translate3d(-4%, -3%, 0) scale(1); }
+}
+
 @media (prefers-reduced-motion: reduce) {
 	*, *::before, *::after {
 		animation-duration: 0.01ms !important;
+		animation-delay: 0ms !important;
 		animation-iteration-count: 1 !important;
 		transition-duration: 0.01ms !important;
+		transition-delay: 0ms !important;
 		scroll-behavior: auto !important;
 	}
 }

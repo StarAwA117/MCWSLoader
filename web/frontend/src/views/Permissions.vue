@@ -49,7 +49,7 @@ onMounted(refresh);
 </script>
 
 <template>
-	<div v-for="group in groups" :key="group" class="card">
+	<div v-for="(group, index) in groups" :key="group" class="card" :style="{ '--i': Math.min(index, 6) }">
 		<div class="card-header">
 			<h2>{{ t('permissions.' + group) }}</h2>
 			<span :class="'badge ' + (groupColors[group])">

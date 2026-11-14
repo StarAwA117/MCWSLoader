@@ -38,6 +38,7 @@ function onKeydown(e: KeyboardEvent): void {
 </script>
 
 <template>
+	<Transition name="modal-pop">
 	<div v-if="state.open" class="modal-overlay" @click.self="state.type === 'alert' ? close(true) : onCancel()">
 		<div class="modal" @keydown="onKeydown">
 			<div class="modal-header">
@@ -70,4 +71,5 @@ function onKeydown(e: KeyboardEvent): void {
 			</div>
 		</div>
 	</div>
+	</Transition>
 </template>

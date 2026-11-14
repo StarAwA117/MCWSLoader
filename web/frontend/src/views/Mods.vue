@@ -264,7 +264,7 @@ onBeforeUnmount(unlockScroll);
 			</label>
 		</div>
 		<div v-if="!sortedMods.length" class="empty-state"><p>{{ t('mods.none') }}</p></div>
-		<div v-for="m in sortedMods" :key="m.name" class="card mod-card" :class="{ disabled: !m.enabled }">
+		<div v-for="(m, index) in sortedMods" :key="m.name" class="card mod-card" :class="{ disabled: !m.enabled }" :style="{ '--i': Math.min(index, 6) }">
 			<div class="mod-top">
 				<div class="mod-info">
 					<div class="mod-name">{{ m.name }}</div>
@@ -294,6 +294,7 @@ onBeforeUnmount(unlockScroll);
 		</div>
 	</div>
 
+	<Transition name="modal-pop">
 	<ModalShell v-if="modal.open" @close="closeModal">
 		<template #title>{{ modal.modName }}{{ modal.type === "settings" ? " - " + t('mods.config') : modal.type === "manifest" ? " - " + t('mods.manifest') : " - " + t('mods.readme') }}</template>
 		<div v-if="modal.type === 'settings'">
@@ -320,6 +321,7 @@ onBeforeUnmount(unlockScroll);
 			<button class="btn btn-primary" @click="saveConfig" :disabled="modal.saving">{{ modal.saving ? t('common.saving') : t('common.save') }}</button>
 		</template>
 	</ModalShell>
+	</Transition>
 </template>
 
 <style scoped>

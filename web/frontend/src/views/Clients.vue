@@ -56,9 +56,10 @@ usePolling(refresh, 3000);
 
 		<div v-else>
 			<div
-				v-for="c in clients"
+				v-for="(c, index) in clients"
 				:key="c.id"
 				class="client-card"
+				:style="{ '--i': Math.min(index, 6) }"
 				@click="openDetail(c)"
 			>
 				<div style="flex: 1;">
@@ -75,6 +76,7 @@ usePolling(refresh, 3000);
 	</div>
 
 	<!-- 客户端详情弹窗 -->
+	<Transition name="modal-pop">
 	<ModalShell v-if="showDetail && selected" max-width="420px" @close="showDetail = false">
 		<template #title>{{ t('clients.detail') }}</template>
 		<div class="detail-row"><span class="detail-label">{{ t('clients.name') }}</span><span>{{ selected.localPlayerName || t('clients.unnamed') }}</span></div>
@@ -87,6 +89,7 @@ usePolling(refresh, 3000);
 			<button class="btn btn-danger btn-sm" @click="disconnect">{{ t('clients.disconnect') }}</button>
 		</template>
 	</ModalShell>
+	</Transition>
 </template>
 
 <style scoped>

@@ -144,6 +144,7 @@ onBeforeUnmount(unlockScroll);
 		<p v-if="actionStatus.message" style="margin-top: 12px; font-size: 13px;">{{ actionStatus.message }}</p>
 	</div>
 
+	<Transition name="modal-pop">
 	<ModalShell v-if="showModal" @close="closeModal">
 		<template #title>{{ t('update.selectVersion') }}</template>
 		<label style="font-size: 13px; color: var(--text-muted); display: block; margin-bottom: 6px;">{{ t('update.availableReleases') }}</label>
@@ -158,4 +159,5 @@ onBeforeUnmount(unlockScroll);
 			</button>
 		</template>
 	</ModalShell>
+	</Transition>
 </template>

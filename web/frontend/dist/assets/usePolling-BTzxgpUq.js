@@ -1,1 +1,0 @@
-import{m as a,K as l}from"./vendor-CL7nXi2G.js";function c(e,i,o={}){const{immediate:r=!0}=o;let t=null;async function n(){try{await e()}catch{}}return a(()=>{r&&n(),t=setInterval(()=>void n(),i)}),l(()=>{t&&clearInterval(t),t=null}),{refresh:n}}export{c as u};
