@@ -8,7 +8,7 @@ Minecraft 基岩版 WebSocket 桥接服务器。通过游戏内置 WebSocket API
 
 - 游戏内命令执行与自动化（Litematic 建筑导入、图片转像素画、.mcfunction 等）
 - AI 对话与 AI 执行命令（OpenAI 兼容接口）
-- MIDI 音乐播放、区域填充复制、权限管理、QQ 群互通
+- MIDI 音乐播放、区域填充复制、权限管理
 - 客户端/服务端分层 Mod 加载机制，支持导入 `.wsmod` / `.zip`、依赖自动下载、覆盖安装与失败回滚
 - Web 管理界面（默认端口 50005），支持在线配置、Mod 管理、日志查看、版本更新
 

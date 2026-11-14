@@ -203,25 +203,6 @@ All commands use the prefix defined in `config.json` (`commandPrefix`, default `
 
 ---
 
-## QQ Bridge (`q:`)
-
-Requires `features.qq.enabled` in config.
-
-### user
-
-| Command | Description | Parameters |
-|---------|-------------|------------|
-| `q:send <message>` | Send message to QQ group | `message` — message content |
-
-### owner
-
-| Command | Description | Parameters |
-|---------|-------------|------------|
-| `q:check` | Check and reconnect QQ | — |
-| `q:toggle [true/false]` | Enable/disable QQ bridge | `true` / `false` |
-
----
-
 ## Terminal Commands
 
 These are entered in the server terminal (stdin), not in-game.

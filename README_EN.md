@@ -8,7 +8,7 @@ Minecraft Bedrock Edition WebSocket bridge server. Connects clients via the buil
 
 - In-game command execution and automation (Litematic building import, image to pixel art, .mcfunction, etc.)
 - AI chat and AI command execution (OpenAI-compatible API)
-- MIDI music playback, region fill/copy, permission management, QQ group bridge
+- MIDI music playback, region fill/copy, permission management
 - Client/Server layered Mod loading, with `.wsmod` / `.zip` import, automatic dependency download, overwrite install and rollback on failure
 - Web management interface (default port 50005), with online config, Mod management, log viewer, and version updates
 

@@ -72,7 +72,6 @@ Bundled Mods that use npm packages declare them, for example:
 | `image` | `pngjs`, `jpeg-js` |
 | `morews` | `ws` |
 | `music` | `midi-file` |
-| `qq` | `profanity-guard`, `sensitive-word-tool`, `node-napcat-ts` |
 
 The entry file must `export default` a class; see [API Reference](./API.md) for
 the Mod lifecycle and the injected APIs (`client`, `Command`, `eventBus`,
