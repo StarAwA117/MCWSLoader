@@ -1,23 +1,24 @@
-<script setup>
+<script setup lang="ts">
 import { ref } from "vue";
 import { api } from "../api";
 import { useModal } from "../composables/useModal";
 import { useI18n } from "../composables/useI18n";
 import { usePolling } from "../composables/usePolling";
 import ModalShell from "../components/ModalShell.vue";
+import type { ClientInfo } from "../types";
 
 const { alert, confirm } = useModal();
 const { t } = useI18n();
 
-const clients = ref([]);
-const selected = ref(null);
+const clients = ref<ClientInfo[]>([]);
+const selected = ref<ClientInfo | null>(null);
 const showDetail = ref(false);
 
 async function refresh() {
-	clients.value = await api.getClients();
+	clients.value = (await api.getClients()) as unknown as ClientInfo[];
 }
 
-function openDetail(c) {
+function openDetail(c: ClientInfo): void {
 	selected.value = c;
 	showDetail.value = true;
 }
@@ -26,7 +27,7 @@ async function setMain() {
 	if (!selected.value) return;
 	const res = await api.setMainClient(selected.value.id);
 	if (res.ok) { showDetail.value = false; await refresh(); }
-	else await alert(res.message);
+	else await alert(res.message ?? "");
 }
 
 async function disconnect() {
@@ -36,7 +37,7 @@ async function disconnect() {
 	if (!ok) return;
 	const res = await api.disconnectClient(selected.value.id);
 	if (res.ok) { showDetail.value = false; await refresh(); }
-	else await alert(res.message);
+	else await alert(res.message ?? "");
 }
 
 usePolling(refresh, 3000);

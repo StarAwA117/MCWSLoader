@@ -1,1 +1,0 @@
-import{l,J as o}from"./vendor-Chan57zp.js";function c(e,r,a={}){const{immediate:i=!0}=a;let t=null;async function n(){try{await e()}catch{}}return l(()=>{i&&n(),t=setInterval(n,r)}),o(()=>{t&&clearInterval(t),t=null}),{refresh:n}}export{c as u};

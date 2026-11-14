@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { ref, computed, onMounted, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { routes } from "./router";
@@ -33,7 +33,7 @@ const navGroups = computed(() => [
 	{ label: t("nav.groups.system"), items: routes.filter(r => ["/update", "/settings"].includes(r.path)) }
 ]);
 
-const iconMap = {
+const iconMap: Record<string, string> = {
 	dashboard: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>`,
 	mods: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>`,
 	commands: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>`,
@@ -45,7 +45,7 @@ const iconMap = {
 	update: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M16 16h5v5"/></svg>`,
 };
 
-function navigate(path) {
+function navigate(path: string): void {
 	router.push(path);
 	sidebarOpen.value = false;
 }
@@ -108,8 +108,8 @@ watch(sidebarOpen, (v) => {
 						:class="{ active: route.path === item.path }"
 						@click="navigate(item.path)"
 					>
-						<span class="nav-icon" v-html="iconMap[item.meta.icon]"></span>
-						{{ t(item.meta.titleKey) }}
+						<span class="nav-icon" v-html="iconMap[item.meta?.icon ?? ''] ?? ''"></span>
+						{{ t(item.meta?.titleKey ?? item.meta?.title ?? '') }}
 					</a>
 				</template>
 			</nav>

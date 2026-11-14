@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { ref, computed, onMounted, onBeforeUnmount } from "vue";
 import { api } from "../api";
 import ConfigField from "../components/ConfigField.vue";
@@ -8,37 +8,69 @@ import { useScrollLock } from "../composables/useScrollLock";
 import { renderMarkdown } from "../utils/markdown";
 import SwitchToggle from "../components/SwitchToggle.vue";
 import ModalShell from "../components/ModalShell.vue";
+import type { ApiResult } from "../api";
+import type { ModFieldNode, ModInfo, ModManifest } from "../types";
 
 const { t } = useI18n();
 const { alert: showAlert, confirm: showConfirm } = useModal();
 
-const mods = ref([]);
-const loading = ref(false);
-const reloading = ref({});
-const importing = ref(false);
-const modal = ref({ open: false, type: "", modName: "", mod: null, config: null, fields: [], manifest: null, readme: "", saving: false, message: "" });
+interface ModModalState {
+	open: boolean;
+	type: "" | "settings" | "manifest" | "readme";
+	modName: string;
+	mod: ModInfo | null;
+	config: Record<string, any> | null;
+	fields: ModFieldNode[];
+	manifest: ModManifest | null;
+	readme: string;
+	saving: boolean;
+	message: string;
+}
 
-const sortedMods = computed(() => [...mods.value].sort((a, b) => {
-	if (a.enabled !== b.enabled) return b.enabled - a.enabled;
+const mods = ref<ModInfo[]>([]);
+const loading = ref(false);
+const reloading = ref<Record<string, boolean>>({});
+const importing = ref(false);
+const modal = ref<ModModalState>({
+	open: false,
+	type: "",
+	modName: "",
+	mod: null,
+	config: null,
+	fields: [],
+	manifest: null,
+	readme: "",
+	saving: false,
+	message: ""
+});
+
+const sortedMods = computed<ModInfo[]>(() => [...mods.value].sort((a, b) => {
+	if (a.enabled !== b.enabled) return Number(b.enabled) - Number(a.enabled);
 	return a.name.localeCompare(b.name);
 }));
 
 // README 只在内容变化时解析一次，避免无关状态更新触发重复渲染
 const readmeHtml = computed(() => renderMarkdown(modal.value.readme));
 
-async function refresh() {
+async function refresh(): Promise<void> {
 	const data = await api.getMods();
 	// 接口异常时返回的是 { ok:false, message }，这里要容错，否则整个页面会崩
-	const server = Array.isArray(data?.server) ? data.server : [];
-	const client = Array.isArray(data?.client) ? data.client : [];
-	const map = new Map();
+	const server = (Array.isArray(data?.server) ? data.server : []) as ModInfo[];
+	const client = (Array.isArray(data?.client) ? data.client : []) as ModInfo[];
+	const map = new Map<string, ModInfo>();
 	for (const m of [...server, ...client]) {
 		const existing = map.get(m.name);
 		if (existing) {
-			if (server.some(s => s.name === m.name)) existing.entry.server = true;
-			if (client.some(c => c.name === m.name)) existing.entry.client = true;
+			if (server.some((s) => s.name === m.name)) existing.entry.server = true;
+			if (client.some((c) => c.name === m.name)) existing.entry.client = true;
 		} else {
-			map.set(m.name, { ...m, entry: { server: server.some(s => s.name === m.name), client: client.some(c => c.name === m.name) } });
+			map.set(m.name, {
+				...m,
+				entry: {
+					server: server.some((s) => s.name === m.name),
+					client: client.some((c) => c.name === m.name)
+				}
+			});
 		}
 	}
 	mods.value = [...map.values()];
@@ -52,7 +84,7 @@ async function reloadAll() {
 	loading.value = false;
 }
 
-async function toggleMod(mod) {
+async function toggleMod(mod: ModInfo): Promise<void> {
 	const target = !mod.enabled;
 	// 乐观切换：请求失败时再改回来（否则开关会与后端状态不一致）
 	mod.enabled = target;
@@ -64,11 +96,11 @@ async function toggleMod(mod) {
 		}
 	} catch (e) {
 		mod.enabled = !target;
-		await showAlert(t("mods.toggleFailed") + "：" + e.message, t("mods.title"));
+		await showAlert(t("mods.toggleFailed") + "：" + (e as Error).message, t("mods.title"));
 	}
 }
 
-async function reloadMod(mod) {
+async function reloadMod(mod: ModInfo): Promise<void> {
 	const ok = await showConfirm(t("mods.reloadOneConfirm", { name: mod.name }), t("mods.reloadTitle"));
 	if (!ok) return;
 	reloading.value[mod.name] = true;
@@ -76,7 +108,7 @@ async function reloadMod(mod) {
 	reloading.value[mod.name] = false;
 }
 
-function importErrorText(res) {
+function importErrorText(res: ApiResult | null | undefined): string {
 	switch (res && res.code) {
 		case "INVALID_FORMAT": return t("mods.errInvalidFormat");
 		case "DEPENDENCY_FAILED": return t("mods.errDependency");
@@ -85,9 +117,9 @@ function importErrorText(res) {
 	}
 }
 
-async function importMod(event) {
-	const input = event.target;
-	const file = input.files && input.files[0];
+async function importMod(event: Event): Promise<void> {
+	const input = event.target as HTMLInputElement;
+	const file = input.files?.[0];
 	input.value = "";
 	if (!file || importing.value) return;
 
@@ -118,14 +150,14 @@ async function importMod(event) {
 		}
 	} catch (e) {
 		await refresh().catch(() => {});
-		await showAlert(t("mods.importFailed") + "：" + e.message, t("mods.importTitle"));
+		await showAlert(t("mods.importFailed") + "：" + (e as Error).message, t("mods.importTitle"));
 	} finally {
 		// 无论成功失败都要复位，否则导入按钮会永久禁用
 		importing.value = false;
 	}
 }
 
-async function deleteMod(mod) {
+async function deleteMod(mod: ModInfo): Promise<void> {
 	const ok = await showConfirm(t("mods.deleteConfirm"), t("mods.deleteTitle"));
 	if (!ok) return;
 	try {
@@ -137,16 +169,16 @@ async function deleteMod(mod) {
 			await showAlert(t("mods.deleteFailed") + "：" + ((res && res.message) || t("mods.deleteNotFound")), t("mods.deleteTitle"));
 		}
 	} catch (e) {
-		await showAlert(t("mods.deleteFailed") + "：" + e.message, t("mods.deleteTitle"));
+		await showAlert(t("mods.deleteFailed") + "：" + (e as Error).message, t("mods.deleteTitle"));
 	}
 }
 
 const { lock: lockScroll, unlock: unlockScroll } = useScrollLock();
 function closeModal() { modal.value.open = false; unlockScroll(); }
 
-function buildFields(obj, prefix) {
+function buildFields(obj: unknown, prefix: string): ModFieldNode[] {
 	if (!obj || typeof obj !== "object") return [];
-	return Object.entries(obj).map(([key, val]) => {
+	return Object.entries(obj as Record<string, unknown>).map(([key, val]): ModFieldNode => {
 		const path = prefix ? prefix + "." + key : key;
 		if (val === null) return { path, key, type: "string" };
 		if (typeof val === "boolean") return { path, key, type: "boolean" };
@@ -157,10 +189,10 @@ function buildFields(obj, prefix) {
 			return { path, key, type: "array" };
 		}
 		if (typeof val === "object") {
-			const children = buildFields(val, path);
-			const hasNested = children.some(c => c.type === "group");
+			const children: ModFieldNode[] = buildFields(val, path);
+			const hasNested = children.some((c) => c.type === "group");
 			const childCount = Object.keys(val).length;
-			if (!hasNested && childCount <= 4 && children.every(c => c.type !== "json" && c.type !== "array")) {
+			if (!hasNested && childCount <= 4 && children.every((c) => c.type !== "json" && c.type !== "array")) {
 				return { path, key, type: "row", children };
 			}
 			return { path, key, type: "group", children };
@@ -169,51 +201,51 @@ function buildFields(obj, prefix) {
 	});
 }
 
-async function openSettings(mod) {
+async function openSettings(mod: ModInfo): Promise<void> {
 	modal.value = { open: true, type: "settings", modName: mod.name, mod, config: null, fields: [], manifest: null, readme: "", saving: false, message: "" };
 	lockScroll();
 	try {
 		const res = await api.getModConfig(mod.name);
 		if (res.ok) {
-			modal.value.config = JSON.parse(JSON.stringify(res.config));
+			modal.value.config = JSON.parse(JSON.stringify(res.config)) as Record<string, any>;
 			modal.value.fields = buildFields(res.config, "");
 		}
 	} catch { modal.value.message = t("mods.loadFailed"); }
 }
 
-async function openManifest(mod) {
+async function openManifest(mod: ModInfo): Promise<void> {
 	modal.value = { open: true, type: "manifest", modName: mod.name, mod, config: null, fields: [], manifest: null, readme: "", saving: false, message: "" };
 	lockScroll();
 	try {
 		const res = await api.getModManifest(mod.name);
-		if (res.ok) modal.value.manifest = res.manifest;
+		if (res.ok) modal.value.manifest = (res.manifest as ModManifest) ?? null;
 	} catch { modal.value.message = t("mods.loadFailed"); }
 }
 
-async function openReadme(mod) {
+async function openReadme(mod: ModInfo): Promise<void> {
 	modal.value = { open: true, type: "readme", modName: mod.name, mod, config: null, fields: [], manifest: null, readme: "", saving: false, message: "" };
 	lockScroll();
 	try {
 		const res = await api.getModReadme(mod.name);
-		if (res.ok) modal.value.readme = res.readme || t("mods.noReadme");
+		if (res.ok) modal.value.readme = String(res.readme || t("mods.noReadme"));
 		else modal.value.readme = res.message || t("mods.noReadme");
 	} catch { modal.value.readme = t("mods.loadFailed"); }
 }
 
-async function saveConfig() {
+async function saveConfig(): Promise<void> {
 	modal.value.saving = true;
 	modal.value.message = "";
 	try {
 		const res = await api.saveModConfig(modal.value.modName, modal.value.config);
 		if (res.ok) { modal.value.message = t("common.saveSuccess"); setTimeout(closeModal, 800); }
 		else { modal.value.message = res.message || t("common.saveFailed"); }
-	} catch (e) { modal.value.message = e.message; }
+	} catch (e) { modal.value.message = (e as Error).message; }
 	modal.value.saving = false;
 }
 
-function modType(m) {
-	if (m.entry?.server && m.entry?.client) return t("mods.typeBoth");
-	if (m.entry?.server) return t("mods.typeServer");
+function modType(m: ModInfo | null): string {
+	if (m?.entry.server && m.entry.client) return t("mods.typeBoth");
+	if (m?.entry.server) return t("mods.typeServer");
 	return t("mods.typeClient");
 }
 

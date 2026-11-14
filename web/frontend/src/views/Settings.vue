@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { ref, onMounted } from "vue";
 import { api } from "../api";
 import { useModal } from "../composables/useModal";
@@ -9,14 +9,14 @@ import SwitchToggle from "../components/SwitchToggle.vue";
 const { t, setLocale, locale, availableLocales } = useI18n();
 const { openResetPassword } = useModal();
 
-const config = ref(null);
+const config = ref<Record<string, any> | null>(null);
 const saving = ref(false);
 const message = ref("");
 const resetSaving = ref(false);
 const resetMessage = ref("");
-const activeTab = ref("server");
+const activeTab = ref<"server" | "webui">("server");
 
-const tabs = [
+const tabs: Array<{ key: "server" | "webui"; label: string; icon: string }> = [
 	{ key: "server", label: "服务器", icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>` },
 	{ key: "webui", label: "WebUI", icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>` }
 ];
@@ -36,7 +36,7 @@ async function save() {
 			message.value = res.message || t("common.saveFailed");
 		}
 	} catch (e) {
-		message.value = e.message;
+		message.value = (e as Error).message;
 	}
 	saving.value = false;
 	setTimeout(() => message.value = "", 3000);
@@ -45,8 +45,8 @@ async function save() {
 async function handleResetPassword() {
 	resetMessage.value = "";
 	const result = await openResetPassword();
-	if (!result) return;
-	const [oldPwd, newPwd] = result;
+	if (!Array.isArray(result) || result.length < 2) return;
+	const [oldPwd, newPwd] = result as [string, string];
 	resetSaving.value = true;
 	try {
 		const res = await api.changePassword(oldPwd, newPwd);
@@ -58,7 +58,7 @@ async function handleResetPassword() {
 			resetMessage.value = res.message || t("settings.changePasswordFailed");
 		}
 	} catch (e) {
-		resetMessage.value = e.message;
+		resetMessage.value = (e as Error).message;
 	}
 	resetSaving.value = false;
 }

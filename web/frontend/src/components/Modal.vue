@@ -1,14 +1,14 @@
-<script setup>
+<script setup lang="ts">
 import { modalState as state, closeModal as close } from "../composables/useModal";
 import { ref, watch } from "vue";
 import { useI18n } from "../composables/useI18n";
 
 const { t } = useI18n();
 
-const inputRef = ref(null);
-const inputRef2 = ref(null);
+const inputRef = ref<HTMLInputElement | null>(null);
+const inputRef2 = ref<HTMLInputElement | null>(null);
 
-watch(() => state.open, (v) => {
+watch(() => state.open, (v: boolean) => {
 	if (v && state.type === "prompt") {
 		setTimeout(() => inputRef.value?.focus(), 100);
 	}
@@ -31,7 +31,7 @@ function onConfirm() {
 	}
 }
 function onCancel() { close(false); }
-function onKeydown(e) {
+function onKeydown(e: KeyboardEvent): void {
 	if (e.key === "Enter") onConfirm();
 	if (e.key === "Escape") onCancel();
 }

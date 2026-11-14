@@ -14,8 +14,17 @@ Minecraft Bedrock Edition WebSocket bridge server. Connects clients via the buil
 
 ## Quick Start
 
+Requires Node.js 22+.
+
 ```bash
+npm install
 npm start
+```
+
+The core server is written in TypeScript and runs through `tsx`. Type-check with:
+
+```bash
+npm run typecheck
 ```
 
 On first run, `config.json` is automatically initialized from `config.example.json`. After startup, visit the WebUI at `http://127.0.0.1:50005` to configure settings online.

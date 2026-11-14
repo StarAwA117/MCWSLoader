@@ -14,8 +14,17 @@ Minecraft 基岩版 WebSocket 桥接服务器。通过游戏内置 WebSocket API
 
 ## 快速开始
 
+要求 Node.js 22+。
+
 ```bash
+npm install
 npm start
+```
+
+核心服务端使用 TypeScript 编写，通过 `tsx` 直接运行；类型检查：
+
+```bash
+npm run typecheck
 ```
 
 首次运行会自动从 `config.example.json` 初始化 `config.json`。启动后访问 WebUI（`http://127.0.0.1:50005`）即可在线配置。

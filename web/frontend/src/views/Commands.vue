@@ -1,13 +1,14 @@
-<script setup>
+<script setup lang="ts">
 import { ref, onMounted } from "vue";
 import { api } from "../api";
 import { useI18n } from "../composables/useI18n";
 import LogOutput from "../components/LogOutput.vue";
+import type { CommandOutputLine } from "../types";
 
 const { t } = useI18n();
 
 const input = ref("");
-const output = ref([]);
+const output = ref<CommandOutputLine[]>([]);
 const loading = ref(false);
 
 async function exec() {
@@ -23,7 +24,7 @@ async function exec() {
 			output.value.push({ type: "error", text: res.message || t("commands.failed") });
 		}
 	} catch (e) {
-		output.value.push({ type: "error", text: e.message });
+		output.value.push({ type: "error", text: (e as Error).message });
 	}
 	input.value = "";
 	loading.value = false;

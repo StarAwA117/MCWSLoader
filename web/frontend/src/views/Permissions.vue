@@ -1,25 +1,31 @@
-<script setup>
+<script setup lang="ts">
 import { ref, onMounted } from "vue";
 import { api } from "../api";
 import { useModal } from "../composables/useModal";
 import { useI18n } from "../composables/useI18n";
+import type { PermissionData } from "../types";
 
 const { alert, confirm } = useModal();
 const { t } = useI18n();
 
-const permissions = ref({ owner: "", op: [], user: [], blocker: [] });
-const newPlayer = ref({ op: "", user: "", blocker: "" });
-const groups = ["owner", "op", "user", "blocker"];
-const groupKeys = { owner: "owner", op: "op", user: "user", blocker: "blocker" };
-const groupColors = { owner: "tag-owner", op: "tag-op", user: "tag-user", blocker: "tag-blocker" };
+const permissions = ref<PermissionData>({ owner: "", op: [], user: [], blocker: [] });
+const newPlayer = ref<Record<string, string>>({ op: "", user: "", blocker: "" });
+const groups = ["owner", "op", "user", "blocker"] as const;
+type Group = (typeof groups)[number];
+const groupKeys: Record<Group, string> = { owner: "owner", op: "op", user: "user", blocker: "blocker" };
+const groupColors: Record<Group, string> = { owner: "tag-owner", op: "tag-op", user: "tag-user", blocker: "tag-blocker" };
 
-async function refresh() {
+async function refresh(): Promise<void> {
 	const data = await api.getPermissions();
-	permissions.value = data;
-	newPlayer.value.owner = data.owner || "";
+	permissions.value = {
+		owner: String(data.owner ?? ""),
+		op: Array.isArray(data.op) ? (data.op as string[]) : [],
+		user: Array.isArray(data.user) ? (data.user as string[]) : [],
+		blocker: Array.isArray(data.blocker) ? (data.blocker as string[]) : []
+	};
 }
 
-async function addPlayer(group) {
+async function addPlayer(group: Group): Promise<void> {
 	const name = newPlayer.value[group]?.trim();
 	if (!name) return;
 	const res = await api.addPermission(group, name);
@@ -31,7 +37,7 @@ async function addPlayer(group) {
 	}
 }
 
-async function removePlayer(group, player) {
+async function removePlayer(group: Group, player: string): Promise<void> {
 	const ok = await confirm(t("permissions.confirmRemove", { player, group: t("permissions." + group) }));
 	if (!ok) return;
 	const res = await api.removePermission(group, player);

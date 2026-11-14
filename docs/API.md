@@ -18,6 +18,25 @@ MCWSLoader exposes several programmatic APIs for Mod development and a REST API 
 
 ## Mod System
 
+### TypeScript
+
+The core (`lib/`, `web/server.ts`, `ws.ts`, `main.ts`) is strict TypeScript.
+Bundled Mods remain plain JavaScript so they can be hot-loaded from `mod/`
+without a build step. For editor/type-check support, use the global
+`ModContext` type from `types/mod.d.ts`:
+
+```js
+/** @this {ModContext} */
+export default class MyMod {
+	onCommand() {
+		return { normal: [this.Command.create("x", "demo").setFunc(() => {})] };
+	}
+}
+```
+
+Run `npm run typecheck` for the backend and
+`cd web/frontend && npm run typecheck` for the Vue frontend.
+
 ### Injected API
 
 Every Mod (client and server) receives the same core API, injected onto the
@@ -191,7 +210,7 @@ class MyServerMod {
 
 ## Client Utils
 
-The `Utils` class (`lib/utils.js`) is bound to each WebSocket connection as `client.utils`. Methods are also directly available on the `client` object.
+The `Utils` class (`lib/utils.ts`) is bound to each WebSocket connection as `client.utils`. Methods are also directly available on the `client` object.
 
 ### Command Methods
 
@@ -230,7 +249,7 @@ The `Utils` class (`lib/utils.js`) is bound to each WebSocket connection as `cli
 
 ## Event Bus
 
-Global pub/sub for inter-Mod communication (`lib/mods.js` → `eventBus`).
+Global pub/sub for inter-Mod communication (`lib/mods.ts` → `eventBus`).
 
 | Method | Description |
 |--------|-------------|
@@ -244,7 +263,7 @@ Global pub/sub for inter-Mod communication (`lib/mods.js` → `eventBus`).
 
 ## Storage
 
-Per-Mod persistent key-value storage (`lib/mods.js` → `StorageManager`).
+Per-Mod persistent key-value storage (`lib/mods.ts` → `StorageManager`).
 
 | Method | Description |
 |--------|-------------|
@@ -267,7 +286,7 @@ Per-Mod persistent key-value storage (`lib/mods.js` → `StorageManager`).
 
 ## Permission Manager
 
-File-based permission system (`lib/permission.js`).
+File-based permission system (`lib/permission.ts`).
 
 | Method | Returns | Description |
 |--------|---------|-------------|
@@ -281,7 +300,7 @@ File-based permission system (`lib/permission.js`).
 
 ## Current State
 
-Global runtime state (`lib/current.js`).
+Global runtime state (`lib/current.ts`).
 
 | Property/Method | Type | Description |
 |-----------------|------|-------------|

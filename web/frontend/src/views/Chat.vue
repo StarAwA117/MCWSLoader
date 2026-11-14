@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { ref, nextTick } from "vue";
 import { api } from "../api";
 import { useI18n } from "../composables/useI18n";
@@ -9,7 +9,7 @@ const { t } = useI18n();
 
 const messages = ref([]);
 const input = ref("");
-const chatRef = ref(null);
+const chatRef = ref<InstanceType<typeof LogOutput> | null>(null);
 
 async function refresh() {
 	const res = await api.getChatLog();

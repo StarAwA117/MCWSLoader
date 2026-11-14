@@ -1,21 +1,23 @@
-<script setup>
+<script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount } from "vue";
 import { api } from "../api";
 import { useModal } from "../composables/useModal";
 import { useI18n } from "../composables/useI18n";
 import { useScrollLock } from "../composables/useScrollLock";
 import ModalShell from "../components/ModalShell.vue";
+import type { ApiResult } from "../api";
+import type { TagInfo } from "../types";
 
 const { confirm, alert } = useModal();
 const { t } = useI18n();
 
 const currentVersion = ref("加载中...");
-const latestVersion = ref(null);
-const tags = ref([]);
-const releaseInfo = ref(null);
+const latestVersion = ref<string | null>(null);
+const tags = ref<TagInfo[]>([]);
+const releaseInfo = ref<ApiResult | null>(null);
 const checking = ref(false);
 const actionStatus = ref({ loading: false, message: "" });
-const selectedTag = ref(null);
+const selectedTag = ref<string | null>(null);
 const showModal = ref(false);
 const modalStatus = ref({ loading: false, message: "" });
 
@@ -34,7 +36,7 @@ function closeModal() {
 async function loadCurrentVersion() {
 	try {
 		const p = await api.getProcess();
-		currentVersion.value = p.version || "未知";
+		currentVersion.value = (p.version as string) || "未知";
 	} catch {
 		currentVersion.value = "未知";
 	}
@@ -45,7 +47,7 @@ async function checkUpdate() {
 	actionStatus.value = { loading: false, message: "" };
 	try {
 		const res = await api.checkUpdate();
-		latestVersion.value = res.latest;
+		latestVersion.value = (res.latest as string | null) ?? null;
 		releaseInfo.value = res;
 		if (res.error) {
 			actionStatus.value = { loading: false, message: t("update.checkFailed") + ": " + res.error };
@@ -57,7 +59,7 @@ async function checkUpdate() {
 			actionStatus.value = { loading: false, message: t("update.noInfo") };
 		}
 	} catch (e) {
-		actionStatus.value = { loading: false, message: t("update.checkFailed") + ": " + e.message };
+		actionStatus.value = { loading: false, message: t("update.checkFailed") + ": " + (e as Error).message };
 	}
 	checking.value = false;
 }
@@ -65,13 +67,13 @@ async function checkUpdate() {
 async function loadTags() {
 	try {
 		const res = await api.getTags();
-		tags.value = res.tags || [];
+		tags.value = Array.isArray(res.tags) ? (res.tags as TagInfo[]) : [];
 	} catch {
 		tags.value = [];
 	}
 }
 
-function getActionLabel() {
+function getActionLabel(): string {
 	if (!selectedTag.value) return t("update.update");
 	const selVer = selectedTag.value.replace(/^v/, "");
 	const curVer = currentVersion.value.replace(/^v/, "");
@@ -103,7 +105,7 @@ async function confirmAction() {
 			modalStatus.value = { loading: false, message: res.message || `${label}${t('update.failed')}` };
 		}
 	} catch (e) {
-		modalStatus.value = { loading: false, message: `${label}${t('update.failed')}: ` + e.message };
+		modalStatus.value = { loading: false, message: `${label}${t('update.failed')}: ` + (e as Error).message };
 	}
 }
 

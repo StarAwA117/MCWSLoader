@@ -1,24 +1,25 @@
-<script setup>
+<script setup lang="ts">
 import { ref } from "vue";
 import { api } from "../api";
 import { formatBytes, formatDuration } from "../utils/format";
 import { useModal } from "../composables/useModal";
 import { usePolling } from "../composables/usePolling";
 import { useI18n } from "../composables/useI18n";
+import type { ProcessInfo, ServerStatus } from "../types";
 
 const { confirm, alert } = useModal();
 const { t } = useI18n();
 
-const status = ref(null);
-const process = ref(null);
+const status = ref<ServerStatus | null>(null);
+const process = ref<ProcessInfo | null>(null);
 
-const formatUptime = (ms) => formatDuration(ms, t);
+const formatUptime = (ms: number): string => formatDuration(ms, t);
 
 async function refresh() {
 	try {
 		const [s, p] = await Promise.all([api.getStatus(), api.getProcess()]);
-		status.value = s;
-		process.value = p;
+		status.value = s as unknown as ServerStatus;
+		process.value = p as unknown as ProcessInfo;
 	} catch {}
 }
 
@@ -26,14 +27,14 @@ async function killProcess() {
 	const ok = await confirm(t("dashboard.confirmKill"));
 	if (!ok) return;
 	const res = await api.killProcess();
-	if (res.ok) await alert(res.message);
+	if (res.ok) await alert(res.message ?? "");
 }
 
 async function restartServer() {
 	const ok = await confirm(t("dashboard.confirmRestart"));
 	if (!ok) return;
 	const res = await api.restartServer();
-	if (res.ok) await alert(res.message);
+	if (res.ok) await alert(res.message ?? "");
 }
 
 usePolling(refresh, 3000);

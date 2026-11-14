@@ -1,16 +1,20 @@
-<script setup>
+<script setup lang="ts">
 defineOptions({ name: "SwitchToggle" });
 
-defineProps({
-	modelValue: { type: Boolean, default: false },
-	disabled: { type: Boolean, default: false },
-	id: { type: String, default: undefined }
-});
+defineProps<{
+	modelValue?: boolean;
+	disabled?: boolean;
+	id?: string;
+}>();
 
-const emit = defineEmits(["update:modelValue", "change"]);
+const emit = defineEmits<{
+	"update:modelValue": [value: boolean];
+	"change": [event: Event];
+}>();
 
-function onChange(event) {
-	emit("update:modelValue", event.target.checked);
+function onChange(event: Event): void {
+	const target = event.target as HTMLInputElement;
+	emit("update:modelValue", target.checked);
 	emit("change", event);
 }
 </script>

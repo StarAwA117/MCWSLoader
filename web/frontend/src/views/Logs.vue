@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { ref, nextTick } from "vue";
 import { api } from "../api";
 import { useI18n } from "../composables/useI18n";
@@ -7,10 +7,10 @@ import LogOutput from "../components/LogOutput.vue";
 
 const { t } = useI18n();
 
-const logType = ref("app");
+const logType = ref<"app" | "message">("app");
 const logLines = ref([]);
 const autoScroll = ref(true);
-const logRef = ref(null);
+const logRef = ref<InstanceType<typeof LogOutput> | null>(null);
 
 async function refresh() {
 	const res = await api.getLogs(logType.value, 300);
@@ -22,12 +22,12 @@ async function refresh() {
 	}
 }
 
-function setLogType(type) {
+function setLogType(type: "app" | "message"): void {
 	logType.value = type;
 	refresh();
 }
 
-function lineClass(line) {
+function lineClass(line: string): string {
 	if (line.includes("[error]")) return "error";
 	if (line.includes("[warning]")) return "warning";
 	if (line.includes("[debug]")) return "debug";

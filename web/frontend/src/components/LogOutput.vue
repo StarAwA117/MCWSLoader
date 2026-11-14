@@ -1,21 +1,21 @@
-<script setup>
+<script setup lang="ts">
 import { ref } from "vue";
 
 defineOptions({ name: "LogOutput" });
 
-const props = defineProps({
-	lines: { type: Array, default: () => [] },
+const props = defineProps<{
+	lines: unknown[];
 	// 传 height 时使用固定高度，否则用 maxHeight
-	height: { type: String, default: null },
-	maxHeight: { type: String, default: null },
-	emptyText: { type: String, default: "" },
-	lineClass: { type: Function, default: null },
-	lineStyle: { type: [Object, String], default: null }
-});
+	height?: string | null;
+	maxHeight?: string | null;
+	emptyText?: string;
+	lineClass?: ((line: any) => string) | null;
+	lineStyle?: string | Record<string, string> | null;
+}>();
 
-const el = ref(null);
+const el = ref<HTMLElement | null>(null);
 
-function scrollToBottom() {
+function scrollToBottom(): void {
 	if (el.value) el.value.scrollTop = el.value.scrollHeight;
 }
 

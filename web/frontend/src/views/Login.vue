@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { ref, onMounted } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import { loginWithPassword } from "../api";
@@ -13,9 +13,9 @@ const error = ref("");
 const loading = ref(false);
 const locked = ref(false);
 const waitSec = ref(0);
-let waitTimer = null;
+let waitTimer: ReturnType<typeof setInterval> | null = null;
 
-async function doLogin(pwd) {
+async function doLogin(pwd: string): Promise<void> {
 	loading.value = true;
 	error.value = "";
 	try {
@@ -33,7 +33,7 @@ async function doLogin(pwd) {
 				if (waitSec.value <= 0) {
 					locked.value = false;
 					error.value = "";
-					clearInterval(waitTimer);
+					if (waitTimer) clearInterval(waitTimer);
 				}
 			}, 1000);
 		} else {
@@ -52,7 +52,7 @@ onMounted(() => {
 		return;
 	}
 	const pwd = route.query.pwd;
-	if (pwd) {
+	if (typeof pwd === "string" && pwd) {
 		doLogin(pwd);
 	}
 });
