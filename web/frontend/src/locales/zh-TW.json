@@ -277,6 +277,23 @@
 		"connectionSettings": "連線設定",
 		"commandSettings": "命令設定",
 		"checkDependenciesOnLoad": "啟動時檢查依賴",
-		"dependencySettings": "依賴設定"
+		"dependencySettings": "依賴設定",
+		"serverHost": "監聽位址",
+		"serverHostHint": "預設 127.0.0.1；區域網路連線需設為 0.0.0.0",
+		"requireApproval": "非本機連線需批准",
+		"requireApprovalHint": "未批准的連線無法傳送命令；在「客戶端」頁面批准",
+		"allowedIPs": "IP 白名單",
+		"allowedIPsHint": "每行一個 IP 或 CIDR，例如 192.168.1.0/24；留空不限制",
+		"perMessageDeflate": "啟用 perMessageDeflate 壓縮",
+		"maxPayload": "最大訊息位元組數",
+		"maxPayloadHint": "0 表示使用預設 8MB",
+		"allowShellExec": "允許 t:exec 執行 shell",
+		"allowShellExecHint": "預設關閉；僅在完全信任 owner 時開啟",
+		"playerRateLimit": "玩家命令限流",
+		"playerRateLimitHint": "每個玩家在視窗內最多執行的聊天命令數",
+		"playerWindowMs": "限流視窗 (ms)",
+		"playerMaxPerWindow": "視窗內最大命令數",
+		"allowedOrigins": "跨域來源白名單",
+		"allowedOriginsHint": "每行一個 Origin，例如 https://example.com；留空僅同源"
 	}
 }

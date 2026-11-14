@@ -277,6 +277,23 @@
 		"connectionSettings": "Connection Settings",
 		"commandSettings": "Command Settings",
 		"checkDependenciesOnLoad": "Check dependencies on load",
-		"dependencySettings": "Dependency Settings"
+		"dependencySettings": "Dependency Settings",
+		"serverHost": "Bind address",
+		"serverHostHint": "Default 127.0.0.1; use 0.0.0.0 for LAN access",
+		"requireApproval": "Require approval for remote clients",
+		"requireApprovalHint": "Unapproved clients cannot send commands; approve them on the Clients page",
+		"allowedIPs": "IP allowlist",
+		"allowedIPsHint": "One IP or CIDR per line, e.g. 192.168.1.0/24; empty means no restriction",
+		"perMessageDeflate": "Enable perMessageDeflate",
+		"maxPayload": "Max message bytes",
+		"maxPayloadHint": "0 uses the default 8MB",
+		"allowShellExec": "Allow t:exec shell commands",
+		"allowShellExecHint": "Off by default; enable only when the owner is fully trusted",
+		"playerRateLimit": "Per-player command limit",
+		"playerRateLimitHint": "Maximum chat commands a player may run per window",
+		"playerWindowMs": "Rate window (ms)",
+		"playerMaxPerWindow": "Max commands per window",
+		"allowedOrigins": "CORS allowed origins",
+		"allowedOriginsHint": "One origin per line, e.g. https://example.com; empty means same-origin only"
 	}
 }

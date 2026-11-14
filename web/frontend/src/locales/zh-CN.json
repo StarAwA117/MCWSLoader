@@ -277,6 +277,23 @@
 		"connectionSettings": "连接设置",
 		"commandSettings": "命令设置",
 		"checkDependenciesOnLoad": "启动时检查依赖",
-		"dependencySettings": "依赖设置"
+		"dependencySettings": "依赖设置",
+		"serverHost": "监听地址",
+		"serverHostHint": "默认 127.0.0.1；局域网连接需设为 0.0.0.0",
+		"requireApproval": "非本机连接需批准",
+		"requireApprovalHint": "未批准的连接无法发送命令；在“客户端”页面批准",
+		"allowedIPs": "IP 白名单",
+		"allowedIPsHint": "每行一个 IP 或 CIDR，例如 192.168.1.0/24；留空不限制",
+		"perMessageDeflate": "启用 perMessageDeflate 压缩",
+		"maxPayload": "最大消息字节数",
+		"maxPayloadHint": "0 表示使用默认 8MB",
+		"allowShellExec": "允许 t:exec 执行 shell",
+		"allowShellExecHint": "默认关闭；仅在完全信任 owner 时开启",
+		"playerRateLimit": "玩家命令限流",
+		"playerRateLimitHint": "每个玩家在窗口内最多执行的聊天命令数",
+		"playerWindowMs": "限流窗口 (ms)",
+		"playerMaxPerWindow": "窗口内最大命令数",
+		"allowedOrigins": "跨域来源白名单",
+		"allowedOriginsHint": "每行一个 Origin，例如 https://example.com；留空仅同源"
 	}
 }

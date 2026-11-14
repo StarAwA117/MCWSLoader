@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from "vue";
+import { ref, computed, onMounted } from "vue";
 import { api } from "../api";
 import { useModal } from "../composables/useModal";
 import { useI18n } from "../composables/useI18n";
@@ -15,6 +15,24 @@ const message = ref("");
 const resetSaving = ref(false);
 const resetMessage = ref("");
 const activeTab = ref<"server" | "webui">("server");
+
+const listToText = (items: unknown): string => Array.isArray(items) ? items.join("\n") : "";
+const textToList = (value: string): string[] => value.split(/[\s,]+/).map((item) => item.trim()).filter(Boolean);
+
+const allowedIPsText = computed({
+	get: () => listToText(config.value?.ws?.connection?.allowedIPs),
+	set: (value: string) => {
+		if (!config.value) return;
+		config.value.ws.connection.allowedIPs = textToList(value);
+	}
+});
+const allowedOriginsText = computed({
+	get: () => listToText(config.value?.web?.ui?.allowedOrigins),
+	set: (value: string) => {
+		if (!config.value) return;
+		config.value.web.ui.allowedOrigins = textToList(value);
+	}
+});
 
 const localeLabels: Record<string, string> = {
 	"zh-CN": "简体中文",
@@ -115,6 +133,11 @@ onMounted(refresh);
 							<input v-model.number="config.ws.port" type="number" />
 						</div>
 					</div>
+					<div class="form-group">
+						<label>{{ t('settings.serverHost') }}</label>
+						<input v-model="config.ws.host" type="text" placeholder="127.0.0.1" />
+						<p class="field-hint">{{ t('settings.serverHostHint') }}</p>
+					</div>
 				</SettingsCard>
 
 				<SettingsCard :title="t('settings.commandPrefix')">
@@ -149,6 +172,25 @@ onMounted(refresh);
 							<input v-model.number="config.ws.connection.rateLimitMax" type="number" />
 						</div>
 					</div>
+					<div class="switch-row" style="margin-top: 10px;">
+						<span class="switch-label">{{ t('settings.requireApproval') }}</span>
+						<SwitchToggle id="requireApproval" v-model="config.ws.connection.requireApproval" />
+					</div>
+					<p class="field-hint">{{ t('settings.requireApprovalHint') }}</p>
+					<div class="form-group" style="margin-top: 10px;">
+						<label>{{ t('settings.allowedIPs') }}</label>
+						<textarea v-model="allowedIPsText" rows="3" placeholder="127.0.0.1&#10;192.168.1.0/24"></textarea>
+						<p class="field-hint">{{ t('settings.allowedIPsHint') }}</p>
+					</div>
+					<div class="switch-row" style="margin-top: 10px;">
+						<span class="switch-label">{{ t('settings.perMessageDeflate') }}</span>
+						<SwitchToggle id="perMessageDeflate" v-model="config.ws.connection.perMessageDeflate" />
+					</div>
+					<div class="form-group" style="margin-top: 10px;">
+						<label>{{ t('settings.maxPayload') }}</label>
+						<input v-model.number="config.ws.connection.maxPayload" type="number" />
+						<p class="field-hint">{{ t('settings.maxPayloadHint') }}</p>
+					</div>
 				</SettingsCard>
 
 				<SettingsCard :title="t('settings.commandSettings')">
@@ -170,6 +212,26 @@ onMounted(refresh);
 						<label>{{ t('settings.commandMaxLength') }}</label>
 						<input v-model.number="config.command.maxLength" type="number" />
 					</div>
+					<div class="switch-row" style="margin-top: 10px;">
+						<span class="switch-label">{{ t('settings.allowShellExec') }}</span>
+						<SwitchToggle id="allowShellExec" v-model="config.command.allowShellExec" />
+					</div>
+					<p class="field-hint">{{ t('settings.allowShellExecHint') }}</p>
+					<div class="switch-row" style="margin-top: 10px;">
+						<span class="switch-label">{{ t('settings.playerRateLimit') }}</span>
+						<SwitchToggle id="playerRateLimit" v-model="config.command.playerRateLimit.enabled" />
+					</div>
+					<p class="field-hint">{{ t('settings.playerRateLimitHint') }}</p>
+					<div class="form-row">
+						<div class="form-group">
+							<label>{{ t('settings.playerWindowMs') }}</label>
+							<input v-model.number="config.command.playerRateLimit.windowMs" type="number" />
+						</div>
+						<div class="form-group">
+							<label>{{ t('settings.playerMaxPerWindow') }}</label>
+							<input v-model.number="config.command.playerRateLimit.maxPerWindow" type="number" />
+						</div>
+					</div>
 				</SettingsCard>
 
 				<SettingsCard :title="t('settings.dependencySettings')">
@@ -185,6 +247,11 @@ onMounted(refresh);
 					<div class="form-group">
 						<label>{{ t('settings.httpPort') }}</label>
 						<input v-model.number="config.web.port" type="number" />
+					</div>
+					<div class="form-group" style="margin-top: 10px;">
+						<label>{{ t('settings.allowedOrigins') }}</label>
+						<textarea v-model="allowedOriginsText" rows="3" placeholder="https://example.com"></textarea>
+						<p class="field-hint">{{ t('settings.allowedOriginsHint') }}</p>
 					</div>
 				</SettingsCard>
 
@@ -278,6 +345,13 @@ onMounted(refresh);
 .settings-message {
 	font-size: 13px;
 	color: var(--text-secondary);
+}
+
+.field-hint {
+	font-size: 12px;
+	color: var(--text-muted);
+	margin-top: 5px;
+	line-height: 1.5;
 }
 
 .tab-bar {
