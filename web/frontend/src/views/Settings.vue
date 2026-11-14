@@ -22,7 +22,8 @@ const tabs: Array<{ key: "server" | "webui"; label: string; icon: string }> = [
 ];
 
 async function refresh() {
-	config.value = await api.getConfig();
+	const data = await api.getConfig();
+	config.value = data && typeof data === "object" && "ws" in data ? data : null;
 }
 
 async function save() {

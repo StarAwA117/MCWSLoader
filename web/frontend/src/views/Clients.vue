@@ -15,7 +15,8 @@ const selected = ref<ClientInfo | null>(null);
 const showDetail = ref(false);
 
 async function refresh() {
-	clients.value = (await api.getClients()) as unknown as ClientInfo[];
+	const data = await api.getClients();
+	clients.value = Array.isArray(data) ? (data as unknown as ClientInfo[]) : [];
 }
 
 function openDetail(c: ClientInfo): void {

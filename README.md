@@ -38,7 +38,7 @@ npm run typecheck
 | 配置项 | 说明 |
 |--------|------|
 | `ws.name` / `ws.port` / `ws.host` | 服务器名称、WebSocket 端口（默认 8080）、监听地址（默认 `127.0.0.1`；局域网需设为 `0.0.0.0`） |
-| `ws.connection.*` | 最大连接数、连接频率限制、`perMessageDeflate`、`maxPayload` |
+| `ws.connection.*` | 最大连接数、连接频率限制、`perMessageDeflate`、`maxPayload`（默认 8MB） |
 | `ws.checkDependenciesOnLoad` | 启动时是否检查并自动安装 Mod 声明的 npm 依赖（默认开启） |
 | `command.maxLength` | 单条命令最大长度 |
 | `command.rateLimit.*` | 命令转发限流（默认 50ms 内 1024 条，超限自动延后到下一窗口） |

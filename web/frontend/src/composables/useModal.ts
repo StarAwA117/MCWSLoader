@@ -47,6 +47,12 @@ const state = reactive<ModalState>({
 const { lock: lockScroll, unlock: unlockScroll } = useScrollLock();
 
 function openModal(options: ModalOptions): Promise<unknown> {
+	// 上一个弹窗还没结束时先以 false 结束，避免调用方永久等待
+	if (state._resolve) {
+		const previous = state._resolve;
+		state._resolve = null;
+		previous(false);
+	}
 	state.type = options.type ?? "alert";
 	state.title = options.title ?? "";
 	state.message = options.message ?? "";

@@ -5,6 +5,7 @@ import { routes } from "./router";
 import Modal from "./components/Modal.vue";
 import { useModal } from "./composables/useModal";
 import { useI18n } from "./composables/useI18n";
+import { useScrollLock } from "./composables/useScrollLock";
 import { api } from "./api";
 
 const { confirm } = useModal();
@@ -63,12 +64,10 @@ async function logout() {
 	router.replace("/login");
 }
 
-watch(sidebarOpen, (v) => {
-	if (v) {
-		document.body.classList.add("modal-open");
-	} else {
-		document.body.classList.remove("modal-open");
-	}
+const { lock: lockBodyScroll, unlock: unlockBodyScroll } = useScrollLock();
+watch(sidebarOpen, (open) => {
+	if (open) lockBodyScroll();
+	else unlockBodyScroll();
 });
 </script>
 

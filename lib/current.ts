@@ -57,7 +57,8 @@ export default class Current {
 		if (this.client !== client) return this.client;
 
 		this.client = this.clientMods.keys().next().value ?? null;
-		this.properties = {};
+		// 仍有客户端时保留全局属性（如循环任务 ID），否则清理
+		if (!this.client) this.properties = {};
 		return this.client;
 	}
 

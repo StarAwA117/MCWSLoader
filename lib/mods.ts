@@ -62,6 +62,11 @@ const __dirname = path.dirname(__filename);
 const MOD_DIR = path.resolve(__dirname, "..", "mod");
 const CONFIG_PATH = path.resolve(__dirname, "..", "config.json");
 const MODS_CONFIG_PATH = path.join(MOD_DIR, "mods_config.json");
+const PROJECT_ROOT = path.resolve(MOD_DIR, "..");
+
+function projectRoot(): string {
+	return PROJECT_ROOT;
+}
 
 // ==================== Global Config ====================
 
@@ -420,13 +425,22 @@ class ModStorage {
 	entries(): [string, unknown][] { return [...this.data.entries()]; }
 }
 
+function stringifyLogValue(value: unknown): string {
+	if (typeof value === "string") return value;
+	try {
+		return JSON.stringify(value) ?? String(value);
+	} catch {
+		return String(value);
+	}
+}
+
 class ModLogger {
 	prefix: string;
 
 	constructor(modName: string) { this.prefix = `[${modName}]`; }
 
 	_format(args: unknown[]): string {
-		return `${this.prefix} ${args.map(a => typeof a === "string" ? a : JSON.stringify(a)).join(" ")}`;
+		return `${this.prefix} ${args.map(stringifyLogValue).join(" ")}`;
 	}
 
 	info(...args: unknown[]): void { logger.info(this._format(args)); }
@@ -1244,23 +1258,25 @@ export class ServerModManager extends ModManagerBase {
 
 // ==================== Dependency Checker ====================
 
-// 启动时检查所有模组的 dependencies（npm 包名列表），缺失的自动安装
-export async function checkModDependencies() {
+// 启动时检查已启用模组的 dependencies（npm 包名列表），缺失的自动安装
+export async function checkModDependencies(): Promise<void> {
 	if (!(config.ws && config.ws.checkDependenciesOnLoad !== false)) return;
-	if (!fs.existsSync(MOD_DIR)) return;
-	const projectRoot = path.resolve(MOD_DIR, "..");
-	for (const entry of fs.readdirSync(MOD_DIR, { withFileTypes: true })) {
-		if (!entry.isDirectory()) continue;
-		const modPath = path.join(MOD_DIR, entry.name);
-		let manifest;
+
+	for (const entry of modRegistry.list()) {
+		if (!entry.enabled) continue;
+		const manifestPath = resolveCaseInsensitivePath(entry.path, "manifest.json");
+		if (!manifestPath) continue;
+
+		let manifest: { dependencies?: unknown[] };
 		try {
-			manifest = JSON.parse(fs.readFileSync(path.join(modPath, "manifest.json"), "utf-8"));
+			manifest = JSON.parse(fs.readFileSync(manifestPath, "utf-8")) as { dependencies?: unknown[] };
 		} catch {
 			continue;
 		}
 		const deps = Array.isArray(manifest.dependencies) ? manifest.dependencies : [];
 		if (!deps.length) continue;
-		const label = manifest.name || entry.name;
+
+		const label = entry.name;
 		for (const dep of deps) {
 			const parsed = parseDependency(dep);
 			if (!parsed) {
@@ -1268,7 +1284,7 @@ export async function checkModDependencies() {
 				continue;
 			}
 			try {
-				const r = await installNpmDependency(parsed.name, projectRoot);
+				const r = await installNpmDependency(parsed.name, projectRoot());
 				if (!r.skipped) logger.info(`npm package "${r.name}" installed for mod "${label}"`);
 			} catch (e) {
 				logger.error(`Failed to install npm package "${parsed.name}" for mod "${label}": ${(e as Error).message}`);

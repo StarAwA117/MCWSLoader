@@ -9,7 +9,7 @@
 			"rateLimitWindow": 60000,
 			"rateLimitMax": 10,
 			"perMessageDeflate": false,
-			"maxPayload": 0
+			"maxPayload": 8388608
 		},
 		"checkDependenciesOnLoad": true,
 		"host": "127.0.0.1"

@@ -40,8 +40,9 @@ function normalize(data: unknown): PermissionData {
 }
 
 function load(): PermissionData {
+	// chmod 失败（Windows/只读挂载）不应导致权限文件被当成空数据
+	try { fs.chmodSync(PERMISSION_FILE, 0o600); } catch { /* ignore */ }
 	try {
-		fs.chmodSync(PERMISSION_FILE, 0o600);
 		return normalize(JSON.parse(fs.readFileSync(PERMISSION_FILE, "utf-8")));
 	} catch {
 		return { ...EMPTY, op: [], user: [], blocker: [] };

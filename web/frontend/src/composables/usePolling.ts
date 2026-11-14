@@ -19,6 +19,8 @@ export function usePolling(
 	let timer: ReturnType<typeof setInterval> | null = null;
 
 	async function tick(): Promise<void> {
+		// 页面在后台时不轮询，减少无意义的 API/日志请求
+		if (typeof document !== "undefined" && document.hidden) return;
 		try {
 			await fn();
 		} catch {

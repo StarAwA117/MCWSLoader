@@ -33,6 +33,8 @@ export default class Utils {
 	_permissionTimer: NodeJS.Timeout | null = null;
 	_worldProbes = 0;
 	_rlState: { windowStart: number; count: number } | null = null;
+	/** 串行发送队列，保证 tell/tellAll 分片在限流时仍按顺序到达 */
+	_sendQueue: Promise<unknown> = Promise.resolve();
 
 	/**
 	 * 字符串分割方法
@@ -194,6 +196,11 @@ export default class Utils {
 		return this.sendCommandWithCheck(command).catch(() => undefined);
 	}
 
+	/** 将分片发送串行化，避免限流等待导致长消息分片乱序 */
+	_enqueueSend(command: string): void {
+		this._sendQueue = this._sendQueue.then(() => this.sendCommand(command)).catch(() => undefined);
+	}
+
 	/**
 	 * 带返回的命令执行方法
 	 * 该方法可能会抛出错误
@@ -304,7 +311,7 @@ export default class Utils {
 			return;
 		}
 		Utils.splitByBytes(msg, 420).forEach((m) => {
-			void this.sendCommand(`me ${m}`);
+			this._enqueueSend(`me ${m}`);
 		});
 	}
 
@@ -329,7 +336,7 @@ export default class Utils {
 		let escapedBytes = 0;
 		const flush = (end: number): void => {
 			const chunk = msg.slice(start, end);
-			if (chunk) void this.sendCommand(buildCommand(chunk));
+			if (chunk) this._enqueueSend(buildCommand(chunk));
 			start = end;
 			escapedBytes = 0;
 		};
@@ -344,7 +351,7 @@ export default class Utils {
 			if (escapedBytes + charBytes > budget && i > start) flush(i);
 			// 单个字符就超出预算：单独发送，避免死循环
 			if (charBytes > budget) {
-				void this.sendCommand(buildCommand(msg.slice(i, i + charLen)));
+				this._enqueueSend(buildCommand(msg.slice(i, i + charLen)));
 				i += charLen;
 				start = i;
 				escapedBytes = 0;
@@ -553,5 +560,6 @@ export default class Utils {
 		this.ownerBack.clear();
 		this.subscribedEvents.clear();
 		this._rlState = null;
+		this._sendQueue = Promise.resolve();
 	}
 }

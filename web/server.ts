@@ -3,7 +3,7 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 import fs from "node:fs";
 import path from "node:path";
 import crypto from "node:crypto";
-import { exec, execFile } from "node:child_process";
+import { exec, execFile, spawn } from "node:child_process";
 import { promisify } from "node:util";
 import { fileURLToPath } from "node:url";
 import { config, reloadConfig, ServerModManager, ClientModManager, modRegistry, sanitizeConfigObject } from "../lib/mods.js";
@@ -232,7 +232,7 @@ function writeConfig(): void {
 }
 
 // 只读取日志尾部：日志文件可持续增长，全量读取再 split 会随文件变大而线性变慢
-function readLogTail(filePath: string, maxLines: number, maxBytes = 512 * 1024): string[] {
+function readLogTail(filePath: string, maxLines: number, maxBytes = 256 * 1024): string[] {
 	let fd: number | undefined;
 	try {
 		fd = fs.openSync(filePath, "r");
@@ -392,7 +392,7 @@ async function checkoutTag(tag: string): Promise<void> {
 	if (typeof tag !== "string" || !/^[A-Za-z0-9][A-Za-z0-9._/-]*$/.test(tag) || tag.includes("..")) {
 		throw new Error("Invalid version tag");
 	}
-	const opts = { cwd: REPO_ROOT, maxBuffer: 10 * 1024 * 1024 };
+	const opts = { cwd: REPO_ROOT, maxBuffer: 10 * 1024 * 1024, timeout: 120000 };
 	await execAsync("git fetch --all", opts);
 	await execAsync("git reset --hard HEAD", opts);
 	await execFileAsync("git", ["checkout", "-f", tag], opts);
@@ -761,6 +761,19 @@ async function handleAPI(req: IncomingMessage, res: ServerResponse, url: URL): P
 			if ((action === "enable" || action === "disable") && method === "POST") {
 				const enabling = action === "enable";
 				if (enabling) {
+					// 安装未启用 Mod 的依赖时也要走安全参数（--ignore-scripts）
+					try {
+						const manifestPath = path.join(modEntry.path, "manifest.json");
+						if (fs.existsSync(manifestPath)) {
+							const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf-8")) as { dependencies?: unknown[] };
+							await installDependencies(manifest, path.join(__dirname, ".."));
+						}
+					} catch (e) {
+						const message = (e as Error).message;
+						logger.error(`Mod ${modEntry.name} dependency install failed: ${message}`);
+						return json(res, { ok: false, message: `Dependency install failed: ${message}` }, 500);
+					}
+
 					const r = modRegistry.enable(modEntry.id);
 					try {
 						await ServerModManager.syncClasses();
@@ -817,8 +830,11 @@ async function handleAPI(req: IncomingMessage, res: ServerResponse, url: URL): P
 					if (!fs.existsSync(configPath) && !hasExample) {
 						return json(res, { ok: false, message: "Mod has no config file" }, 404);
 					}
-					const modConfig = fs.existsSync(configPath)
-						? JSON.parse(fs.readFileSync(configPath, "utf-8"))
+					const sourcePath = fs.existsSync(configPath)
+						? configPath
+						: (hasExample ? path.join(modEntry.path, "config.example.json") : null);
+					const modConfig = sourcePath
+						? JSON.parse(fs.readFileSync(sourcePath, "utf-8"))
 						: {};
 					return json(res, { ok: true, config: modConfig });
 				}
@@ -933,8 +949,11 @@ async function handleAPI(req: IncomingMessage, res: ServerResponse, url: URL): P
 					const timer = setTimeout(resolve, 1000);
 					server.close(() => { clearTimeout(timer); resolve(); });
 				});
-				const { spawn } = await import("child_process");
-				spawn(process.execPath, process.argv.slice(1), { detached: true, stdio: "inherit" }).unref();
+				// 入口是 TypeScript，必须通过 tsx 重启；直接 node main.ts 会因 .js 导入失败
+				const tsxCli = path.join(REPO_ROOT, "node_modules", "tsx", "dist", "cli.mjs");
+				const entry = path.join(REPO_ROOT, "main.ts");
+				const args = fs.existsSync(tsxCli) ? [tsxCli, entry] : process.argv.slice(1);
+				spawn(process.execPath, args, { cwd: REPO_ROOT, detached: true, stdio: "inherit" }).unref();
 				process.exit(0);
 			}, 500);
 			return;
@@ -976,7 +995,8 @@ async function handleAPI(req: IncomingMessage, res: ServerResponse, url: URL): P
 		// Update
 		async function githubFetch(apiPath: string): Promise<AnyRecord> {
 			const response = await fetch(`${GITHUB_API}${apiPath}`, {
-				headers: { "Accept": "application/vnd.github+json", "User-Agent": "MCWSLoader-UpdateChecker" }
+				headers: { "Accept": "application/vnd.github+json", "User-Agent": "MCWSLoader-UpdateChecker" },
+				signal: AbortSignal.timeout(10000)
 			});
 			if (!response.ok) throw new Error(`GitHub API request failed: HTTP ${response.status}`);
 			return (await response.json()) as AnyRecord;
@@ -1070,6 +1090,7 @@ export function startWebServer(onShutdown: (() => Promise<void>) | null = null):
 		};
 		const onListening = () => {
 			server.off("error", onError);
+			server.on("error", (err: Error) => logger.error(`WebUI server error: ${err.message}`));
 			const hasCustomPassword = !!(config.web?.auth?.passwordHash || config.web?.auth?.password);
 			if (!hasCustomPassword) {
 				temporaryPassword = crypto.randomBytes(8).toString("hex");

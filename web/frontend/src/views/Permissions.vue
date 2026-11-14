@@ -9,7 +9,7 @@ const { alert, confirm } = useModal();
 const { t } = useI18n();
 
 const permissions = ref<PermissionData>({ owner: "", op: [], user: [], blocker: [] });
-const newPlayer = ref<Record<string, string>>({ op: "", user: "", blocker: "" });
+const newPlayer = ref<Record<string, string>>({ owner: "", op: "", user: "", blocker: "" });
 const groups = ["owner", "op", "user", "blocker"] as const;
 type Group = (typeof groups)[number];
 const groupKeys: Record<Group, string> = { owner: "owner", op: "op", user: "user", blocker: "blocker" };
@@ -17,6 +17,7 @@ const groupColors: Record<Group, string> = { owner: "tag-owner", op: "tag-op", u
 
 async function refresh(): Promise<void> {
 	const data = await api.getPermissions();
+	if (!data || typeof data !== "object") return;
 	permissions.value = {
 		owner: String(data.owner ?? ""),
 		op: Array.isArray(data.op) ? (data.op as string[]) : [],

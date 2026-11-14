@@ -8,13 +8,13 @@ import LogOutput from "../components/LogOutput.vue";
 const { t } = useI18n();
 
 const logType = ref<"app" | "message">("app");
-const logLines = ref([]);
+const logLines = ref<string[]>([]);
 const autoScroll = ref(true);
 const logRef = ref<InstanceType<typeof LogOutput> | null>(null);
 
 async function refresh() {
 	const res = await api.getLogs(logType.value, 300);
-	logLines.value = res.lines || [];
+	logLines.value = Array.isArray(res.lines) ? (res.lines as string[]) : [];
 	if (autoScroll.value) {
 		// 等 DOM 更新后再滚动到底部
 		await nextTick();

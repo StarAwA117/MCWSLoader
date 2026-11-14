@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from "vue";
+import { ref, onMounted, onUnmounted } from "vue";
 import { useRouter } from "vue-router";
 import { loginWithPassword } from "../api";
 import { useI18n } from "../composables/useI18n";
@@ -43,6 +43,10 @@ async function doLogin(pwd: string): Promise<void> {
 	}
 	loading.value = false;
 }
+
+onUnmounted(() => {
+	if (waitTimer) clearInterval(waitTimer);
+});
 
 onMounted(() => {
 	const token = sessionStorage.getItem("auth_token");

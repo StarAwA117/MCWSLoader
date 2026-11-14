@@ -89,9 +89,9 @@ function createServer(): WebSocketServer {
 	return wsServer;
 }
 
-// Check/install mod dependencies first, then scan and load mods
-await checkModDependencies();
+// Scan first so dependency checks only apply to enabled mods
 modRegistry.scan();
+await checkModDependencies();
 await ServerModManager.load();
 await ClientModManager.load();
 

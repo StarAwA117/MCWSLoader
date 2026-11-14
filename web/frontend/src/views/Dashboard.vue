@@ -18,8 +18,8 @@ const formatUptime = (ms: number): string => formatDuration(ms, t);
 async function refresh() {
 	try {
 		const [s, p] = await Promise.all([api.getStatus(), api.getProcess()]);
-		status.value = s as unknown as ServerStatus;
-		process.value = p as unknown as ProcessInfo;
+		if (s && typeof s === "object" && "server" in s) status.value = s as unknown as ServerStatus;
+		if (p && typeof p === "object" && "pid" in p) process.value = p as unknown as ProcessInfo;
 	} catch {}
 }
 

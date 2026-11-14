@@ -7,13 +7,13 @@ import LogOutput from "../components/LogOutput.vue";
 
 const { t } = useI18n();
 
-const messages = ref([]);
+const messages = ref<string[]>([]);
 const input = ref("");
 const chatRef = ref<InstanceType<typeof LogOutput> | null>(null);
 
 async function refresh() {
 	const res = await api.getChatLog();
-	messages.value = res.lines || [];
+	messages.value = Array.isArray(res.lines) ? (res.lines as string[]) : [];
 	await nextTick();
 	chatRef.value?.scrollToBottom();
 }

@@ -15,8 +15,10 @@ const LOG_LEVELS: Record<string, number> = {
 const logDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "logs");
 
 if (!fs.existsSync(logDir)) {
-	fs.mkdirSync(logDir, { recursive: true });
+	fs.mkdirSync(logDir, { recursive: true, mode: 0o700 });
 }
+// 日志可能包含临时密码/聊天内容，尽量只允许当前用户读取
+try { fs.chmodSync(logDir, 0o700); } catch { /* ignore */ }
 
 /** 日志文件流缓存 */
 const logStreams: Record<string, fs.WriteStream> = {};
@@ -49,7 +51,9 @@ function localTime(): string {
 function getLogStream(name: string): fs.WriteStream {
 	let stream = logStreams[name];
 	if (!stream) {
-		stream = fs.createWriteStream(path.join(logDir, `${name}.log`), { flags: "a" });
+		const logPath = path.join(logDir, `${name}.log`);
+		try { if (fs.existsSync(logPath)) fs.chmodSync(logPath, 0o600); } catch { /* ignore */ }
+		stream = fs.createWriteStream(logPath, { flags: "a", mode: 0o600 });
 		logStreams[name] = stream;
 	}
 	return stream;
