@@ -217,7 +217,8 @@
 		"failed": "失敗",
 		"processing": "處理中...",
 		"selectVersion": "選擇版本",
-		"availableReleases": "可用的 Release 版本"
+		"availableReleases": "可用的 Release 版本",
+		"currentNewer": "目前版本高於最新穩定版 {latest}；啟用預覽版可檢查新 Beta。"
 	},
 	"chat": {
 		"title": "聊天",
@@ -294,6 +295,12 @@
 		"playerWindowMs": "限流視窗 (ms)",
 		"playerMaxPerWindow": "視窗內最大命令數",
 		"allowedOrigins": "跨域來源白名單",
-		"allowedOriginsHint": "每行一個 Origin，例如 https://example.com；留空僅同源"
+		"allowedOriginsHint": "每行一個 Origin，例如 https://example.com；留空僅同源",
+		"system": "系統",
+		"general": "一般",
+		"updateAutoCheck": "啟動時自動檢查更新",
+		"updateAutoCheckHint": "僅在腳本啟動時檢查一次；不會自動下載或覆蓋程式碼。",
+		"updatePrerelease": "包含預覽版更新",
+		"updatePrereleaseHint": "檢查 GitHub Pre-release（例如 2.0.0-beta.1）。"
 	}
 }

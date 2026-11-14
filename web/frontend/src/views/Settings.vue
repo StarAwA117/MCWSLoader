@@ -1,20 +1,23 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
+import { useRoute } from "vue-router";
 import { api } from "../api";
 import { useModal } from "../composables/useModal";
 import { useI18n } from "../composables/useI18n";
 import SettingsCard from "../components/SettingsCard.vue";
 import SwitchToggle from "../components/SwitchToggle.vue";
+import UpdatePanel from "../components/UpdatePanel.vue";
 
 const { t, setLocale, locale, availableLocales } = useI18n();
 const { openResetPassword } = useModal();
+const route = useRoute();
 
 const config = ref<Record<string, any> | null>(null);
 const saving = ref(false);
 const message = ref("");
 const resetSaving = ref(false);
 const resetMessage = ref("");
-const activeTab = ref<"server" | "webui">("server");
+const activeTab = ref<"server" | "webui" | "system">(route.query.tab === "system" ? "system" : "server");
 
 const listToText = (items: unknown): string => Array.isArray(items) ? items.join("\n") : "";
 const textToList = (value: string): string[] => value.split(/[\s,]+/).map((item) => item.trim()).filter(Boolean);
@@ -39,9 +42,10 @@ const localeLabels: Record<string, string> = {
 	"zh-TW": "繁體中文",
 	en: "English"
 };
-const tabs: Array<{ key: "server" | "webui"; label: string; icon: string }> = [
-	{ key: "server", label: "服务器", icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>` },
-	{ key: "webui", label: "WebUI", icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>` }
+const tabs: Array<{ key: "server" | "webui" | "system"; labelKey: string; icon: string }> = [
+	{ key: "server", labelKey: "settings.server", icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>` },
+	{ key: "webui", labelKey: "settings.webui", icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>` },
+	{ key: "system", labelKey: "settings.system", icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h.09a1.65 1.65 0 0 0-1.51 1z"/></svg>` }
 ];
 
 async function refresh() {
@@ -87,6 +91,11 @@ async function handleResetPassword() {
 	resetSaving.value = false;
 }
 
+function selectLocale(loc: string): void {
+	setLocale(loc);
+	if (config.value) config.value.language = loc;
+}
+
 onMounted(refresh);
 </script>
 
@@ -114,7 +123,7 @@ onMounted(refresh);
 				class="tab-btn"
 				:class="{ active: activeTab === tab.key }"
 				@click="activeTab = tab.key"
-				:title="tab.label"
+				:title="t(tab.labelKey)"
 			>
 				<span class="tab-icon" v-html="tab.icon"></span>
 			</button>
@@ -140,12 +149,6 @@ onMounted(refresh);
 					</div>
 				</SettingsCard>
 
-				<SettingsCard :title="t('settings.commandPrefix')">
-					<div class="form-group">
-						<label>{{ t('settings.commandPrefix') }}</label>
-						<input v-model="config.commandPrefix" type="text" maxlength="4" />
-					</div>
-				</SettingsCard>
 
 				<SettingsCard :title="t('settings.connectionSettings')">
 					<div class="switch-row">
@@ -234,12 +237,6 @@ onMounted(refresh);
 					</div>
 				</SettingsCard>
 
-				<SettingsCard :title="t('settings.dependencySettings')">
-					<div class="switch-row">
-						<span class="switch-label">{{ t('settings.checkDependenciesOnLoad') }}</span>
-						<SwitchToggle id="checkDependenciesOnLoad" v-model="config.ws.checkDependenciesOnLoad" />
-					</div>
-				</SettingsCard>
 			</div>
 
 			<div v-if="activeTab === 'webui'" class="tab-panel">
@@ -278,27 +275,43 @@ onMounted(refresh);
 					</div>
 				</SettingsCard>
 
-				<SettingsCard :title="t('settings.language')">
-					<div class="form-row">
-						<div class="form-group">
-							<label>{{ t('settings.languageLabel') }}</label>
-							<div style="display: flex; gap: 8px; margin-top: 4px;">
-								<button
-									v-for="loc in availableLocales"
-									:key="loc"
-									class="locale-btn"
-									:class="{ active: locale === loc }"
-									@click="setLocale(loc)"
-								>
-									{{ localeLabels[loc] ?? loc }}
-								</button>
-							</div>
-						</div>
+
+			</div>
+			<div v-if="activeTab === 'system'" class="tab-panel">
+				<SettingsCard :title="t('update.title')">
+					<UpdatePanel />
+					<div class="switch-row" style="margin-top: 16px;">
+						<span class="switch-label">{{ t('settings.updateAutoCheck') }}</span>
+						<SwitchToggle id="updateAutoCheck" v-model="config.update.autoCheck" />
 					</div>
+					<p class="field-hint">{{ t('settings.updateAutoCheckHint') }}</p>
+					<div class="switch-row" style="margin-top: 10px;">
+						<span class="switch-label">{{ t('settings.updatePrerelease') }}</span>
+						<SwitchToggle id="updatePrerelease" v-model="config.update.allowPrerelease" />
+					</div>
+					<p class="field-hint">{{ t('settings.updatePrereleaseHint') }}</p>
 				</SettingsCard>
 
-				<SettingsCard :title="t('settings.logs')">
+				<SettingsCard :title="t('settings.general')">
 					<div class="form-group">
+						<label>{{ t('settings.commandPrefix') }}</label>
+						<input v-model="config.commandPrefix" type="text" maxlength="4" />
+					</div>
+					<div class="form-group" style="margin-top: 10px;">
+						<label>{{ t('settings.languageLabel') }}</label>
+						<div style="display: flex; gap: 8px; margin-top: 4px;">
+							<button
+								v-for="loc in availableLocales"
+								:key="loc"
+								class="locale-btn"
+								:class="{ active: locale === loc }"
+								@click="selectLocale(loc)"
+							>
+								{{ localeLabels[loc] ?? loc }}
+							</button>
+						</div>
+					</div>
+					<div class="form-group" style="margin-top: 10px;">
 						<label>{{ t('settings.logLevel') }}</label>
 						<select v-model="config.logLevel">
 							<option value="debug">{{ t('settings.debug') }}</option>
@@ -308,7 +321,39 @@ onMounted(refresh);
 						</select>
 					</div>
 				</SettingsCard>
+
+				<SettingsCard :title="t('settings.sapi')">
+					<div class="form-row">
+						<div class="form-group">
+							<label>{{ t('settings.getMessageCommand') }}</label>
+							<input v-model="config.sapi.gmsg" type="text" />
+						</div>
+						<div class="form-group">
+							<label>{{ t('settings.sendMessageCommand') }}</label>
+							<input v-model="config.sapi.smsg" type="text" />
+						</div>
+					</div>
+				</SettingsCard>
+
+				<SettingsCard :title="t('settings.tools')">
+					<div class="switch-row">
+						<span class="switch-label">{{ t('settings.tellAllToTell') }}</span>
+						<SwitchToggle id="tellAllToTell" v-model="config.utils.tellAllToTell" />
+					</div>
+					<div class="switch-row" style="margin-top: 10px;">
+						<span class="switch-label">{{ t('settings.enablePolling') }}</span>
+						<SwitchToggle id="enablePolling" v-model="config.utils.enablePolling" />
+					</div>
+				</SettingsCard>
+
+				<SettingsCard :title="t('settings.dependencySettings')">
+					<div class="switch-row">
+						<span class="switch-label">{{ t('settings.checkDependenciesOnLoad') }}</span>
+						<SwitchToggle id="checkDependenciesOnLoad" v-model="config.ws.checkDependenciesOnLoad" />
+					</div>
+				</SettingsCard>
 			</div>
+
 		</div>
 	</div>
 

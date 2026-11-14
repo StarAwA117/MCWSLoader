@@ -217,7 +217,8 @@
 		"failed": "失败",
 		"processing": "处理中...",
 		"selectVersion": "选择版本",
-		"availableReleases": "可用的 Release 版本"
+		"availableReleases": "可用的 Release 版本",
+		"currentNewer": "当前版本高于最新稳定版 {latest}；启用预览版可检查新 Beta。"
 	},
 	"chat": {
 		"title": "聊天",
@@ -294,6 +295,12 @@
 		"playerWindowMs": "限流窗口 (ms)",
 		"playerMaxPerWindow": "窗口内最大命令数",
 		"allowedOrigins": "跨域来源白名单",
-		"allowedOriginsHint": "每行一个 Origin，例如 https://example.com；留空仅同源"
+		"allowedOriginsHint": "每行一个 Origin，例如 https://example.com；留空仅同源",
+		"system": "系统",
+		"general": "通用",
+		"updateAutoCheck": "启动时自动检查更新",
+		"updateAutoCheckHint": "仅在脚本启动时检查一次；不会自动下载或覆盖代码。",
+		"updatePrerelease": "包含预览版更新",
+		"updatePrereleaseHint": "检查 GitHub Pre-release（如 2.0.0-beta.1）。"
 	}
 }

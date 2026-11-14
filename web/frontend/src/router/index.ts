@@ -19,7 +19,7 @@ const routes: RouteRecordRaw[] = [
 	{ path: "/clients", name: "clients", component: () => import("../views/Clients.vue"), meta: { title: "Clients", titleKey: "nav.clients", icon: "clients" } },
 	{ path: "/logs", name: "logs", component: () => import("../views/Logs.vue"), meta: { title: "Logs", titleKey: "nav.logs", icon: "logs" } },
 	{ path: "/chat", name: "chat", component: () => import("../views/Chat.vue"), meta: { title: "Chat", titleKey: "nav.chat", icon: "chat" } },
-	{ path: "/update", name: "update", component: () => import("../views/Update.vue"), meta: { title: "Update", titleKey: "nav.update", icon: "update" } },
+	{ path: "/update", redirect: "/settings?tab=system" },
 	{ path: "/settings", name: "settings", component: () => import("../views/Settings.vue"), meta: { title: "Settings", titleKey: "nav.settings", icon: "config" } }
 ];
 

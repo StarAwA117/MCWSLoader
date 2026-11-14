@@ -5,8 +5,8 @@ import { useModal } from "../composables/useModal";
 import { useI18n } from "../composables/useI18n";
 import { useScrollLock } from "../composables/useScrollLock";
 import ModalShell from "../components/ModalShell.vue";
-import type { ApiResult } from "../api";
 import type { TagInfo } from "../types";
+import { compareVersions } from "../utils/version";
 
 const { confirm, alert } = useModal();
 const { t } = useI18n();
@@ -14,7 +14,6 @@ const { t } = useI18n();
 const currentVersion = ref("加载中...");
 const latestVersion = ref<string | null>(null);
 const tags = ref<TagInfo[]>([]);
-const releaseInfo = ref<ApiResult | null>(null);
 const checking = ref(false);
 const actionStatus = ref({ loading: false, message: "" });
 const selectedTag = ref<string | null>(null);
@@ -48,11 +47,12 @@ async function checkUpdate() {
 	try {
 		const res = await api.checkUpdate();
 		latestVersion.value = (res.latest as string | null) ?? null;
-		releaseInfo.value = res;
 		if (res.error) {
 			actionStatus.value = { loading: false, message: t("update.checkFailed") + ": " + res.error };
 		} else if (res.hasUpdate) {
 			actionStatus.value = { loading: false, message: t("update.foundNew", { latest: res.latest, current: res.current }) };
+		} else if (res.latest && compareVersions(String(res.latest), String(res.current ?? "")) < 0) {
+			actionStatus.value = { loading: false, message: t("update.currentNewer", { latest: res.latest }) };
 		} else if (res.latest) {
 			actionStatus.value = { loading: false, message: t("update.latest") };
 		} else {
@@ -77,15 +77,9 @@ function getActionLabel(): string {
 	if (!selectedTag.value) return t("update.update");
 	const selVer = selectedTag.value.replace(/^v/, "");
 	const curVer = currentVersion.value.replace(/^v/, "");
-	if (selVer === curVer) return t("update.keep");
-	const selParts = selVer.split(".").map(Number);
-	const curParts = curVer.split(".").map(Number);
-	for (let i = 0; i < Math.max(selParts.length, curParts.length); i++) {
-		const s = selParts[i] || 0;
-		const c = curParts[i] || 0;
-		if (s > c) return t("update.update");
-		if (s < c) return t("update.rollback");
-	}
+	const diff = compareVersions(selVer, curVer);
+	if (diff > 0) return t("update.update");
+	if (diff < 0) return t("update.rollback");
 	return t("update.keep");
 }
 
@@ -119,10 +113,7 @@ onBeforeUnmount(unlockScroll);
 </script>
 
 <template>
-	<div class="card">
-		<div class="card-header">
-			<h2>{{ t('update.title') }}</h2>
-		</div>
+	<div class="update-panel">
 		<div class="stats-grid">
 			<div class="stat-card">
 				<div class="label">{{ t('update.currentVersion') }}</div>
@@ -141,10 +132,9 @@ onBeforeUnmount(unlockScroll);
 				{{ t('update.tags') }}
 			</button>
 		</div>
-		<p v-if="actionStatus.message" style="margin-top: 12px; font-size: 13px;">{{ actionStatus.message }}</p>
-	</div>
+			<p v-if="actionStatus.message" style="margin-top: 12px; font-size: 13px;">{{ actionStatus.message }}</p>
 
-	<Transition name="modal-pop">
+		<Transition name="modal-pop">
 	<ModalShell v-if="showModal" @close="closeModal">
 		<template #title>{{ t('update.selectVersion') }}</template>
 		<label style="font-size: 13px; color: var(--text-muted); display: block; margin-bottom: 6px;">{{ t('update.availableReleases') }}</label>
@@ -158,6 +148,7 @@ onBeforeUnmount(unlockScroll);
 				{{ modalStatus.loading ? t('update.processing') : getActionLabel() }}
 			</button>
 		</template>
-	</ModalShell>
-	</Transition>
+		</ModalShell>
+		</Transition>
+	</div>
 </template>

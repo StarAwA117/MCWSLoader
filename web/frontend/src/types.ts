@@ -48,6 +48,7 @@ export interface TagInfo {
 	name: string;
 	title?: string;
 	commit?: string | null;
+	prerelease?: boolean;
 }
 
 export interface CommandOutputLine {
