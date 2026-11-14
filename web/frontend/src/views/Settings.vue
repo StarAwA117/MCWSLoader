@@ -237,6 +237,29 @@ onMounted(refresh);
 					</div>
 				</SettingsCard>
 
+				<SettingsCard :title="t('settings.sapi')">
+					<div class="form-row">
+						<div class="form-group">
+							<label>{{ t('settings.getMessageCommand') }}</label>
+							<input v-model="config.sapi.gmsg" type="text" />
+						</div>
+						<div class="form-group">
+							<label>{{ t('settings.sendMessageCommand') }}</label>
+							<input v-model="config.sapi.smsg" type="text" />
+						</div>
+					</div>
+				</SettingsCard>
+
+				<SettingsCard :title="t('settings.tools')">
+					<div class="switch-row">
+						<span class="switch-label">{{ t('settings.tellAllToTell') }}</span>
+						<SwitchToggle id="tellAllToTell" v-model="config.utils.tellAllToTell" />
+					</div>
+					<div class="switch-row" style="margin-top: 10px;">
+						<span class="switch-label">{{ t('settings.enablePolling') }}</span>
+						<SwitchToggle id="enablePolling" v-model="config.utils.enablePolling" />
+					</div>
+				</SettingsCard>
 			</div>
 
 			<div v-if="activeTab === 'webui'" class="tab-panel">
@@ -322,29 +345,7 @@ onMounted(refresh);
 					</div>
 				</SettingsCard>
 
-				<SettingsCard :title="t('settings.sapi')">
-					<div class="form-row">
-						<div class="form-group">
-							<label>{{ t('settings.getMessageCommand') }}</label>
-							<input v-model="config.sapi.gmsg" type="text" />
-						</div>
-						<div class="form-group">
-							<label>{{ t('settings.sendMessageCommand') }}</label>
-							<input v-model="config.sapi.smsg" type="text" />
-						</div>
-					</div>
-				</SettingsCard>
 
-				<SettingsCard :title="t('settings.tools')">
-					<div class="switch-row">
-						<span class="switch-label">{{ t('settings.tellAllToTell') }}</span>
-						<SwitchToggle id="tellAllToTell" v-model="config.utils.tellAllToTell" />
-					</div>
-					<div class="switch-row" style="margin-top: 10px;">
-						<span class="switch-label">{{ t('settings.enablePolling') }}</span>
-						<SwitchToggle id="enablePolling" v-model="config.utils.enablePolling" />
-					</div>
-				</SettingsCard>
 
 				<SettingsCard :title="t('settings.dependencySettings')">
 					<div class="switch-row">
