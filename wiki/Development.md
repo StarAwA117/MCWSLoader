@@ -72,6 +72,19 @@ export default class MyMod extends ModBase {
 }
 ```
 
+## WebUI themes
+
+Themes are registered in `web/frontend/src/theme.ts`. To add one:
+
+1. Add a `new Theme(id, labelKey, swatch)` entry.
+2. Add a `:root[data-theme="<id>"]` palette block in
+   `web/frontend/src/assets/main.css`.
+3. Optionally define `--accent-*` and `--tag-*` variables for extra accents.
+   Components already fall back to the Star palette when these are absent.
+
+The backend accepts any safe theme id, so new palette-only themes need no
+server changes. The active theme is applied only after **Save**.
+
 ## WebUI dialogs
 
 Do not use browser-native `alert` / `confirm` / `prompt`. All prompts go through
