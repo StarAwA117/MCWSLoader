@@ -124,26 +124,6 @@ All commands use the prefix defined in `config.json` (`commandPrefix`, default `
 
 ---
 
-## Pi Agent (`pa`)
-
-### normal
-
-| Command | Description | Parameters |
-|---------|-------------|------------|
-| `pa <message>` | Chat with Pi AI agent | `message` — chat content |
-| `pa:new` | Start a new conversation session | — |
-| `pa:info` | View AI info (model, tokens, etc.) | — |
-| `pa:idle` | Toggle idle messages | `test` — send test idle message |
-
-### owner
-
-| Command | Description | Parameters |
-|---------|-------------|------------|
-| `pa:status` | View conversation status | — |
-| `pa:session` | View session count | `clear` — clear all sessions |
-
----
-
 ## Litematic (`l:`)
 
 ### op
