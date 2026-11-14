@@ -32,9 +32,8 @@
 ## 文件结构
 
 ```
-mod/image/
-├── main.js           # 主模块
-├── main_debug.js     # 调试版（命令前缀 id:，检查 statusCode）
+mods/image/
+├── main.ts           # 主模块
 ├── blocks.json       # 方块调色板（48 种：混凝土、羊毛、陶瓦）
 └── README.md
 ```
@@ -78,18 +77,10 @@ mod/image/
 - 超过 → 按轴分割，每组最多 100 区块
 - 每组创建临时 `tickingarea`，完成放置后删除
 
-## 调试版 (main_debug.js)
-
-命令前缀改为 `id:`（如 `!id:create`），与正式版共存。
-
-差异：
-- `sendCommand` → `await runCommand`，等待每条命令执行结果
-- 检查 `result.body.statusCode`，非 0 时输出 `§c` 错误信息
-- 完成后显示成功/失败计数
 
 ## 注意事项
 
-- 图片路径为 `basePath.image`（配置在 `config.js`）
+- 图片路径为 `basePath.image`（配置在 `config.json`）
 - 仅处理完全透明（alpha=0）的像素，半透明视为不透明
 - 颜色缓存模块级共享，修改 `blocks.json` 后需重启服务
 - Y 轴限制：-64 ~ 320

@@ -43,22 +43,28 @@ lib/
 web/
   server.ts          HTTP API + static WebUI
   frontend/          Vue 3 + TypeScript (Vite)
-mod/                 bundled Mods (plain JS, hot-loaded)
+mods/                 bundled Mods (TypeScript, hot-loaded via tsx)
 mobile/flutter/      Flutter WebView shell (Android / Windows)
-types/               shared TypeScript types (config, client, ModContext)
-test/                node:test suite
+lib/types/           shared TypeScript types (config, client, ModContext)
+lib/__tests__/       node:test suite
 wiki/                source for the GitHub Wiki
 ```
 
 ## TypeScript and Mods
 
-The core is strict TypeScript. Bundled Mods remain plain JavaScript so they can
-be imported at runtime without a build step. For editor support, use the global
-`ModContext` type:
+The core is strict TypeScript. Bundled Mods are TypeScript as well; `tsx`
+strips types at load time, so they still hot-reload without a build step. Mods
+extend `lib/modbase.ts` to get typed injected dependencies:
 
-```js
-/** @this {ModContext} */
-export default class MyMod {
+```ts
+import ModBase from "../../lib/modbase.js";
+
+export default class MyMod extends ModBase {
+	constructor(client) {
+		super();
+		this.client = client;
+	}
+
 	onCommand() {
 		return { normal: [this.Command.create("x", "demo").setFunc(() => {})] };
 	}

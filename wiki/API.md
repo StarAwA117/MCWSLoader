@@ -21,20 +21,26 @@ MCWSLoader exposes several programmatic APIs for Mod development and a REST API 
 ### TypeScript
 
 The core (`lib/`, `web/server.ts`, `ws.ts`, `main.ts`) is strict TypeScript.
-Bundled Mods remain plain JavaScript so they can be hot-loaded from `mod/`
-without a build step. For editor/type-check support, use the global
-`ModContext` type from `types/mod.d.ts`:
+Bundled Mods are TypeScript too and are hot-loaded from `mods/` through `tsx`
+without a build step. Import the runtime base class for typed injected
+dependencies (`this.Command`, `this.Current`, `this.client`, ...):
 
-```js
-/** @this {ModContext} */
-export default class MyMod {
+```ts
+import ModBase from "../../lib/modbase.js";
+
+export default class MyMod extends ModBase {
+	constructor(client) {
+		super();
+		this.client = client;
+	}
+
 	onCommand() {
 		return { normal: [this.Command.create("x", "demo").setFunc(() => {})] };
 	}
 }
 ```
 
-Run `npm run typecheck` for the backend and
+Run `npm run typecheck` / `npm run typecheck:mods` for the backend and Mods, and
 `cd web/frontend && npm run typecheck` for the Vue frontend.
 
 ### Injected API
@@ -76,7 +82,7 @@ Manages client-side Mods. One instance per WebSocket connection.
 
 | Method | Returns | Description |
 |--------|---------|-------------|
-| `ClientModManager.load()` | `Promise<void>` | Scan `mod/` manifests and register every enabled client Mod |
+| `ClientModManager.load()` | `Promise<void>` | Scan `mods/` manifests and register every enabled client Mod |
 | `ClientModManager.syncClasses()` | `Promise<void>` | Re-sync the class registry after an enable/disable/import (drops removed Mods, imports new ones) |
 | `ClientModManager.reloadAllClients()` | `Promise<{ success: string[], failed: string[] }>` | Sync classes, then reload/instantiate Mods on every connected client |
 

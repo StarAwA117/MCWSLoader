@@ -51,22 +51,12 @@ Minecraft Bedrock Edition 的 Litematic 建筑投影导入工具，通过 WebSoc
 ## 文件结构
 
 ```
-mod/litematic/
-├── main.js              # 主模块代码
-├── main_debug.js        # 调试版（命令前缀 ld:，检查 statusCode）
+mods/litematic/
+├── main.ts              # 主模块代码
 ├── generator_blocks.json # Java→Bedrock 方块映射表（9.2MB）
 └── README.md            # 本文档
 ```
 
-## 调试版 (main_debug.js)
-
-命令前缀改为 `ld:`（如 `!ld:create`），与正式版共存。
-
-差异：
-- `sendCommand` → `await runCommand`，等待每条命令执行结果
-- 检查 `result.body.statusCode`，非 0 时输出 `§c` 错误信息
-- `tickingarea add/remove`、`fill air` 命令同样检查返回码
-- 完成后显示成功/失败计数
 
 ## 技术细节
 
@@ -105,7 +95,7 @@ Bedrock 版限制：
 
 - Node.js ES Module
 - `../../lib/command.js` - 命令系统
-- `../../config.js` - 配置（basePath.litematic）
+- `../../config.json` - 配置（basePath.litematic）
 - `generator_blocks.json` - 方块映射表
 
 ## 常见问题

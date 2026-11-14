@@ -1,6 +1,6 @@
 # Mods
 
-MCWSLoader loads Mods from the `mod/` directory. A Mod is a folder containing a
+MCWSLoader loads Mods from the `mods/` directory. A Mod is a folder containing a
 `manifest.json`; it may run on the server side, the client side, or both.
 
 - [Directory layout](#directory-layout)
@@ -17,17 +17,17 @@ MCWSLoader loads Mods from the `mod/` directory. A Mod is a folder containing a
 ## Directory layout
 
 ```
-mod/
+mods/
 └── MyMod/
     ├── manifest.json         # required
-    ├── main.js               # entry script (name is defined by manifest.entry)
+    ├── main.ts               # entry script (name is defined by manifest.entry)
     ├── config.example.json   # optional, copied to config.json on first scan
     ├── config.json           # optional, per-Mod settings
     └── README.md             # optional, shown in the WebUI
-mod/mods_config.json          # enable/disable state for every Mod
+mods/mods_config.json          # enable/disable state for every Mod
 ```
 
-Only folders containing a `manifest.json` are treated as Mods. A `manifest.json`
+Entry files may be `.js` or `.ts`. Bundled Mods use `.ts` and are loaded by `tsx` without a build step. Only folders containing a `manifest.json` are treated as Mods. A `manifest.json`
 that fails to parse is skipped with an error in the log.
 
 ---
@@ -43,7 +43,7 @@ that fails to parse is skipped with an error in the log.
   "uuid": "optional-stable-id",
   "entry": {
     "server": null,
-    "client": "main.js"
+    "client": "main.ts"
   },
   "dependencies": []
 }
@@ -149,17 +149,17 @@ single top-level folder:
 ```
 MyMod.wsmod
 ├── manifest.json      ✅ supported
-└── main.js
+└── main.ts
 
 MyMod.zip
 └── MyMod/
     ├── manifest.json  ✅ supported
-    └── main.js
+    └── main.ts
 ```
 
 Archives without a `manifest.json` are rejected with `code: "INVALID_FORMAT"`.
 
-You can also install manually: drop the folder into `mod/` and reload from the
+You can also install manually: drop the folder into `mods/` and reload from the
 WebUI (or restart). The Mod is registered on the next scan.
 
 ---
@@ -188,7 +188,7 @@ On failure the previous state is restored:
 | Overwrite | The half-written folder is replaced by the backup — the previous version is **rolled back** and stays registered. |
 
 Conflicts are matched by Mod **name**, not by folder path, so a Mod installed in
-`mod/foo/` is correctly overwritten even when the archive uses a differently
+`mods/foo/` is correctly overwritten even when the archive uses a differently
 cased top-level folder such as `Foo/`.
 
 ---

@@ -16,7 +16,7 @@
    ```bash
    npm install @pureeval/voxel-geometry
    ```
-2. 在 `mod/` 目录中创建 `fastbuilder/`，并放入 `main.js` 与 `manifest.json`。
+2. 在 `mods/` 目录中创建 `fastbuilder/`，并放入 `main.ts` 与 `manifest.json`。
 3. 重启服务端或在 WebUI 的 Mods 页面启用 FastBuilder。
 
 ## 配置
@@ -24,10 +24,10 @@
 FastBuilder 支持独立配置文件，统一放在：
 
 ```
-mod/fastbuilder/config.json
+mods/fastbuilder/config.json
 ```
 
-示例配置参考 `mod/fastbuilder/config.example.json`：
+示例配置参考 `mods/fastbuilder/config.example.json`：
 
 ```json
 {
@@ -46,13 +46,13 @@ mod/fastbuilder/config.json
 所有落盘脚本统一放在：
 
 ```
-mod/fastbuilder/scripts/
+mods/fastbuilder/scripts/
 ```
 
 建议文件名以 `.js` 结尾，例如：
 
 ```
-mod/fastbuilder/scripts/
+mods/fastbuilder/scripts/
 ├── ball.js
 ├── tower.js
 └── house.js
@@ -78,7 +78,7 @@ $fb:runthis "const ball = circle(5, 0); setBlocks(ball);"
 
 ### 从文件执行
 
-先创建脚本 `mod/fastbuilder/scripts/ball.js`：
+先创建脚本 `mods/fastbuilder/scripts/ball.js`：
 
 ```js
 const ball = sphere(5, 0);
