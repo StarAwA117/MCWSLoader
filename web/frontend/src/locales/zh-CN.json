@@ -32,19 +32,20 @@
 		"connectionFailed": "连接失败"
 	},
 	"modal": {
-		"alert": "提示",
-		"confirm": "确认",
-		"prompt": "输入",
 		"cancel": "取消",
-		"confirmButton": "确定",
 		"required": "不能为空",
 		"currentPassword": "当前密码",
 		"newPassword": "新密码",
 		"resetPasswordTitle": "重置密码",
 		"resetPasswordMessage": "请输入当前密码和新密码",
-		"confirmLogout": "确定退出登录？",
 		"currentPasswordRequired": "请输入当前密码",
-		"newPasswordRequired": "请输入新密码"
+		"newPasswordRequired": "请输入新密码",
+		"message": "提示",
+		"question": "请确认",
+		"input": "输入",
+		"choose": "选择",
+		"okButton": "确定",
+		"logoutQuestion": "确定退出登录？"
 	},
 	"common": {
 		"unauthorized": "未授权",

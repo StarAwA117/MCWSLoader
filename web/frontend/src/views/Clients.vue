@@ -7,7 +7,7 @@ import { usePolling } from "../composables/usePolling";
 import ModalShell from "../components/ModalShell.vue";
 import type { ClientInfo } from "../types";
 
-const { alert, confirm } = useModal();
+const { notify, ask } = useModal();
 const { t } = useI18n();
 
 const clients = ref<ClientInfo[]>([]);
@@ -28,34 +28,34 @@ async function setMain() {
 	if (!selected.value) return;
 	const res = await api.setMainClient(selected.value.id);
 	if (res.ok) { showDetail.value = false; await refresh(); }
-	else await alert(res.message ?? "");
+	else await notify(res.message ?? "");
 }
 
 async function approve() {
 	if (!selected.value) return;
 	const res = await api.approveClient(selected.value.id);
 	if (res.ok) { showDetail.value = false; await refresh(); }
-	else await alert(res.message ?? "");
+	else await notify(res.message ?? "");
 }
 
 async function revoke() {
 	if (!selected.value) return;
 	const name = selected.value.localPlayerName || selected.value.id.slice(0, 8);
-	const ok = await confirm(t("clients.confirmRevoke", { name }));
+	const ok = await ask(t("clients.confirmRevoke", { name }));
 	if (!ok) return;
 	const res = await api.revokeClient(selected.value.id);
 	if (res.ok) { showDetail.value = false; await refresh(); }
-	else await alert(res.message ?? "");
+	else await notify(res.message ?? "");
 }
 
 async function disconnect() {
 	if (!selected.value) return;
 	const name = selected.value.localPlayerName || selected.value.id.slice(0, 8);
-	const ok = await confirm(t("clients.confirmDisconnect", { name }));
+	const ok = await ask(t("clients.confirmDisconnect", { name }));
 	if (!ok) return;
 	const res = await api.disconnectClient(selected.value.id);
 	if (res.ok) { showDetail.value = false; await refresh(); }
-	else await alert(res.message ?? "");
+	else await notify(res.message ?? "");
 }
 
 usePolling(refresh, 3000);

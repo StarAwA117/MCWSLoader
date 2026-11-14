@@ -72,6 +72,20 @@ export default class MyMod extends ModBase {
 }
 ```
 
+## WebUI dialogs
+
+Do not use browser-native `alert` / `confirm` / `prompt`. All prompts go through
+the themed `useModal()` helper:
+
+| Helper | Result |
+|--------|--------|
+| `notify(message, title?)` | Informational message |
+| `ask(message, title?)` | `boolean` |
+| `input(message, defaultValue?, title?)` | `string` |
+| `choose(choices, title?, message?)` | Selected value from a dropdown |
+
+`npm run check:dialogs` (also run in CI) rejects native dialog calls.
+
 ## Wiki sync
 
 Wiki pages live in `wiki/` in this repository and are published to the GitHub

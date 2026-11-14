@@ -32,19 +32,20 @@
 		"connectionFailed": "連線失敗"
 	},
 	"modal": {
-		"alert": "提示",
-		"confirm": "確認",
-		"prompt": "輸入",
 		"cancel": "取消",
-		"confirmButton": "確定",
 		"required": "不能為空",
 		"currentPassword": "當前密碼",
 		"newPassword": "新密碼",
 		"resetPasswordTitle": "重置密碼",
 		"resetPasswordMessage": "請輸入當前密碼和新密碼",
-		"confirmLogout": "確定登出？",
 		"currentPasswordRequired": "請輸入當前密碼",
-		"newPasswordRequired": "請輸入新密碼"
+		"newPasswordRequired": "請輸入新密碼",
+		"message": "提示",
+		"question": "請確認",
+		"input": "輸入",
+		"choose": "選擇",
+		"okButton": "確定",
+		"logoutQuestion": "確定登出？"
 	},
 	"common": {
 		"unauthorized": "未授權",

@@ -30,11 +30,10 @@ for (const file of files) {
 
 	for (const [pattern, message] of [
 		[nativeGlobal, "uses a native window/globalThis dialog"],
-		[bareDialog, "calls alert/confirm/prompt without useModal"]
+		[bareDialog, "uses an alert/confirm/prompt-style call; use useModal().notify/ask/input/choose"]
 	]) {
 		pattern.lastIndex = 0;
 		if (!pattern.test(source)) continue;
-		if (message.includes("useModal") && source.includes("useModal")) continue;
 		errors.push(`${relative}: ${message}`);
 	}
 }

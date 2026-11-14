@@ -32,19 +32,20 @@
 		"connectionFailed": "Connection failed"
 	},
 	"modal": {
-		"alert": "Notice",
-		"confirm": "Confirm",
-		"prompt": "Input",
 		"cancel": "Cancel",
-		"confirmButton": "OK",
 		"required": "Required",
 		"currentPassword": "Current Password",
 		"newPassword": "New Password",
 		"resetPasswordTitle": "Reset Password",
 		"resetPasswordMessage": "Enter current and new password",
-		"confirmLogout": "Log out?",
 		"currentPasswordRequired": "Please enter current password",
-		"newPasswordRequired": "Please enter new password"
+		"newPasswordRequired": "Please enter new password",
+		"message": "Notice",
+		"question": "Please confirm",
+		"input": "Input",
+		"choose": "Select",
+		"okButton": "OK",
+		"logoutQuestion": "Log out?"
 	},
 	"common": {
 		"unauthorized": "Unauthorized",

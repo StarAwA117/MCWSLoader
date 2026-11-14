@@ -11,7 +11,7 @@ import { useTheme } from "../composables/useTheme";
 
 const { t, setLocale, locale, availableLocales } = useI18n();
 const { setTheme } = useTheme();
-const { openResetPassword } = useModal();
+const { resetPassword } = useModal();
 const route = useRoute();
 
 const config = ref<Record<string, any> | null>(null);
@@ -46,7 +46,7 @@ const localeLabels: Record<string, string> = {
 };
 const themeOptions = [
 	{ id: "star", labelKey: "settings.themeStar", swatch: "linear-gradient(135deg, #f0f7ff 0 50%, #60a5fa 50%)" },
-	{ id: "catppuccin-mocha", labelKey: "settings.themeMocha", swatch: "linear-gradient(135deg, #1e1e2e 0 50%, #cba6f7 50%)" }
+	{ id: "catppuccin-mocha", labelKey: "settings.themeMocha", swatch: "linear-gradient(135deg, #1e1e2e 0 30%, #89b4fa 30% 50%, #a6e3a1 50% 65%, #f9e2af 65% 80%, #cba6f7 80%)" }
 ];
 const tabs: Array<{ key: "server" | "webui" | "system"; labelKey: string; icon: string }> = [
 	{ key: "server", labelKey: "settings.server", icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>` },
@@ -85,7 +85,7 @@ async function save() {
 
 async function handleResetPassword() {
 	resetMessage.value = "";
-	const result = await openResetPassword();
+	const result = await resetPassword();
 	if (!Array.isArray(result) || result.length < 2) return;
 	const [oldPwd, newPwd] = result as [string, string];
 	resetSaving.value = true;

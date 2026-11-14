@@ -5,7 +5,7 @@ import { useModal } from "../composables/useModal";
 import { useI18n } from "../composables/useI18n";
 import type { PermissionData } from "../types";
 
-const { alert, confirm } = useModal();
+const { notify, ask } = useModal();
 const { t } = useI18n();
 
 const permissions = ref<PermissionData>({ owner: "", op: [], user: [], blocker: [] });
@@ -34,16 +34,16 @@ async function addPlayer(group: Group): Promise<void> {
 		newPlayer.value[group] = "";
 		await refresh();
 	} else {
-		await alert(res.message || t("permissions.addFailed"));
+		await notify(res.message || t("permissions.addFailed"));
 	}
 }
 
 async function removePlayer(group: Group, player: string): Promise<void> {
-	const ok = await confirm(t("permissions.confirmRemove", { player, group: t("permissions." + group) }));
+	const ok = await ask(t("permissions.confirmRemove", { player, group: t("permissions." + group) }));
 	if (!ok) return;
 	const res = await api.removePermission(group, player);
 	if (res.ok) await refresh();
-	else await alert(res.message || t("permissions.removeFailed"));
+	else await notify(res.message || t("permissions.removeFailed"));
 }
 
 onMounted(refresh);

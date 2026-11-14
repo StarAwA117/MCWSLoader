@@ -1,14 +1,12 @@
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount } from "vue";
+import { ref, onMounted } from "vue";
 import { api } from "../api";
 import { useModal } from "../composables/useModal";
 import { useI18n } from "../composables/useI18n";
-import { useScrollLock } from "../composables/useScrollLock";
-import ModalShell from "../components/ModalShell.vue";
-import type { TagInfo } from "../types";
 import { compareVersions } from "../utils/version";
+import type { TagInfo } from "../types";
 
-const { confirm, alert } = useModal();
+const { ask, choose, notify } = useModal();
 const { t } = useI18n();
 
 const currentVersion = ref("加载中...");
@@ -16,22 +14,6 @@ const latestVersion = ref<string | null>(null);
 const tags = ref<TagInfo[]>([]);
 const checking = ref(false);
 const actionStatus = ref({ loading: false, message: "" });
-const selectedTag = ref<string | null>(null);
-const showModal = ref(false);
-const modalStatus = ref({ loading: false, message: "" });
-
-const { lock: lockScroll, unlock: unlockScroll } = useScrollLock();
-function openModal() {
-	selectedTag.value = latestVersion.value ? `v${latestVersion.value}` : (tags.value[0]?.name || null);
-	modalStatus.value = { loading: false, message: "" };
-	showModal.value = true;
-	lockScroll();
-	void loadTags();
-}
-function closeModal() {
-	showModal.value = false;
-	unlockScroll();
-}
 
 async function loadCurrentVersion() {
 	try {
@@ -65,7 +47,7 @@ async function checkUpdate() {
 	checking.value = false;
 }
 
-async function loadTags() {
+async function loadTags(): Promise<void> {
 	try {
 		const res = await api.getTags();
 		tags.value = Array.isArray(res.tags) ? (res.tags as TagInfo[]) : [];
@@ -74,33 +56,48 @@ async function loadTags() {
 	}
 }
 
-function getActionLabel(): string {
-	if (!selectedTag.value) return t("update.update");
-	const selVer = selectedTag.value.replace(/^v/, "");
-	const curVer = currentVersion.value.replace(/^v/, "");
-	const diff = compareVersions(selVer, curVer);
+function getActionLabel(tag: string): string {
+	const selected = tag.replace(/^v/, "");
+	const current = currentVersion.value.replace(/^v/, "");
+	const diff = compareVersions(selected, current);
 	if (diff > 0) return t("update.update");
 	if (diff < 0) return t("update.rollback");
 	return t("update.keep");
 }
 
-async function confirmAction() {
-	if (!selectedTag.value) return;
-	const tag = selectedTag.value.startsWith("v") ? selectedTag.value : `v${selectedTag.value}`;
-	const label = getActionLabel();
-	if (label === t("update.keep")) { closeModal(); return; }
-	const ok = await confirm(t("update.confirmAction", { action: label === t("update.update") ? t("update.update") : t("update.rollback"), tag }));
+async function openVersionPicker(): Promise<void> {
+	await loadTags();
+	if (!tags.value.length) {
+		await notify(t("update.noInfo"), t("update.title"));
+		return;
+	}
+	const picked = await choose(
+		tags.value.map((tag) => ({ value: tag.name, label: tag.name })),
+		t("update.selectVersion"),
+		t("update.availableReleases")
+	);
+	if (!picked) return;
+
+	const tag = String(picked);
+	const label = getActionLabel(tag);
+	if (label === t("update.keep")) return;
+
+	const ok = await ask(
+		t("update.confirmAction", { action: label === t("update.update") ? t("update.update") : t("update.rollback"), tag }),
+		t("update.title")
+	);
 	if (!ok) return;
-	modalStatus.value = { loading: true, message: `${label}，${t('update.pleaseWait')}` };
+
+	actionStatus.value = { loading: true, message: `${label}，${t("update.pleaseWait")}` };
 	try {
 		const res = label === t("update.update") ? await api.doUpdate() : await api.rollback(tag);
 		if (res.ok) {
-			modalStatus.value = { loading: false, message: res.message || `${label}${t('update.done')}` };
+			actionStatus.value = { loading: false, message: res.message || `${label}${t("update.done")}` };
 		} else {
-			modalStatus.value = { loading: false, message: res.message || `${label}${t('update.failed')}` };
+			actionStatus.value = { loading: false, message: res.message || `${label}${t("update.failed")}` };
 		}
 	} catch (e) {
-		modalStatus.value = { loading: false, message: `${label}${t('update.failed')}: ` + (e as Error).message };
+		actionStatus.value = { loading: false, message: `${label}${t("update.failed")}: ` + (e as Error).message };
 	}
 }
 
@@ -109,8 +106,6 @@ onMounted(() => {
 	// Opening the System tab must not hit GitHub until the user clicks Check.
 	loadCurrentVersion();
 });
-
-onBeforeUnmount(unlockScroll);
 </script>
 
 <template>
@@ -129,27 +124,10 @@ onBeforeUnmount(unlockScroll);
 			<button class="btn btn-primary" @click="checkUpdate" :disabled="checking || actionStatus.loading">
 				{{ checking ? t('update.checking') : t('update.checkUpdate') }}
 			</button>
-			<button v-if="latestVersion" class="btn btn-secondary" @click="openModal" :disabled="actionStatus.loading">
+			<button v-if="latestVersion" class="btn btn-secondary" @click="openVersionPicker" :disabled="actionStatus.loading">
 				{{ t('update.tags') }}
 			</button>
 		</div>
-			<p v-if="actionStatus.message" style="margin-top: 12px; font-size: 13px;">{{ actionStatus.message }}</p>
-
-		<Transition name="modal-pop">
-	<ModalShell v-if="showModal" @close="closeModal">
-		<template #title>{{ t('update.selectVersion') }}</template>
-		<label style="font-size: 13px; color: var(--text-muted); display: block; margin-bottom: 6px;">{{ t('update.availableReleases') }}</label>
-		<select v-model="selectedTag" class="modal-select" :disabled="modalStatus.loading">
-			<option v-for="tag in tags" :key="tag.name" :value="tag.name">{{ tag.name }}</option>
-		</select>
-		<p v-if="modalStatus.message" style="margin-top: 12px; font-size: 13px;">{{ modalStatus.message }}</p>
-		<template #footer>
-			<button class="btn btn-ghost" @click="closeModal" :disabled="modalStatus.loading">{{ t('modal.cancel') }}</button>
-			<button class="btn btn-primary" @click="confirmAction" :disabled="modalStatus.loading">
-				{{ modalStatus.loading ? t('update.processing') : getActionLabel() }}
-			</button>
-		</template>
-		</ModalShell>
-		</Transition>
+		<p v-if="actionStatus.message" style="margin-top: 12px; font-size: 13px;">{{ actionStatus.message }}</p>
 	</div>
 </template>

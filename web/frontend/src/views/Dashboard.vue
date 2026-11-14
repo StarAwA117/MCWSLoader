@@ -7,7 +7,7 @@ import { usePolling } from "../composables/usePolling";
 import { useI18n } from "../composables/useI18n";
 import type { ProcessInfo, ServerStatus } from "../types";
 
-const { confirm, alert } = useModal();
+const { ask, notify } = useModal();
 const { t } = useI18n();
 
 const status = ref<ServerStatus | null>(null);
@@ -24,17 +24,17 @@ async function refresh() {
 }
 
 async function killProcess() {
-	const ok = await confirm(t("dashboard.confirmKill"));
+	const ok = await ask(t("dashboard.confirmKill"));
 	if (!ok) return;
 	const res = await api.killProcess();
-	if (res.ok) await alert(res.message ?? "");
+	if (res.ok) await notify(res.message ?? "");
 }
 
 async function restartServer() {
-	const ok = await confirm(t("dashboard.confirmRestart"));
+	const ok = await ask(t("dashboard.confirmRestart"));
 	if (!ok) return;
 	const res = await api.restartServer();
-	if (res.ok) await alert(res.message ?? "");
+	if (res.ok) await notify(res.message ?? "");
 }
 
 usePolling(refresh, 3000);

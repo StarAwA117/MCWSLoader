@@ -8,7 +8,7 @@ import { useI18n } from "./composables/useI18n";
 import { useScrollLock } from "./composables/useScrollLock";
 import { api } from "./api";
 
-const { confirm } = useModal();
+const { ask } = useModal();
 const { t } = useI18n();
 
 const route = useRoute();
@@ -32,10 +32,10 @@ watch(() => route.path, () => {
 const isLoginPage = computed(() => route.path === "/login");
 
 const navGroups = computed(() => [
-	{ label: t("nav.groups.control"), items: routes.filter(r => ["/", "/commands", "/clients"].includes(r.path)) },
-	{ label: t("nav.groups.management"), items: routes.filter(r => ["/mods", "/permissions"].includes(r.path)) },
-	{ label: t("nav.groups.monitoring"), items: routes.filter(r => ["/logs", "/chat"].includes(r.path)) },
-	{ label: t("nav.groups.system"), items: routes.filter(r => r.path === "/settings") }
+	{ label: t("nav.groups.control"), accent: 1, items: routes.filter(r => ["/", "/commands", "/clients"].includes(r.path)) },
+	{ label: t("nav.groups.management"), accent: 2, items: routes.filter(r => ["/mods", "/permissions"].includes(r.path)) },
+	{ label: t("nav.groups.monitoring"), accent: 3, items: routes.filter(r => ["/logs", "/chat"].includes(r.path)) },
+	{ label: t("nav.groups.system"), accent: 4, items: routes.filter(r => r.path === "/settings") }
 ]);
 
 const iconMap: Record<string, string> = {
@@ -55,7 +55,7 @@ function navigate(path: string): void {
 }
 
 async function logout() {
-	const ok = await confirm(t("modal.confirmLogout"));
+	const ok = await ask(t("modal.logoutQuestion"));
 	if (!ok) return;
 	// 优先让服务端销毁会话；离线/超时也不阻止本地退出
 	await api.logout().catch(() => {});
@@ -103,12 +103,12 @@ watch(sidebarOpen, (open) => {
 			</div>
 			<nav class="sidebar-nav">
 				<template v-for="group in navGroups" :key="group.label">
-					<div class="nav-section">{{ group.label }}</div>
+					<div class="nav-section" :class="'accent-' + group.accent">{{ group.label }}</div>
 					<a
 						v-for="item in group.items"
 						:key="item.path"
 						class="nav-item"
-						:class="{ active: route.path === item.path }"
+						:class="['accent-' + group.accent, { active: route.path === item.path }]"
 						@click="navigate(item.path)"
 					>
 						<span class="nav-icon" v-html="iconMap[item.meta?.icon ?? ''] ?? ''"></span>

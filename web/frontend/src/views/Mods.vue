@@ -12,7 +12,7 @@ import type { ApiResult } from "../api";
 import type { ModFieldNode, ModInfo, ModManifest } from "../types";
 
 const { t } = useI18n();
-const { alert: showAlert, confirm: showConfirm } = useModal();
+const { notify: showMessage, ask: showQuestion } = useModal();
 
 interface ModModalState {
 	open: boolean;
@@ -77,7 +77,7 @@ async function refresh(): Promise<void> {
 }
 
 async function reloadAll() {
-	const ok = await showConfirm(t("mods.reloadConfirm"), t("mods.reloadTitle"));
+	const ok = await showQuestion(t("mods.reloadConfirm"), t("mods.reloadTitle"));
 	if (!ok) return;
 	loading.value = true;
 	try { await api.reloadAllMods(); await refresh(); } catch {}
@@ -92,16 +92,16 @@ async function toggleMod(mod: ModInfo): Promise<void> {
 		const res = target ? await api.enableMod(mod.name) : await api.disableMod(mod.name);
 		if (!res || !res.ok) {
 			mod.enabled = !target;
-			await showAlert(t("mods.toggleFailed") + "：" + ((res && res.message) || `HTTP ${target ? "enable" : "disable"}`), t("mods.title"));
+			await showMessage(t("mods.toggleFailed") + "：" + ((res && res.message) || `HTTP ${target ? "enable" : "disable"}`), t("mods.title"));
 		}
 	} catch (e) {
 		mod.enabled = !target;
-		await showAlert(t("mods.toggleFailed") + "：" + (e as Error).message, t("mods.title"));
+		await showMessage(t("mods.toggleFailed") + "：" + (e as Error).message, t("mods.title"));
 	}
 }
 
 async function reloadMod(mod: ModInfo): Promise<void> {
-	const ok = await showConfirm(t("mods.reloadOneConfirm", { name: mod.name }), t("mods.reloadTitle"));
+	const ok = await showQuestion(t("mods.reloadOneConfirm", { name: mod.name }), t("mods.reloadTitle"));
 	if (!ok) return;
 	reloading.value[mod.name] = true;
 	try { await api.reloadMod(mod.name); } catch {}
@@ -125,7 +125,7 @@ async function importMod(event: Event): Promise<void> {
 
 	const lower = file.name.toLowerCase();
 	if (!lower.endsWith(".wsmod") && !lower.endsWith(".zip")) {
-		await showAlert(t("mods.importFailed") + "：" + t("mods.errInvalidFormat"), t("mods.importTitle"));
+		await showMessage(t("mods.importFailed") + "：" + t("mods.errInvalidFormat"), t("mods.importTitle"));
 		return;
 	}
 
@@ -135,22 +135,22 @@ async function importMod(event: Event): Promise<void> {
 
 		// 模组已存在 -> 询问是否覆盖，确认后重新上传并覆盖
 		if (res && res.code === "CONFLICT") {
-			const ok = await showConfirm(t("mods.overwriteConfirm", { name: res.name || file.name }), t("mods.overwriteTitle"));
+			const ok = await showQuestion(t("mods.overwriteConfirm", { name: res.name || file.name }), t("mods.overwriteTitle"));
 			if (!ok) return;
 			res = await api.importMod(file, true);
 		}
 
 		if (res && res.ok) {
 			await refresh();
-			await showAlert(t("mods.importSuccess"), t("mods.importTitle"));
+			await showMessage(t("mods.importSuccess"), t("mods.importTitle"));
 		} else {
 			// 失败时后端已回滚/清理，这里刷新一次列表
 			await refresh().catch(() => {});
-			await showAlert(t("mods.importFailed") + "：" + importErrorText(res), t("mods.importTitle"));
+			await showMessage(t("mods.importFailed") + "：" + importErrorText(res), t("mods.importTitle"));
 		}
 	} catch (e) {
 		await refresh().catch(() => {});
-		await showAlert(t("mods.importFailed") + "：" + (e as Error).message, t("mods.importTitle"));
+		await showMessage(t("mods.importFailed") + "：" + (e as Error).message, t("mods.importTitle"));
 	} finally {
 		// 无论成功失败都要复位，否则导入按钮会永久禁用
 		importing.value = false;
@@ -158,18 +158,18 @@ async function importMod(event: Event): Promise<void> {
 }
 
 async function deleteMod(mod: ModInfo): Promise<void> {
-	const ok = await showConfirm(t("mods.deleteConfirm"), t("mods.deleteTitle"));
+	const ok = await showQuestion(t("mods.deleteConfirm"), t("mods.deleteTitle"));
 	if (!ok) return;
 	try {
 		const res = await api.deleteMod(mod.name);
 		if (res && res.ok) {
 			await refresh();
-			await showAlert(t("mods.deleteSuccess"), t("mods.deleteTitle"));
+			await showMessage(t("mods.deleteSuccess"), t("mods.deleteTitle"));
 		} else {
-			await showAlert(t("mods.deleteFailed") + "：" + ((res && res.message) || t("mods.deleteNotFound")), t("mods.deleteTitle"));
+			await showMessage(t("mods.deleteFailed") + "：" + ((res && res.message) || t("mods.deleteNotFound")), t("mods.deleteTitle"));
 		}
 	} catch (e) {
-		await showAlert(t("mods.deleteFailed") + "：" + (e as Error).message, t("mods.deleteTitle"));
+		await showMessage(t("mods.deleteFailed") + "：" + (e as Error).message, t("mods.deleteTitle"));
 	}
 }
 
