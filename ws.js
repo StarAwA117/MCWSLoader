@@ -89,8 +89,8 @@ await ClientModManager.load();
 server = createServer();
 logger.info("WebSocket server started on port " + config.ws.port);
 
-// Start WebUI server
-startWebServer().catch((e) => {
+// Start WebUI server (传入关闭钩子，供 WebUI 的重启接口复用)
+startWebServer(destroy).catch((e) => {
 	logger.error("WebUI start failed: " + e.message);
 });
 
@@ -122,21 +122,19 @@ server.on("connection", (ws) => {
 	ws.utils = new Utils(ws);
 
 	const isMainClient = !Current.client;
-	if (isMainClient) {
-		Current.client = ws;
-		logger.info("Main client connected");
-	}
-
 	const clientMod = new ClientModManager(ws);
 	ws.clientMod = clientMod;
 	ws.localPlayerName = null;
 	ws._connectedAt = Date.now();
-	Current.clientMods.set(ws, clientMod);
+	Current.addClient(ws, clientMod);
+	if (isMainClient) logger.info("Main client connected");
 
 	setTimeout(async () => {
 		try {
+			// 客户端可能在 3 秒内就断开，回调前先确认连接仍然有效
+			if (ws.readyState !== 1) return;
 			const name = await ws.getLocalPlayer();
-			if (name) ws.localPlayerName = name;
+			if (name && ws.readyState === 1) ws.localPlayerName = name;
 		} catch {}
 	}, 3000);
 
@@ -157,13 +155,21 @@ server.on("connection", (ws) => {
 
 	ws.on("close", () => {
 		logger.info("Client disconnected: " + clientIP);
-		ServerModManager.onClientDisconnect(ws, ws === Current.client);
-		if (ws === Current.client) {
-			Current.reset();
-			logger.info("Main client disconnected");
-		}
+		const wasMain = ws === Current.client;
+		ServerModManager.onClientDisconnect(ws, wasMain);
+
 		currentConnections.delete(ws);
-		Current.clientMods.delete(ws);
+		// 只移除当前连接；若它是主客户端，则从剩余连接中选举新的主客户端
+		const newMain = Current.removeClient(ws);
+		if (wasMain) {
+			if (newMain) {
+				logger.info("Main client switched to " + (newMain._socket?.remoteAddress || "unknown"));
+				ServerModManager.onMainClientSwitch(ws, newMain);
+				ServerModManager.attachMainClient(newMain);
+			} else {
+				logger.info("Main client disconnected");
+			}
+		}
 		clientMod.destroy();
 		if (ws.utils && typeof ws.utils.destroy === "function") {
 			ws.utils.destroy();
@@ -230,10 +236,13 @@ async function destroy() {
 }
 
 // Signal handling
-process.on("SIGINT", async () => {
-	logger.info("Performing graceful shutdown...");
+async function shutdown(signal) {
+	logger.info(`Performing graceful shutdown... (${signal})`);
 	await destroy();
 	closeLogStreams();
 	logger.info("Process ended");
 	process.exit(0);
-});
+}
+
+process.on("SIGINT", () => shutdown("SIGINT"));
+process.on("SIGTERM", () => shutdown("SIGTERM"));

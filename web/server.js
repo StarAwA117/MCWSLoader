@@ -36,7 +36,11 @@ let logBuffer = [];
 let temporaryPassword = null;
 let updating = false;
 let rollingBack = false;
+// 由 ws.js 注入的进程关闭钩子（/api/system/restart 使用）
+let shutdownHandler = null;
 const LOG_BUFFER_MAX = 500;
+// 请求体上限：防止异常客户端一次占满内存（Mod 导入走 multipart 流式处理，不受此限）
+const MAX_BODY_BYTES = 2 * 1024 * 1024;
 
 const originalLog = logger.log.bind(logger);
 logger.log = function (message, type) {
@@ -81,7 +85,16 @@ function json(res, obj, status = 200) {
 function readBody(req) {
 	return new Promise((resolve, reject) => {
 		let body = "";
-		req.on("data", (c) => { body += c; });
+		let size = 0;
+		req.on("data", (c) => {
+			size += c.length;
+			if (size > MAX_BODY_BYTES) {
+				req.destroy();
+				reject(new Error("Request body too large"));
+				return;
+			}
+			body += c;
+		});
 		req.on("end", () => resolve(body));
 		req.on("error", reject);
 	});
@@ -151,8 +164,44 @@ function validateSession(token) {
 	return true;
 }
 
+// 定期清理过期会话与登录限流记录，避免长期运行后 Map 无限增长
+function cleanupAuthState() {
+	const now = Date.now();
+	for (const [token, session] of sessions) {
+		if (now - session.createdAt > SESSION_TIMEOUT) sessions.delete(token);
+	}
+	for (const [ip, state] of authAttempts) {
+		state.attempts = state.attempts.filter(t => now - t < AUTH_WINDOW_MS);
+		if (state.attempts.length === 0 && (!state.lockedUntil || now > state.lockedUntil)) authAttempts.delete(ip);
+	}
+}
+const authCleanupTimer = setInterval(cleanupAuthState, 10 * 60 * 1000);
+if (typeof authCleanupTimer.unref === "function") authCleanupTimer.unref();
+
 function writeConfig() {
-	fs.writeFileSync(CONFIG_PATH, JSON.stringify(config, null, "	") + "\n", "utf-8");
+	fs.writeFileSync(CONFIG_PATH, JSON.stringify(config, null, "\t") + "\n", "utf-8");
+}
+
+// 只读取日志尾部：日志文件可持续增长，全量读取再 split 会随文件变大而线性变慢
+function readLogTail(filePath, maxLines, maxBytes = 512 * 1024) {
+	let fd;
+	try {
+		fd = fs.openSync(filePath, "r");
+		const size = fs.fstatSync(fd).size;
+		const start = Math.max(0, size - maxBytes);
+		const buf = Buffer.allocUnsafe(size - start);
+		fs.readSync(fd, buf, 0, buf.length, start);
+		let text = buf.toString("utf-8");
+		if (start > 0) {
+			const nl = text.indexOf("\n");
+			text = nl === -1 ? "" : text.slice(nl + 1);
+		}
+		return text.split("\n").filter(Boolean).slice(-maxLines);
+	} catch {
+		return [];
+	} finally {
+		if (fd !== undefined) fs.closeSync(fd);
+	}
 }
 
 const startTime = Date.now();
@@ -226,31 +275,25 @@ function serveStatic(res, filePath) {
 function unloadMod(modEntry) {
 	if (!modEntry) return;
 	if (modEntry.entry?.server) {
-		const sm = ServerModManager._inst();
-		if (sm && sm.modInstances && sm.modInstances[modEntry.name]) {
-			const inst = sm.modInstances[modEntry.name];
-			const dm = sm._resolveMethod(inst, "onDestroy") || sm._resolveMethod(inst, "destroy");
-			if (dm) { try { dm.fn.apply(dm.ctx); } catch {} }
-			eventBus.clearMod(modEntry.name);
-			delete sm.modInstances[modEntry.name];
-			delete ServerModManager.loadedMod[modEntry.name];
-		}
+		ServerModManager._inst()?.unload(modEntry.name);
+		delete ServerModManager.loadedMod[modEntry.name];
 	}
 	if (modEntry.entry?.client) {
 		for (const [, mgr] of Current.clientMods) {
 			if (!mgr) continue;
-			if (mgr.modInstances && mgr.modInstances[modEntry.name]) {
-				const dm = mgr._resolveModMethod(mgr.modInstances[modEntry.name], "onDestroy") || mgr._resolveModMethod(mgr.modInstances[modEntry.name], "destroy");
-				if (dm) { try { dm.fn.apply(dm.ctx); } catch {} }
-				delete mgr.modInstances[modEntry.name];
-				if (mgr.sapi && typeof mgr.sapi.clearMod === "function") mgr.sapi.clearMod(modEntry.name);
-				if (mgr.client && mgr.client.utils && typeof mgr.client.utils.removeOwner === "function") mgr.client.utils.removeOwner(modEntry.name);
-				delete ClientModManager.loadedMod[modEntry.name];
-				if (mgr.client) mgr.client[modEntry.name] = null;
-				if (typeof mgr._collectCommands === "function") mgr._collectCommands();
-			}
+			mgr.unload(modEntry.name);
 		}
+		delete ClientModManager.loadedMod[modEntry.name];
 	}
+}
+
+// 主客户端切换：同时通知服务端 Mod 并重新挂载 SAPI
+function switchMainClient(target) {
+	const prev = Current.client;
+	if (prev === target) return;
+	Current.setMain(target);
+	if (prev) ServerModManager.onMainClientSwitch(prev, target);
+	ServerModManager.attachMainClient(target);
 }
 
 async function handleAPI(req, res, url) {
@@ -450,6 +493,7 @@ async function handleAPI(req, res, url) {
 			modRegistry.scan();
 			const serverResult = await ServerModManager.reloadAll();
 			const clientResult = await ClientModManager.reloadAllClients();
+			collectTerminalCommands(ServerModManager, ClientModManager);
 			return json(res, {
 				ok: true,
 				server: { success: serverResult.success, failed: serverResult.failed },
@@ -508,7 +552,7 @@ async function handleAPI(req, res, url) {
 				if (!manifest || !manifest.name) {
 					return finish({ ok: false, code: "INVALID_FORMAT", message: "Invalid manifest.json: name is required" }, 400);
 				}
-				existingEntry = modRegistry.list().find(m => m.name === manifest.name) || null;
+				existingEntry = modRegistry.getByName(manifest.name) || null;
 
 				// 已有同名模组时目标目录取它原来的目录，避免同名模组被安装成两份
 				folderName = existingEntry
@@ -576,7 +620,7 @@ async function handleAPI(req, res, url) {
 		const modDeleteMatch = pathname.match(/^\/api\/mods\/(.+)\/delete$/);
 		if (modDeleteMatch && method === "POST") {
 			const modName = decodeURIComponent(modDeleteMatch[1]);
-			const modEntry = modRegistry.list().find(m => m.name === modName);
+			const modEntry = modRegistry.getByName(modName);
 			if (!modEntry) return json(res, { ok: false, message: "Mod not found" }, 404);
 			unloadMod(modEntry);
 			const r = modRegistry.remove(modEntry.id);
@@ -591,40 +635,29 @@ async function handleAPI(req, res, url) {
 		const modEnableMatch = pathname.match(/^\/api\/mods\/(.+)\/enable$/);
 		if (modEnableMatch && method === "POST") {
 			const modName = decodeURIComponent(modEnableMatch[1]);
-			const modEntry = modRegistry.list().find(m => m.name === modName);
+			const modEntry = modRegistry.getByName(modName);
 			if (!modEntry) return json(res, { ok: false, message: "Mod not found" }, 404);
 			const r = modRegistry.enable(modEntry.id);
 			if (r.ok) {
 				try {
-					if (modEntry.entry.server) {
-						const sm = ServerModManager._inst();
-						if (sm) await sm.reload(modEntry.name);
-					}
+					await ServerModManager.syncClasses();
+					const sm = ServerModManager._inst();
+					if (sm && modEntry.entry.server) await sm.reload(modEntry.name);
+
 					if (modEntry.entry.client) {
-						const ts = Date.now();
-						const modPath = path.join(modEntry.path, modEntry.entry.client);
-						const modModule = await import(`${modPath}?t=${ts}`);
-						if (modModule.default) {
-							modEntry.clientClass = modModule.default;
-							ClientModManager.loadedMod[modEntry.name] = modModule.default;
-							for (const [, mgr] of Current.clientMods) {
-								if (!mgr) continue;
-								if (mgr.modInstances[modEntry.name]) {
-									const old = mgr.modInstances[modEntry.name];
-									const dm = mgr._resolveModMethod(old, "onDestroy") || mgr._resolveModMethod(old, "destroy");
-									if (dm) { try { dm.fn.apply(dm.ctx); } catch {} }
-									if (mgr.sapi && typeof mgr.sapi.clearMod === "function") mgr.sapi.clearMod(modEntry.name);
-									if (mgr.client.utils && typeof mgr.client.utils.removeOwner === "function") mgr.client.utils.removeOwner(modEntry.name);
-									eventBus.clearMod(`client_${mgr.client?.id || "unknown"}_${modEntry.name}`);
-									mgr.client[modEntry.name] = null;
-									delete mgr.modInstances[modEntry.name];
-								}
-								try { mgr._instantiateMod(modEntry.name, modModule.default); mgr._collectCommands(); }
-								catch (e) { logger.error(`Client Mod ${modEntry.name} enable instantiation failed: ${e.message}`); }
-							}
+						await ClientModManager.syncClasses();
+						const modClass = ClientModManager.loadedMod[modEntry.name];
+						for (const [, mgr] of Current.clientMods) {
+							if (!mgr || !modClass) continue;
+							mgr.unload(modEntry.name);
+							mgr._instantiateMod(modEntry.name, modClass);
+							mgr._buildMethodLists();
+							mgr._collectCommands();
 						}
 					}
-				} catch (e) { logger.error(`Mod ${modEntry.name} hot reload failed: ${e.message}`); }
+				} catch (e) {
+					logger.error(`Mod ${modEntry.name} hot reload failed: ${e.message}`);
+				}
 			}
 			collectTerminalCommands(ServerModManager, ClientModManager);
 			return json(res, r);
@@ -632,32 +665,9 @@ async function handleAPI(req, res, url) {
 		const modDisableMatch = pathname.match(/^\/api\/mods\/(.+)\/disable$/);
 		if (modDisableMatch && method === "POST") {
 			const modName = decodeURIComponent(modDisableMatch[1]);
-			const modEntry = modRegistry.list().find(m => m.name === modName);
+			const modEntry = modRegistry.getByName(modName);
 			if (!modEntry) return json(res, { ok: false, message: "Mod not found" }, 404);
-			if (modEntry.entry.server) {
-				const sm = ServerModManager._inst();
-				if (sm?.modInstances[modEntry.name]) {
-					const dm = sm._resolveMethod(sm.modInstances[modEntry.name], "onDestroy") || sm._resolveMethod(sm.modInstances[modEntry.name], "destroy");
-					if (dm) { try { dm.fn.apply(dm.ctx); } catch {} }
-					eventBus.clearMod(modEntry.name);
-					delete sm.modInstances[modEntry.name];
-					delete ServerModManager.loadedMod[modEntry.name];
-				}
-			}
-			if (modEntry.entry.client) {
-				for (const [, mgr] of Current.clientMods) {
-					if (mgr?.modInstances[modEntry.name]) {
-						const dm = mgr._resolveModMethod(mgr.modInstances[modEntry.name], "onDestroy") || mgr._resolveModMethod(mgr.modInstances[modEntry.name], "destroy");
-						if (dm) { try { dm.fn.apply(dm.ctx); } catch {} }
-						if (mgr.sapi && typeof mgr.sapi.clearMod === "function") mgr.sapi.clearMod(modEntry.name);
-						if (mgr.client.utils && typeof mgr.client.utils.removeOwner === "function") mgr.client.utils.removeOwner(modEntry.name);
-						delete mgr.modInstances[modEntry.name];
-						delete ClientModManager.loadedMod[modEntry.name];
-						mgr.client[modEntry.name] = null;
-						mgr._collectCommands();
-					}
-				}
-			}
+			unloadMod(modEntry);
 			const r = modRegistry.disable(modEntry.id);
 			collectTerminalCommands(ServerModManager, ClientModManager);
 			return json(res, r);
@@ -667,7 +677,7 @@ async function handleAPI(req, res, url) {
 		const modReloadMatch = pathname.match(/^\/api\/mods\/(.+)\/reload$/);
 		if (modReloadMatch && method === "POST") {
 			const modName = decodeURIComponent(modReloadMatch[1]);
-			const modEntry = modRegistry.list().find(m => m.name === modName);
+			const modEntry = modRegistry.getByName(modName);
 			if (!modEntry) return json(res, { ok: false, message: "Mod not found" }, 404);
 			const results = { server: null, client: null };
 			if (modEntry.entry.server) {
@@ -691,7 +701,7 @@ async function handleAPI(req, res, url) {
 		const modConfigMatch = pathname.match(/^\/api\/mods\/(.+)\/config$/);
 		if (modConfigMatch && method === "GET") {
 			const modName = decodeURIComponent(modConfigMatch[1]);
-			const modEntry = modRegistry.list().find(m => m.name === modName);
+			const modEntry = modRegistry.getByName(modName);
 			if (!modEntry) return json(res, { ok: false, message: "Mod not found" }, 404);
 			const configPath = path.join(modEntry.path, "config.json");
 			const examplePath = path.join(modEntry.path, "config.example.json");
@@ -706,7 +716,7 @@ async function handleAPI(req, res, url) {
 		}
 		if (modConfigMatch && method === "PUT") {
 			const modName = decodeURIComponent(modConfigMatch[1]);
-			const modEntry = modRegistry.list().find(m => m.name === modName);
+			const modEntry = modRegistry.getByName(modName);
 			if (!modEntry) return json(res, { ok: false, message: "Mod not found" }, 404);
 			const body = await readBody(req);
 			let newConfig;
@@ -726,7 +736,7 @@ async function handleAPI(req, res, url) {
 		const modManifestMatch = pathname.match(/^\/api\/mods\/(.+)\/manifest$/);
 		if (modManifestMatch && method === "GET") {
 			const modName = decodeURIComponent(modManifestMatch[1]);
-			const modEntry = modRegistry.list().find(m => m.name === modName);
+			const modEntry = modRegistry.getByName(modName);
 			if (!modEntry) return json(res, { ok: false, message: "Mod not found" }, 404);
 			const manifestPath = path.join(modEntry.path, "manifest.json");
 			if (!fs.existsSync(manifestPath)) return json(res, { ok: false, message: "Manifest file not found" }, 404);
@@ -738,7 +748,7 @@ async function handleAPI(req, res, url) {
 		const modReadmeMatch = pathname.match(/^\/api\/mods\/(.+)\/readme$/);
 		if (modReadmeMatch && method === "GET") {
 			const modName = decodeURIComponent(modReadmeMatch[1]);
-			const modEntry = modRegistry.list().find(m => m.name === modName);
+			const modEntry = modRegistry.getByName(modName);
 			if (!modEntry) return json(res, { ok: false, message: "Mod not found" }, 404);
 			const readmePath = path.join(modEntry.path, "README.md");
 			if (!fs.existsSync(readmePath)) return json(res, { ok: false, message: "No README file" });
@@ -791,9 +801,9 @@ async function handleAPI(req, res, url) {
 		}
 		const clientMoveMatch = pathname.match(/^\/api\/clients\/(.+)\/set-main$/);
 		if (clientMoveMatch && method === "POST") {
-			const clientId = clientMoveMatch[1];
+			const clientId = decodeURIComponent(clientMoveMatch[1]);
 			for (const [ws] of Current.clientMods) {
-				if (ws.id === clientId) { Current.client = ws; return json(res, { ok: true }); }
+				if (ws.id === clientId) { switchMainClient(ws); return json(res, { ok: true }); }
 			}
 			return json(res, { ok: false, message: "Client not found" }, 404);
 		}
@@ -802,7 +812,7 @@ async function handleAPI(req, res, url) {
 			const clientId = clientDisconnectMatch[1];
 			for (const [ws] of Current.clientMods) {
 				if (ws.id === clientId) {
-					if (ws === Current.client) Current.client = null;
+					// 主客户端移交由 ws 的 close 回调统一处理
 					try { await ws.runCommand("/closewebsocket"); } catch {}
 					ws.close();
 					return json(res, { ok: true });
@@ -820,7 +830,7 @@ async function handleAPI(req, res, url) {
 		if (pathname === "/api/system/restart" && method === "POST") {
 			json(res, { ok: true, message: "Restarting..." });
 			setTimeout(async () => {
-				try { await destroy(); } catch {}
+				try { if (shutdownHandler) await shutdownHandler(); } catch {}
 				const { spawn } = await import("child_process");
 				spawn(process.argv[0], process.argv.slice(1), { detached: true, stdio: "inherit" }).unref();
 				process.exit(0);
@@ -831,11 +841,12 @@ async function handleAPI(req, res, url) {
 		// Logs
 		if (pathname === "/api/logs" && method === "GET") {
 			const logName = url.searchParams.get("name") || "app";
-			const lines = parseInt(url.searchParams.get("lines") || "200", 10);
+			const lines = Math.min(5000, Math.max(1, parseInt(url.searchParams.get("lines") || "200", 10) || 200));
+			// 只允许读取 logs 目录下的日志，防止路径穿越
+			if (!/^[A-Za-z0-9_.-]+$/.test(logName)) return json(res, { lines: [] }, 400);
 			const logPath = path.resolve(__dirname, "..", "logs", `${logName}.log`);
 			if (!fs.existsSync(logPath)) return json(res, { lines: [] });
-			const content = fs.readFileSync(logPath, "utf-8");
-			return json(res, { lines: content.split("\n").filter(Boolean).slice(-lines) });
+			return json(res, { lines: readLogTail(logPath, lines) });
 		}
 		if (pathname === "/api/logs/live" && method === "GET") {
 			return json(res, { lines: logBuffer.slice(-100) });
@@ -845,8 +856,7 @@ async function handleAPI(req, res, url) {
 		if (pathname === "/api/chat" && method === "GET") {
 			const logPath = path.resolve(__dirname, "..", "logs", "message.log");
 			if (!fs.existsSync(logPath)) return json(res, { lines: [] });
-			const content = fs.readFileSync(logPath, "utf-8");
-			return json(res, { lines: content.split("\n").filter(Boolean).slice(-100) });
+			return json(res, { lines: readLogTail(logPath, 100) });
 		}
 		if (pathname === "/api/chat" && method === "POST") {
 			const body = await readBody(req);
@@ -951,7 +961,8 @@ const server = http.createServer((req, res) => {
 	serveStatic(res, filePath);
 });
 
-export function startWebServer() {
+export function startWebServer(onShutdown = null) {
+	if (typeof onShutdown === "function") shutdownHandler = onShutdown;
 	return new Promise((resolve) => {
 		server.listen(WEB_PORT, "0.0.0.0", () => {
 			const hasCustomPassword = !!(config.web?.auth?.passwordHash || config.web?.auth?.password);
