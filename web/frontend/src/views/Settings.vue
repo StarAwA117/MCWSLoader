@@ -7,8 +7,10 @@ import { useI18n } from "../composables/useI18n";
 import SettingsCard from "../components/SettingsCard.vue";
 import SwitchToggle from "../components/SwitchToggle.vue";
 import UpdatePanel from "../components/UpdatePanel.vue";
+import { useTheme } from "../composables/useTheme";
 
 const { t, setLocale, locale, availableLocales } = useI18n();
+const { setTheme } = useTheme();
 const { openResetPassword } = useModal();
 const route = useRoute();
 
@@ -42,6 +44,10 @@ const localeLabels: Record<string, string> = {
 	"zh-TW": "繁體中文",
 	en: "English"
 };
+const themeOptions = [
+	{ id: "star", labelKey: "settings.themeStar", swatch: "linear-gradient(135deg, #f0f7ff 0 50%, #60a5fa 50%)" },
+	{ id: "catppuccin-mocha", labelKey: "settings.themeMocha", swatch: "linear-gradient(135deg, #1e1e2e 0 50%, #cba6f7 50%)" }
+];
 const tabs: Array<{ key: "server" | "webui" | "system"; labelKey: string; icon: string }> = [
 	{ key: "server", labelKey: "settings.server", icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>` },
 	{ key: "webui", labelKey: "settings.webui", icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>` },
@@ -51,6 +57,13 @@ const tabs: Array<{ key: "server" | "webui" | "system"; labelKey: string; icon: 
 async function refresh() {
 	const data = await api.getConfig();
 	config.value = data && typeof data === "object" && "ws" in data ? data : null;
+	if (config.value) setTheme(config.value.web?.ui?.theme ?? "star");
+}
+
+function selectTheme(theme: string): void {
+	if (!config.value) return;
+	config.value.web.ui.theme = theme;
+	setTheme(theme);
 }
 
 async function save() {
@@ -263,6 +276,22 @@ onMounted(refresh);
 			</div>
 
 			<div v-if="activeTab === 'webui'" class="tab-panel">
+				<SettingsCard :title="t('settings.theme')">
+					<div class="theme-grid">
+						<button
+							v-for="option in themeOptions"
+							:key="option.id"
+							class="theme-option"
+							:class="{ active: config.web.ui.theme === option.id }"
+							@click="selectTheme(option.id)"
+						>
+							<span class="theme-swatch" :style="{ background: option.swatch }"></span>
+							<span>{{ t(option.labelKey) }}</span>
+						</button>
+					</div>
+					<p class="field-hint">{{ t('settings.themeHint') }}</p>
+				</SettingsCard>
+
 				<SettingsCard :title="t('settings.webui')">
 					<div class="form-group">
 						<label>{{ t('settings.httpPort') }}</label>
@@ -294,7 +323,7 @@ onMounted(refresh);
 						<button class="btn btn-danger" @click="handleResetPassword" :disabled="saving || resetSaving">
 							{{ t('settings.resetPassword') }}
 						</button>
-						<span v-if="resetMessage" style="margin-left: 10px; font-size: 13px; color: #f87171;">{{ resetMessage }}</span>
+						<span v-if="resetMessage" style="margin-left: 10px; font-size: 13px; color: var(--danger);">{{ resetMessage }}</span>
 					</div>
 				</SettingsCard>
 
@@ -477,6 +506,51 @@ onMounted(refresh);
 	font-weight: 500;
 }
 
+.theme-grid {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 8px;
+}
+
+.theme-option {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	padding: 10px 12px;
+	border: 1px solid var(--border);
+	border-radius: var(--radius);
+	background: var(--bg-input);
+	color: var(--text-secondary);
+	cursor: pointer;
+	font-family: inherit;
+	font-size: 13px;
+	text-align: left;
+	transition: border-color var(--dur-fast) var(--ease-out), background var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out);
+}
+
+.theme-option:hover {
+	border-color: var(--primary);
+	color: var(--text);
+}
+
+.theme-option.active {
+	border-color: var(--primary);
+	background: var(--primary-dim);
+	color: var(--text);
+}
+
+.theme-swatch {
+	width: 26px;
+	height: 26px;
+	border-radius: 7px;
+	border: 1px solid var(--border);
+	flex-shrink: 0;
+}
+
+@media (max-width: 480px) {
+	.theme-grid { grid-template-columns: 1fr; }
+}
+
 .locale-btn {
 	background: transparent;
 	border: 1px solid var(--border);
@@ -496,6 +570,6 @@ onMounted(refresh);
 .locale-btn.active {
 	background: var(--primary);
 	border-color: var(--primary);
-	color: #fff;
+	color: var(--on-primary);
 }
 </style>

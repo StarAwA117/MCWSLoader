@@ -40,7 +40,7 @@ usePolling(refresh, 2000);
 			:lines="messages"
 			height="400px"
 			:empty-text="t('chat.empty')"
-			line-style="color: #94a3b8;"
+			line-style="color: var(--text-muted);"
 			class="chat-output"
 		/>
 		<div style="display: flex; gap: 8px;">

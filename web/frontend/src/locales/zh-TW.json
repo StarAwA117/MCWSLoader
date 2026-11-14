@@ -301,6 +301,10 @@
 		"updateAutoCheck": "啟動時自動檢查更新",
 		"updateAutoCheckHint": "僅在腳本啟動時檢查一次；不會自動下載或覆蓋程式碼。",
 		"updatePrerelease": "包含預覽版更新",
-		"updatePrereleaseHint": "檢查 GitHub Pre-release（例如 2.0.0-beta.1）。"
+		"updatePrereleaseHint": "檢查 GitHub Pre-release（例如 2.0.0-beta.1）。",
+		"theme": "主題",
+		"themeHint": "僅替換配色，不影響功能。預設使用星風格。",
+		"themeStar": "星風格",
+		"themeMocha": "Catppuccin Mocha"
 	}
 }

@@ -37,7 +37,10 @@ Most values are reloaded when saved from the WebUI. Listener settings
 	"web": {
 		"port": 50005,
 		"auth": { "maxAttempts": 3, "windowMs": 60000, "lockoutMs": 60000 },
-		"ui": { "allowedOrigins": [] }
+		"ui": {
+			"theme": "star",
+			"allowedOrigins": []
+		}
 	},
 	"sapi": { "gmsg": "gmsg", "smsg": "smsg" },
 	"utils": { "tellAllToTell": false, "enablePolling": true },
@@ -93,6 +96,7 @@ See [Security](Security) for the reasoning behind `requireApproval` and
 | `web.auth.maxAttempts` | `3` | Failed logins before lockout |
 | `web.auth.windowMs` | `60000` | Attempt window in ms |
 | `web.auth.lockoutMs` | `60000` | Lockout duration in ms |
+| `web.ui.theme` | `star` | WebUI palette: `star` (default) or `catppuccin-mocha` |
 | `web.ui.allowedOrigins` | `[]` | Cross-origin API/WebSocket origins. Empty means same-origin/native clients only |
 
 Passwords are stored as a scrypt hash plus salt. Change the password in

@@ -112,7 +112,7 @@ function login() {
 	left: 8%;
 	width: 45%;
 	height: 45%;
-	background: radial-gradient(circle at 50% 50%, rgba(96,165,250,0.55) 0%, rgba(96,165,250,0.25) 35%, rgba(96,165,250,0.08) 55%, transparent 72%);
+	background: radial-gradient(circle at 50% 50%, var(--glow-a1) 0%, var(--glow-a2) 35%, var(--glow-a3) 55%, transparent 72%);
 	filter: blur(40px);
 	pointer-events: none;
 }
@@ -124,7 +124,7 @@ function login() {
 	right: 8%;
 	width: 45%;
 	height: 45%;
-	background: radial-gradient(circle at 50% 50%, rgba(96,165,250,0.48) 0%, rgba(96,165,250,0.22) 35%, rgba(96,165,250,0.06) 55%, transparent 72%);
+	background: radial-gradient(circle at 50% 50%, var(--glow-b1) 0%, var(--glow-b2) 35%, var(--glow-b3) 55%, transparent 72%);
 	filter: blur(40px);
 	pointer-events: none;
 }

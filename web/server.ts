@@ -298,8 +298,8 @@ function escapeHtmlAttribute(value: string): string {
 		.replace(/>/g, "&gt;");
 }
 
-// index.html 只变语言注入，按文件 mtime + 语言缓存，避免每个请求都读盘
-const htmlCache = { filePath: "", mtimeMs: 0, language: "", html: "" };
+// index.html 只变语言/主题注入，按文件 mtime + 语言 + 主题缓存，避免每个请求都读盘
+const htmlCache = { filePath: "", mtimeMs: 0, language: "", theme: "", html: "" };
 
 function sendHTML(res: ServerResponse, filePath: string): void {
 	let stat;
@@ -312,7 +312,8 @@ function sendHTML(res: ServerResponse, filePath: string): void {
 	}
 
 	const language = String(config.language ?? "zh-CN");
-	if (htmlCache.filePath === filePath && htmlCache.mtimeMs === stat.mtimeMs && htmlCache.language === language) {
+	const theme = config.web?.ui?.theme === "catppuccin-mocha" ? "catppuccin-mocha" : "star";
+	if (htmlCache.filePath === filePath && htmlCache.mtimeMs === stat.mtimeMs && htmlCache.language === language && htmlCache.theme === theme) {
 		res.writeHead(200, HTML_HEADERS);
 		res.end(htmlCache.html);
 		return;
@@ -321,10 +322,12 @@ function sendHTML(res: ServerResponse, filePath: string): void {
 	const html = fs.readFileSync(filePath, "utf-8");
 	// 语言通过 data 属性注入，避免内联 script 触发 CSP
 	const lang = escapeHtmlAttribute(language);
-	const injected = html.replace(/<html\b([^>]*)>/i, (_match, attrs: string) => `<html${attrs} data-language="${lang}">`);
+	const themeAttr = escapeHtmlAttribute(theme);
+	const injected = html.replace(/<html\b([^>]*)>/i, (_match, attrs: string) => `<html${attrs} data-language="${lang}" data-theme="${themeAttr}">`);
 	htmlCache.filePath = filePath;
 	htmlCache.mtimeMs = stat.mtimeMs;
 	htmlCache.language = language;
+	htmlCache.theme = theme;
 	htmlCache.html = injected;
 	res.writeHead(200, HTML_HEADERS);
 	res.end(injected);

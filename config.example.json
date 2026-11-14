@@ -36,6 +36,10 @@
 			"maxAttempts": 3,
 			"windowMs": 60000,
 			"lockoutMs": 60000
+		},
+		"ui": {
+			"theme": "star",
+			"allowedOrigins": []
 		}
 	},
 	"logLevel": "info",

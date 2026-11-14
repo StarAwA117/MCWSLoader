@@ -143,6 +143,7 @@ function normalizeConfig(cfg: AnyRecord): AnyRecord {
 	if (cfg.utils.enablePolling === undefined) cfg.utils.enablePolling = true;
 
 	if (!cfg.web.ui || typeof cfg.web.ui !== "object") cfg.web.ui = {};
+	if (cfg.web.ui.theme !== "catppuccin-mocha") cfg.web.ui.theme = "star";
 	if (!Array.isArray(cfg.web.ui.allowedOrigins)) cfg.web.ui.allowedOrigins = [];
 	cfg.web.ui.allowedOrigins = cfg.web.ui.allowedOrigins.map((item: unknown) => String(item));
 	// 删除旧顶层 rateLimit 避免混淆

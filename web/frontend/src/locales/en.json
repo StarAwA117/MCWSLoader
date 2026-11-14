@@ -301,6 +301,10 @@
 		"updateAutoCheck": "Check for updates at startup",
 		"updateAutoCheckHint": "Checks once when the script starts; does not download or overwrite code automatically.",
 		"updatePrerelease": "Include pre-release updates",
-		"updatePrereleaseHint": "Include GitHub Pre-releases such as 2.0.0-beta.1."
+		"updatePrereleaseHint": "Include GitHub Pre-releases such as 2.0.0-beta.1.",
+		"theme": "Theme",
+		"themeHint": "Color palette only; functionality is unchanged. Star is the default.",
+		"themeStar": "Star",
+		"themeMocha": "Catppuccin Mocha"
 	}
 }

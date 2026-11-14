@@ -54,7 +54,7 @@ export interface AuthConfig {
 export interface WebConfig {
 	port?: number;
 	auth?: AuthConfig;
-	ui?: { allowedOrigins?: string[] };
+	ui?: { theme?: string; allowedOrigins?: string[] };
 }
 
 export interface SapiConfig {
