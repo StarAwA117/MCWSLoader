@@ -83,7 +83,8 @@ usePolling(refresh, 3000);
 							<td style="font-family: monospace; font-size: 12px;">{{ c.id.slice(0, 8) }}...</td>
 							<td>{{ c.ip }}</td>
 							<td>
-								<span :class="c.isMain ? 'badge' : 'tag tag-user'">
+								<span v-if="!c.trusted" class="tag tag-blocker">{{ t('clients.pending') }}</span>
+								<span v-else :class="c.isMain ? 'badge' : 'tag tag-user'">
 									{{ c.isMain ? t('dashboard.mainClient') : t('dashboard.normal') }}
 								</span>
 							</td>

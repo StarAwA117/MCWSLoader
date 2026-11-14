@@ -9,7 +9,9 @@
 			"rateLimitWindow": 60000,
 			"rateLimitMax": 10,
 			"perMessageDeflate": false,
-			"maxPayload": 8388608
+			"maxPayload": 8388608,
+			"requireApproval": true,
+			"allowedIPs": []
 		},
 		"checkDependenciesOnLoad": true,
 		"host": "127.0.0.1"

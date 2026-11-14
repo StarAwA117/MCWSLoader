@@ -97,6 +97,8 @@ export const api = {
 	tellClient: (id: string, message: string) =>
 		request(`/clients/${id}/tell`, { method: "POST", body: JSON.stringify({ message }) }),
 	setMainClient: (id: string) => request(`/clients/${id}/set-main`, { method: "POST" }),
+	approveClient: (id: string) => request(`/clients/${id}/approve`, { method: "POST" }),
+	revokeClient: (id: string) => request(`/clients/${id}/revoke`, { method: "POST" }),
 	disconnectClient: (id: string) => request(`/clients/${id}/disconnect`, { method: "POST" }),
 	getLogs: (name = "app", lines = 200) =>
 		request(`/logs?name=${encodeURIComponent(name)}&lines=${lines}`),

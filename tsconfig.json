@@ -1,10 +1,14 @@
 {
 	"compilerOptions": {
 		"target": "ES2022",
-		"lib": ["ES2023"],
+		"lib": [
+			"ES2023"
+		],
 		"module": "NodeNext",
 		"moduleResolution": "NodeNext",
-		"types": ["node"],
+		"types": [
+			"node"
+		],
 		"strict": true,
 		"noEmit": true,
 		"allowJs": true,
@@ -25,7 +29,15 @@
 		"lib/**/*",
 		"web/server.js",
 		"web/server.ts",
-		"types/**/*.d.ts"
+		"types/**/*.d.ts",
+		"test/**/*.ts"
 	],
-	"exclude": ["node_modules", "web/frontend", "mod", "resources", "tmp", "logs"]
+	"exclude": [
+		"node_modules",
+		"web/frontend",
+		"mod",
+		"resources",
+		"tmp",
+		"logs"
+	]
 }

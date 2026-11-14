@@ -382,9 +382,11 @@ Cross-origin browser clients are rejected unless their origin is listed in
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| `GET` | `/api/clients` | List connected clients (includes `localPlayerName`) |
+| `GET` | `/api/clients` | List connected clients (includes `localPlayerName`, `trusted`) |
 | `POST` | `/api/clients/:id/tell` | Send tell to a client (`{ message }`) |
-| `POST` | `/api/clients/:id/set-main` | Set a client as main |
+| `POST` | `/api/clients/:id/approve` | Approve a pending WebSocket client (trusted messages only) |
+| `POST` | `/api/clients/:id/revoke` | Revoke trust; the client can no longer send commands |
+| `POST` | `/api/clients/:id/set-main` | Set a client as main (rejected while pending) |
 | `POST` | `/api/clients/:id/disconnect` | Disconnect a client |
 
 ### Logs

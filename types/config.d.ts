@@ -25,6 +25,10 @@ export interface ConnectionConfig {
 	rateLimitMax?: number;
 	perMessageDeflate?: boolean;
 	maxPayload?: number;
+	/** 非本机连接是否需要 WebUI 人工批准（默认在非 loopback 监听时为 true） */
+	requireApproval?: boolean;
+	/** 允许连接的 IP / CIDR；为空表示不限制 */
+	allowedIPs?: string[];
 }
 
 export interface WsConfig {

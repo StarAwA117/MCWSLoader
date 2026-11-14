@@ -4,6 +4,7 @@ export interface ClientInfo {
 	id: string;
 	ip: string;
 	isMain: boolean;
+	trusted: boolean;
 	connectedAt: number;
 	localPlayerName: string | null;
 }

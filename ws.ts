@@ -3,6 +3,7 @@ import type { RawData } from "ws";
 import type { IncomingMessage } from "node:http";
 import type { Duplex } from "node:stream";
 import { randomUUID } from "node:crypto";
+import { BlockList, isIP } from "node:net";
 import { logger, closeLogStreams } from "./lib/logger.js";
 import { config, ClientModManager, ServerModManager, modRegistry, checkModDependencies } from "./lib/mods.js";
 import Utils from "./lib/utils.js";
@@ -21,6 +22,58 @@ const RATE_LIMIT_WINDOW = connCfg.rateLimitWindow ?? 60000;
 const RATE_LIMIT_MAX = connCfg.rateLimitMax ?? 10;
 // WebUI 的开关此前没有生效，始终按 rateLimitMax 限流
 const ENABLE_RATE_LIMIT = connCfg.enableConnectionRateLimit !== false;
+
+// 原生 MCBE 的 /connect 无法携带 token/header，因此用 IP 白名单 + 人工批准
+// 作为握手认证的替代方案。
+const IP_ALLOWLIST = new BlockList();
+let IP_ALLOWLIST_SIZE = 0;
+for (const raw of connCfg.allowedIPs ?? []) {
+	const text = String(raw).trim();
+	if (!text) continue;
+	const [address, prefixText] = text.split("/");
+	const family = isIP(address ?? "");
+	if (!family) {
+		logger.warning(`Ignoring invalid allowedIPs entry: ${text}`);
+		continue;
+	}
+	const type = family === 6 ? "ipv6" : "ipv4";
+	try {
+		if (prefixText !== undefined) {
+			const prefix = Number(prefixText);
+			const max = family === 6 ? 128 : 32;
+			if (!Number.isInteger(prefix) || prefix < 0 || prefix > max) throw new Error("invalid prefix");
+			IP_ALLOWLIST.addSubnet(address ?? "", prefix, type);
+		} else {
+			IP_ALLOWLIST.addAddress(address ?? "", type);
+		}
+		IP_ALLOWLIST_SIZE++;
+	} catch {
+		logger.warning(`Ignoring invalid allowedIPs entry: ${text}`);
+	}
+}
+
+function isLoopbackHost(host: string): boolean {
+	return host === "127.0.0.1" || host === "localhost" || host === "::1";
+}
+
+const REQUIRE_APPROVAL = connCfg.requireApproval ?? !isLoopbackHost(config.ws.host ?? "127.0.0.1");
+
+function normalizeIP(ip: string): string {
+	return ip.startsWith("::ffff:") ? ip.slice(7) : ip;
+}
+
+function isLoopbackIP(ip: string): boolean {
+	const value = normalizeIP(ip);
+	return value === "::1" || value.startsWith("127.");
+}
+
+function isIPAllowed(ip: string): boolean {
+	if (IP_ALLOWLIST_SIZE === 0) return true;
+	const value = normalizeIP(ip);
+	const family = isIP(value);
+	if (!family) return false;
+	return IP_ALLOWLIST.check(value, family === 6 ? "ipv6" : "ipv4");
+}
 
 function isRateLimited(ip: string): boolean {
 	if (!ENABLE_RATE_LIMIT || RATE_LIMIT_MAX <= 0) return false;
@@ -107,7 +160,13 @@ startWebServer(destroy).catch((e: Error) => {
 // Handle client connections
 server.on("connection", (socket: WebSocket) => {
 	const ws = socket as unknown as Client & WebSocket;
-	const clientIP = ws._socket?.remoteAddress ?? "unknown";
+	const clientIP = normalizeIP(ws._socket?.remoteAddress ?? "unknown");
+
+	if (!isIPAllowed(clientIP)) {
+		logger.warning(`Connection rejected: IP not allowed ${clientIP}`);
+		ws.close(1008, "Forbidden");
+		return;
+	}
 
 	if (isRateLimited(clientIP)) {
 		logger.warning(`Connection rate limited: ${clientIP}`);
@@ -130,15 +189,20 @@ server.on("connection", (socket: WebSocket) => {
 	logger.info(`Client connected: ${clientIP}`);
 
 	ws.id = randomUUID();
+	ws.trusted = !REQUIRE_APPROVAL || isLoopbackIP(clientIP);
 	ws.utils = new Utils(ws);
 
-	const isMainClient = !Current.client;
+	const isMainClient = !Current.client && ws.trusted;
 	const clientMod = new ClientModManager(ws);
 	ws.clientMod = clientMod;
 	ws.localPlayerName = null;
 	ws._connectedAt = Date.now();
 	Current.addClient(ws, clientMod);
+	// 未批准的连接不能成为主客户端
+	if (!ws.trusted && Current.client === ws) Current.client = null;
+	if (!ws.trusted) clientMod.sapi?.stop();
 	if (isMainClient) logger.info("Main client connected");
+	else if (!ws.trusted) logger.warning(`Client pending approval: ${clientIP}`);
 
 	setTimeout(async () => {
 		try {
@@ -154,6 +218,9 @@ server.on("connection", (socket: WebSocket) => {
 	ServerModManager.onClientConnect(ws, isMainClient);
 
 	ws.on("message", (message: RawData) => {
+		// 原生 MCBE 无法在握手时认证，未批准连接的所有包直接丢弃
+		if (ws.trusted === false) return;
+
 		let data: unknown;
 		try {
 			data = JSON.parse(String(message));

@@ -136,6 +136,7 @@ function getClientInfo(ws: Client): {
 	id: string;
 	ip: string;
 	isMain: boolean;
+	trusted: boolean;
 	connectedAt: number;
 	localPlayerName: string | null;
 } {
@@ -143,6 +144,7 @@ function getClientInfo(ws: Client): {
 		id: ws.id,
 		ip: ws._socket?.remoteAddress || "unknown",
 		isMain: ws === Current.client,
+		trusted: ws.trusted !== false,
 		connectedAt: ws._connectedAt || Date.now(),
 		localPlayerName: ws.localPlayerName || null
 	};
@@ -912,11 +914,49 @@ async function handleAPI(req: IncomingMessage, res: ServerResponse, url: URL): P
 			}
 			return json(res, { ok: false, message: "Client not found" }, 404);
 		}
+		const clientTrustMatch = pathname.match(/^\/api\/clients\/(.+)\/(approve|revoke)$/);
+		if (clientTrustMatch && method === "POST") {
+			const clientId = decodeURIComponent(clientTrustMatch[1] ?? "");
+			const action = clientTrustMatch[2];
+			for (const [ws] of Current.clientMods) {
+				if (ws.id !== clientId) continue;
+
+				if (action === "approve") {
+					ws.trusted = true;
+					ws.clientMod?.sapi?.start();
+					if (!Current.client) {
+						Current.setMain(ws);
+						ServerModManager.attachMainClient(ws);
+					}
+				} else {
+					ws.trusted = false;
+					ws.clientMod?.sapi?.stop();
+					if (Current.client === ws) {
+						Current.client = null;
+						for (const [candidate] of Current.clientMods) {
+							if (candidate !== ws && candidate.trusted !== false) {
+								Current.setMain(candidate);
+								ServerModManager.attachMainClient(candidate);
+								break;
+							}
+						}
+					}
+				}
+				return json(res, { ok: true, trusted: ws.trusted });
+			}
+			return json(res, { ok: false, message: "Client not found" }, 404);
+		}
+
 		const clientMoveMatch = pathname.match(/^\/api\/clients\/(.+)\/set-main$/);
 		if (clientMoveMatch && method === "POST") {
 			const clientId = decodeURIComponent(clientMoveMatch[1]);
 			for (const [ws] of Current.clientMods) {
-				if (ws.id === clientId) { switchMainClient(ws); return json(res, { ok: true }); }
+				if (ws.id !== clientId) continue;
+				if (ws.trusted === false) {
+					return json(res, { ok: false, message: "Client is pending approval" }, 409);
+				}
+				switchMainClient(ws);
+				return json(res, { ok: true });
 			}
 			return json(res, { ok: false, message: "Client not found" }, 404);
 		}

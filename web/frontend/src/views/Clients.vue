@@ -31,6 +31,23 @@ async function setMain() {
 	else await alert(res.message ?? "");
 }
 
+async function approve() {
+	if (!selected.value) return;
+	const res = await api.approveClient(selected.value.id);
+	if (res.ok) { showDetail.value = false; await refresh(); }
+	else await alert(res.message ?? "");
+}
+
+async function revoke() {
+	if (!selected.value) return;
+	const name = selected.value.localPlayerName || selected.value.id.slice(0, 8);
+	const ok = await confirm(t("clients.confirmRevoke", { name }));
+	if (!ok) return;
+	const res = await api.revokeClient(selected.value.id);
+	if (res.ok) { showDetail.value = false; await refresh(); }
+	else await alert(res.message ?? "");
+}
+
 async function disconnect() {
 	if (!selected.value) return;
 	const name = selected.value.localPlayerName || selected.value.id.slice(0, 8);
@@ -67,6 +84,7 @@ usePolling(refresh, 3000);
 					<div style="font-weight: 500; font-size: 14px;">
 						{{ c.localPlayerName || t('clients.unnamed') }}
 						<span v-if="c.isMain" class="badge" style="margin-left: 6px;">{{ t('clients.mainClient') }}</span>
+						<span v-if="!c.trusted" class="tag tag-blocker" style="margin-left: 6px;">{{ t('clients.pending') }}</span>
 					</div>
 					<div class="client-meta">
 						<span>IP: {{ c.ip }}</span>
@@ -84,9 +102,12 @@ usePolling(refresh, 3000);
 		<div class="detail-row"><span class="detail-label">IP</span><span style="font-family: monospace;">{{ selected.ip }}</span></div>
 		<div class="detail-row"><span class="detail-label">{{ t('clients.uuid') }}</span><span style="font-family: monospace; font-size: 12px;">{{ selected.id }}</span></div>
 		<div class="detail-row"><span class="detail-label">{{ t('clients.role') }}</span><span :class="selected.isMain ? 'badge' : 'tag tag-user'">{{ selected.isMain ? t('clients.mainClient') : t('clients.normal') }}</span></div>
+		<div class="detail-row"><span class="detail-label">{{ t('clients.trust') }}</span><span :class="selected.trusted ? 'tag tag-owner' : 'tag tag-blocker'">{{ selected.trusted ? t('clients.approved') : t('clients.pending') }}</span></div>
 		<div class="detail-row"><span class="detail-label">{{ t('clients.connectedAt') }}</span><span>{{ new Date(selected.connectedAt).toLocaleString() }}</span></div>
 		<template #footer>
-			<button v-if="!selected.isMain" class="btn btn-primary btn-sm" @click="setMain">{{ t('clients.switch') }}</button>
+			<button v-if="!selected.trusted" class="btn btn-primary btn-sm" @click="approve">{{ t('clients.approve') }}</button>
+			<button v-else class="btn btn-ghost btn-sm" @click="revoke">{{ t('clients.revoke') }}</button>
+			<button v-if="selected.trusted && !selected.isMain" class="btn btn-ghost btn-sm" @click="setMain">{{ t('clients.switch') }}</button>
 			<button class="btn btn-danger btn-sm" @click="disconnect">{{ t('clients.disconnect') }}</button>
 		</template>
 	</ModalShell>

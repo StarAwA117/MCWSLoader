@@ -23,6 +23,8 @@ export interface Client {
 	localPlayerName?: string | null;
 	clientMod?: ClientModManager;
 	utils?: Utils;
+	/** false 表示连接尚未在 WebUI 中批准，消息会被丢弃 */
+	trusted?: boolean;
 
 	send(data: string | Buffer, callback?: (error?: Error) => void): void;
 	close(code?: number, reason?: string): void;

@@ -38,7 +38,7 @@ npm run typecheck
 | 配置项 | 说明 |
 |--------|------|
 | `ws.name` / `ws.port` / `ws.host` | 服务器名称、WebSocket 端口（默认 8080）、监听地址（默认 `127.0.0.1`；局域网需设为 `0.0.0.0`） |
-| `ws.connection.*` | 最大连接数、连接频率限制、`perMessageDeflate`、`maxPayload`（默认 8MB） |
+| `ws.connection.*` | 最大连接数、连接频率限制、`perMessageDeflate`、`maxPayload`（默认 8MB）、`allowedIPs`、`requireApproval` |
 | `ws.checkDependenciesOnLoad` | 启动时是否检查并自动安装 Mod 声明的 npm 依赖（默认开启） |
 | `command.maxLength` | 单条命令最大长度 |
 | `command.rateLimit.*` | 命令转发限流（默认 50ms 内 1024 条，超限自动延后到下一窗口） |
@@ -52,6 +52,9 @@ npm run typecheck
 ## 安全
 
 - WebSocket 默认只监听 `127.0.0.1`；需要局域网连接时设置 `ws.host` 为 `0.0.0.0`
+- 原版 MCBE 的 `/connect` **无法携带 token/header**，因此没有真正的握手认证；作为替代：
+  - 非本机连接默认进入“待批准”状态（`requireApproval`），消息全部丢弃，需在 WebUI 客户端页面点“批准连接”
+  - 可用 `allowedIPs` 配置 IP/CIDR 白名单，例如 `["192.168.1.0/24"]`
 - 浏览器 Origin 默认不允许连接 WebSocket；需要时在 `web.ui.allowedOrigins` 显式列出
 - WebUI 登录仅接受 `POST /api/login`，密码不会出现在 URL 中
 - `t:exec` 默认禁用，需在配置中显式开启 `command.allowShellExec`

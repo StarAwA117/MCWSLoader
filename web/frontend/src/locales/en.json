@@ -100,7 +100,13 @@
 		"switch": "Set Main",
 		"disconnect": "Disconnect",
 		"confirmDisconnect": "Disconnect {name}?",
-		"role": "Role"
+		"role": "Role",
+		"pending": "Pending",
+		"trust": "Trust",
+		"approved": "Approved",
+		"approve": "Approve",
+		"revoke": "Revoke trust",
+		"confirmRevoke": "Revoke trust for {name}? This client will no longer be able to send commands."
 	},
 	"commands": {
 		"title": "Commands",
