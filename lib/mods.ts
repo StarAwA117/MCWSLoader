@@ -61,6 +61,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const MOD_DIR = path.resolve(__dirname, "..", "mod");
 const CONFIG_PATH = path.resolve(__dirname, "..", "config.json");
+const CONFIG_EXAMPLE_PATH = path.resolve(__dirname, "..", "config.example.json");
 const MODS_CONFIG_PATH = path.join(MOD_DIR, "mods_config.json");
 const PROJECT_ROOT = path.resolve(MOD_DIR, "..");
 
@@ -70,9 +71,20 @@ function projectRoot(): string {
 
 // ==================== Global Config ====================
 
+// CI / 直接导入 lib 时可能没有 config.json（被 gitignore），回退到示例配置
+function readConfigText(): string {
+	if (fs.existsSync(CONFIG_PATH)) return fs.readFileSync(CONFIG_PATH, "utf-8");
+	if (fs.existsSync(CONFIG_EXAMPLE_PATH)) {
+		// 此时 logger 可能仍在循环初始化，使用 console 避免 TDZ
+		console.warn("config.json not found, using config.example.json");
+		return fs.readFileSync(CONFIG_EXAMPLE_PATH, "utf-8");
+	}
+	throw new Error("config.json and config.example.json are both missing");
+}
+
 let rawConfig: string;
 try {
-	rawConfig = fs.readFileSync(CONFIG_PATH, "utf-8");
+	rawConfig = readConfigText();
 } catch (e) {
 	throw new Error(`Failed to read config.json: ${(e as Error).message}`);
 }
@@ -96,7 +108,12 @@ function normalizeConfig(cfg: AnyRecord): AnyRecord {
 	if (safety.perMessageDeflate !== undefined && conn.perMessageDeflate === undefined) conn.perMessageDeflate = safety.perMessageDeflate;
 	if (safety.maxPayload !== undefined && conn.maxPayload === undefined) conn.maxPayload = safety.maxPayload;
 	if (!cfg.ws) cfg.ws = { name: "MCWSLoader", port: 8080 };
+	if (!cfg.ws.host) cfg.ws.host = "127.0.0.1";
 	cfg.ws.connection = conn;
+	// 默认要求批准；loopback 连接在 ws.ts 中自动信任，所以本机使用无感
+	if (conn.requireApproval === undefined) conn.requireApproval = true;
+	if (!Array.isArray(conn.allowedIPs)) conn.allowedIPs = [];
+	conn.allowedIPs = conn.allowedIPs.map((item: unknown) => String(item));
 	// 旧 safety 命令相关 -> command
 	if (safety.commandMaxLength !== undefined && cmd.maxLength === undefined) cmd.maxLength = safety.commandMaxLength;
 	// 旧顶层 rateLimit.command -> command.rateLimit
@@ -106,7 +123,17 @@ function normalizeConfig(cfg: AnyRecord): AnyRecord {
 	if (oldRate.windowMs !== undefined && rate.windowMs === undefined) rate.windowMs = oldRate.windowMs;
 	if (oldRate.maxPerWindow !== undefined && rate.maxPerWindow === undefined) rate.maxPerWindow = oldRate.maxPerWindow;
 	cmd.rateLimit = rate;
+	if (!cmd.playerRateLimit || typeof cmd.playerRateLimit !== "object") cmd.playerRateLimit = {};
+	if (cmd.playerRateLimit.enabled === undefined) cmd.playerRateLimit.enabled = true;
+	if (cmd.playerRateLimit.windowMs === undefined) cmd.playerRateLimit.windowMs = 5000;
+	if (cmd.playerRateLimit.maxPerWindow === undefined) cmd.playerRateLimit.maxPerWindow = 10;
+	if (cmd.allowShellExec === undefined) cmd.allowShellExec = false;
 	cfg.command = cmd;
+
+	if (!cfg.web || typeof cfg.web !== "object") cfg.web = {};
+	if (!cfg.web.ui || typeof cfg.web.ui !== "object") cfg.web.ui = {};
+	if (!Array.isArray(cfg.web.ui.allowedOrigins)) cfg.web.ui.allowedOrigins = [];
+	cfg.web.ui.allowedOrigins = cfg.web.ui.allowedOrigins.map((item: unknown) => String(item));
 	// 删除旧顶层 rateLimit 避免混淆
 	if (cfg.rateLimit) delete cfg.rateLimit;
 	// 删除旧 safety 避免混淆
@@ -135,7 +162,7 @@ function sanitizePrefix(prefix: unknown): string {
 }
 
 export function reloadConfig(): AppConfig {
-	const fresh = sanitizeConfigObject(JSON.parse(fs.readFileSync(CONFIG_PATH, "utf-8"))) as AppConfig;
+	const fresh = sanitizeConfigObject(JSON.parse(readConfigText())) as AppConfig;
 	const prevPrefix = Command.commandPrefix;
 	for (const k of Object.keys(config)) delete config[k];
 	Object.assign(config, fresh);
