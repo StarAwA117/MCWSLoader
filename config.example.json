@@ -11,7 +11,8 @@
 			"perMessageDeflate": false,
 			"maxPayload": 0
 		},
-		"checkDependenciesOnLoad": true
+		"checkDependenciesOnLoad": true,
+		"host": "127.0.0.1"
 	},
 	"command": {
 		"maxLength": 461,
@@ -19,7 +20,8 @@
 			"enabled": true,
 			"windowMs": 50,
 			"maxPerWindow": 1024
-		}
+		},
+		"allowShellExec": false
 	},
 	"web": {
 		"port": 50005,

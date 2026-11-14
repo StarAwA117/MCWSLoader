@@ -82,7 +82,8 @@ the Mod lifecycle and the injected APIs (`client`, `Command`, `eventBus`,
 ## Dependencies
 
 `dependencies` is a list of **npm package names** that the Mod needs — the same
-idea as `package.json` dependencies, declared per Mod:
+idea as `package.json` dependencies, declared per Mod. Packages are installed
+with `--ignore-scripts` (no lifecycle scripts are executed):
 
 ```json
 {

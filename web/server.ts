@@ -47,6 +47,14 @@ let shutdownHandler: (() => Promise<void>) | null = null;
 // 请求体上限：防止异常客户端一次占满内存（Mod 导入单独限制）
 const MAX_BODY_BYTES = 2 * 1024 * 1024;
 const MAX_UPLOAD_BYTES = 64 * 1024 * 1024;
+function applyCors(req: IncomingMessage, res: ServerResponse): void {
+	const origin = req.headers.origin;
+	// 每次读取配置，WebUI 修改 allowedOrigins 后无需重启 API
+	const allowed = config.web?.ui?.allowedOrigins ?? [];
+	if (!origin || !allowed.includes(origin)) return;
+	res.setHeader("Access-Control-Allow-Origin", origin);
+	res.setHeader("Vary", "Origin");
+}
 
 // --- Auth rate limiting ---
 const authAttempts = new Map<string, AuthState>();
@@ -71,9 +79,9 @@ function json(res: ServerResponse, obj: unknown, status = 200): void {
 	if (res.headersSent) return;
 	res.writeHead(status, {
 		"Content-Type": "application/json; charset=utf-8",
-		"Access-Control-Allow-Origin": "*",
 		"X-Content-Type-Options": "nosniff",
 		"X-Frame-Options": "DENY",
+		"Referrer-Policy": "no-referrer",
 		"Cache-Control": "no-store"
 	});
 	res.end(JSON.stringify(obj));
@@ -147,6 +155,13 @@ function listClients(): ReturnType<typeof getClientInfo>[] {
 const SESSION_TIMEOUT = 24 * 60 * 60 * 1000; // 24 hours
 const sessions = new Map<string, { ip: string; createdAt: number }>();
 
+function safeEqual(a: string, b: string): boolean {
+	const left = Buffer.from(a, "utf8");
+	const right = Buffer.from(b, "utf8");
+	if (left.length !== right.length) return false;
+	return crypto.timingSafeEqual(left, right);
+}
+
 function hashPassword(password: string): Promise<{ salt: string; hash: string }> {
 	return new Promise((resolve, reject) => {
 		const salt = crypto.randomBytes(16).toString("hex");
@@ -161,7 +176,7 @@ function verifyPassword(password: string, salt: string, hash: string): Promise<b
 	return new Promise((resolve, reject) => {
 		crypto.scrypt(password, salt, 64, (err, derivedKey) => {
 			if (err) return reject(err);
-			resolve(derivedKey.toString("hex") === hash);
+			resolve(safeEqual(derivedKey.toString("hex"), hash));
 		});
 	});
 }
@@ -173,9 +188,9 @@ async function checkPassword(password: string): Promise<boolean> {
 	}
 	// 兼容旧版明文密码
 	if (auth.password) {
-		return password === auth.password;
+		return safeEqual(password, auth.password);
 	}
-	if (temporaryPassword && password === temporaryPassword) {
+	if (temporaryPassword && safeEqual(password, temporaryPassword)) {
 		return true;
 	}
 	return false;
@@ -253,12 +268,34 @@ const MIME_TYPES: Record<string, string> = {
 	".woff": "font/woff"
 };
 
-const HTML_HEADERS = {
+const HTML_HEADERS: Record<string, string> = {
 	"Content-Type": "text/html; charset=utf-8",
 	"X-Content-Type-Options": "nosniff",
 	"X-Frame-Options": "DENY",
+	"Referrer-Policy": "no-referrer",
+	"Permissions-Policy": "camera=(), microphone=(), geolocation=()",
+	"Content-Security-Policy": [
+		"default-src 'self'",
+		"script-src 'self'",
+		"style-src 'self' 'unsafe-inline'",
+		"img-src 'self' data: https:",
+		"font-src 'self' data:",
+		"connect-src 'self'",
+		"object-src 'none'",
+		"base-uri 'none'",
+		"form-action 'self'",
+		"frame-ancestors 'none'"
+	].join("; "),
 	"Cache-Control": "no-store"
 };
+
+function escapeHtmlAttribute(value: string): string {
+	return value
+		.replace(/&/g, "&amp;")
+		.replace(/"/g, "&quot;")
+		.replace(/</g, "&lt;")
+		.replace(/>/g, "&gt;");
+}
 
 // index.html 只变语言注入，按文件 mtime + 语言缓存，避免每个请求都读盘
 const htmlCache = { filePath: "", mtimeMs: 0, language: "", html: "" };
@@ -281,9 +318,9 @@ function sendHTML(res: ServerResponse, filePath: string): void {
 	}
 
 	const html = fs.readFileSync(filePath, "utf-8");
-	// JSON.stringify 后转义 "<"，避免配置里的语言值逃出 <script>
-	const lang = JSON.stringify(language).replace(/</g, "\\u003c");
-	const injected = html.replace("<head>", `<head><script>window.__LANGUAGE__=${lang};</script>`);
+	// 语言通过 data 属性注入，避免内联 script 触发 CSP
+	const lang = escapeHtmlAttribute(language);
+	const injected = html.replace(/<html\b([^>]*)>/i, (_match, attrs: string) => `<html${attrs} data-language="${lang}">`);
 	htmlCache.filePath = filePath;
 	htmlCache.mtimeMs = stat.mtimeMs;
 	htmlCache.language = language;
@@ -320,7 +357,8 @@ function serveStatic(res: ServerResponse, filePath: string): void {
 	const headers: Record<string, string> = {
 		"Content-Type": mime,
 		"X-Content-Type-Options": "nosniff",
-		"X-Frame-Options": "DENY"
+		"X-Frame-Options": "DENY",
+		"Referrer-Policy": "no-referrer"
 	};
 	if (ext === ".html") {
 		headers["Cache-Control"] = "no-store";
@@ -350,6 +388,10 @@ function unloadMod(modEntry: ModEntry | null): void {
 
 // 拉取并切换到指定 Release（更新/回退共用）
 async function checkoutTag(tag: string): Promise<void> {
+	// 防止把 - 开头的参数注入 git，或使用非法 ref
+	if (typeof tag !== "string" || !/^[A-Za-z0-9][A-Za-z0-9._/-]*$/.test(tag) || tag.includes("..")) {
+		throw new Error("Invalid version tag");
+	}
 	const opts = { cwd: REPO_ROOT, maxBuffer: 10 * 1024 * 1024 };
 	await execAsync("git fetch --all", opts);
 	await execAsync("git reset --hard HEAD", opts);
@@ -369,10 +411,10 @@ function switchMainClient(target: Client): void {
 async function handleAPI(req: IncomingMessage, res: ServerResponse, url: URL): Promise<void> {
 	const method = req.method;
 	const pathname = url.pathname;
+	applyCors(req, res);
 
 	if (method === "OPTIONS") {
 		res.writeHead(204, {
-			"Access-Control-Allow-Origin": "*",
 			"Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
 			"Access-Control-Allow-Headers": "Content-Type, X-Auth-Token",
 			"X-Content-Type-Options": "nosniff",
@@ -383,15 +425,10 @@ async function handleAPI(req: IncomingMessage, res: ServerResponse, url: URL): P
 	}
 
 	// Login endpoint (no auth required)
-	if (pathname === "/api/login" && (method === "GET" || method === "POST")) {
-		let password = "";
-		if (method === "GET") {
-			password = url.searchParams.get("pwd") || "";
-		} else {
-			const payload = await readJson(req, res);
-			if (!payload) return;
-			password = String(payload.password || "");
-		}
+	if (pathname === "/api/login" && method === "POST") {
+		const payload = await readJson(req, res);
+		if (!payload) return;
+		const password = String(payload.password || "");
 		const ip = req.socket.remoteAddress || "unknown";
 
 		const state = getAuthState(ip);

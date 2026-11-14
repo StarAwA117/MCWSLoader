@@ -13,6 +13,8 @@ export interface RateLimitConfig {
 export interface CommandConfig {
 	maxLength?: number;
 	rateLimit?: RateLimitConfig;
+	/** 是否允许 owner 通过 t:exec 执行服务器 shell 命令（默认 false） */
+	allowShellExec?: boolean;
 }
 
 export interface ConnectionConfig {
@@ -28,6 +30,8 @@ export interface ConnectionConfig {
 export interface WsConfig {
 	name: string;
 	port: number;
+	/** 监听地址；默认 127.0.0.1，局域网连接需设为 0.0.0.0 */
+	host?: string;
 	connection?: ConnectionConfig;
 	checkDependenciesOnLoad?: boolean;
 }

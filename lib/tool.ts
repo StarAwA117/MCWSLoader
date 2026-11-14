@@ -25,6 +25,7 @@ export default class Tool {
 	declare ClientModManager: ClientModManagerClass;
 	declare reloadConfig: () => unknown;
 	declare exec: typeof import("node:child_process").exec;
+	declare config: Record<string, any>;
 
 	/**
 	 * 格式化命令帮助列表
@@ -336,6 +337,10 @@ export default class Tool {
 				this.Command.create("t:exec", "在服务器终端执行命令")
 					.addString("命令内容", true)
 					.setFunc((_: string, command: string) => {
+						if (this.config?.command?.allowShellExec !== true) {
+							this.client.tellAll("§cTool | §fError > §it:exec 已被禁用（config.command.allowShellExec = false）");
+							return;
+						}
 						this.exec(command, { timeout: 30000 }, (error, stdout, stderr) => {
 							if (error) {
 								this.client.tellAll(`§cTool | §fexec > §i${error.message}`);

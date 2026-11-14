@@ -317,12 +317,14 @@ Global runtime state (`lib/current.ts`).
 ## HTTP API
 
 REST API served by the WebUI backend. All endpoints require `X-Auth-Token` header except `/api/login`.
+Cross-origin browser clients are rejected unless their origin is listed in
+`web.ui.allowedOrigins`; same-origin WebUI requests need no extra configuration.
 
 ### Authentication
 
 | Method | Endpoint | Auth | Description |
 |--------|----------|:----:|-------------|
-| `POST` | `/api/login` | No | Login with `{ password }`, returns `{ ok, token }` (GET `?pwd=` still accepted) |
+| `POST` | `/api/login` | No | Login with `{ password }`, returns `{ ok, token }` |
 
 ### Status
 

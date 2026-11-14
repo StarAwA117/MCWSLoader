@@ -88,6 +88,17 @@ Command.commandPrefix = sanitizePrefix(config.commandPrefix);
 config.commandPrefix = Command.commandPrefix;
 
 // 空前缀会让所有聊天消息都被当成命令；配置里出现非法值时回退到默认值
+// 拒绝绝对路径 / 盘符 / ..，避免 manifest 的 entry 指向 Mod 目录之外
+function normalizeModEntry(value: unknown): string | null {
+	if (typeof value !== "string" || !value) return null;
+	const normalized = value.replace(/\\/g, "/");
+	if (normalized.startsWith("/") || /^[A-Za-z]:/.test(normalized) || normalized.split("/").includes("..")) {
+		logger.warning(`Mod entry path rejected: ${value}`);
+		return null;
+	}
+	return normalized;
+}
+
 function sanitizePrefix(prefix: unknown): string {
 	return (typeof prefix === "string" && prefix && !/\s/.test(prefix)) ? prefix : "$";
 }
@@ -226,8 +237,8 @@ class ModRegistry {
 				author: manifest.author || "",
 				enabled,
 				entry: {
-					server: rawServer ? String(rawServer).replace(/\\/g, "/") : null,
-					client: rawClient ? String(rawClient).replace(/\\/g, "/") : null
+					server: normalizeModEntry(rawServer),
+					client: normalizeModEntry(rawClient)
 				},
 				path: modPath,
 				config: modConfig,

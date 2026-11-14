@@ -1,13 +1,12 @@
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
-import { useRouter, useRoute } from "vue-router";
+import { useRouter } from "vue-router";
 import { loginWithPassword } from "../api";
 import { useI18n } from "../composables/useI18n";
 
 const { t } = useI18n();
 
 const router = useRouter();
-const route = useRoute();
 const password = ref("");
 const error = ref("");
 const loading = ref(false);
@@ -50,10 +49,6 @@ onMounted(() => {
 	if (token) {
 		router.replace("/");
 		return;
-	}
-	const pwd = route.query.pwd;
-	if (typeof pwd === "string" && pwd) {
-		doLogin(pwd);
 	}
 });
 

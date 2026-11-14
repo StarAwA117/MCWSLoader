@@ -41,7 +41,7 @@ All commands use the prefix defined in `config.json` (`commandPrefix`, default `
 | `t:move` | Set current client as main | — |
 | `t:reload [modName]` | Reload client mods | `modName` — single mod (omit for all) |
 | `t:mod` | List all client mods | — |
-| `t:exec <command>` | Execute shell command on server | `command` — shell command |
+| `t:exec <command>` | Execute shell command on server (requires `command.allowShellExec: true`) | `command` — shell command |
 
 ---
 

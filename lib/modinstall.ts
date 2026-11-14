@@ -51,10 +51,66 @@ export function sanitizeFolderName(name: unknown): string {
 	return cleaned || "mod";
 }
 
+const MAX_ZIP_ENTRIES = 5000;
+const MAX_EXTRACTED_BYTES = 256 * 1024 * 1024;
+
+function unsafeArchive(message: string): InstallError {
+	return installError(message, "INVALID_FORMAT");
+}
+
+/** 拒绝绝对路径、盘符、`..` 等会逃出解压目录的条目（zip-slip） */
+export function isSafeArchiveEntry(entry: string): boolean {
+	if (!entry || entry.includes("\0")) return false;
+	const normalized = entry.replace(/\\/g, "/");
+	if (normalized.startsWith("/") || /^[A-Za-z]:/.test(normalized)) return false;
+	return !normalized.split("/").includes("..");
+}
+
+/** 解压前检查条目名，解压后检查符号链接与解压体积（防 zip-slip / 解压炸弹） */
+async function listArchiveEntries(zipPath: string): Promise<string[]> {
+	const { stdout } = await execFileAsync("unzip", ["-Z1", zipPath], { maxBuffer: 64 * 1024 * 1024 });
+	return stdout.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+}
+
+function assertSafeEntries(entries: string[]): void {
+	if (entries.length > MAX_ZIP_ENTRIES) throw unsafeArchive("Archive contains too many entries");
+	for (const entry of entries) {
+		if (!isSafeArchiveEntry(entry)) throw unsafeArchive(`Unsafe archive entry: ${entry}`);
+	}
+}
+
+function assertExtractedTree(destDir: string): void {
+	let files = 0;
+	let bytes = 0;
+	const walk = (dir: string): void => {
+		for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+			const full = path.join(dir, entry.name);
+			const stat = fs.lstatSync(full);
+			if (stat.isSymbolicLink()) throw unsafeArchive(`Symbolic links are not allowed: ${entry.name}`);
+			files++;
+			if (stat.isDirectory()) walk(full);
+			else {
+				bytes += stat.size;
+				if (bytes > MAX_EXTRACTED_BYTES) throw unsafeArchive("Archive is too large after extraction");
+			}
+		}
+	};
+	walk(destDir);
+	if (files > MAX_ZIP_ENTRIES) throw unsafeArchive("Archive contains too many files");
+}
+
 /** 解压 zip/wsmod 到目标目录 */
 export async function extractZip(zipPath: string, destDir: string): Promise<void> {
 	fs.mkdirSync(destDir, { recursive: true });
-	await execFileAsync("unzip", ["-oq", zipPath, "-d", destDir], { maxBuffer: 64 * 1024 * 1024 });
+	// 先校验条目名，避免 zip-slip 在解压阶段写出目标目录
+	assertSafeEntries(await listArchiveEntries(zipPath));
+	try {
+		await execFileAsync("unzip", ["-oq", zipPath, "-d", destDir], { maxBuffer: 64 * 1024 * 1024 });
+		assertExtractedTree(destDir);
+	} catch (e) {
+		removeDir(destDir);
+		throw e;
+	}
 }
 
 /** 读取目录下的 manifest.json，不存在或解析失败返回 null */
@@ -173,7 +229,7 @@ export async function installNpmDependency(
 	}
 	if (isNpmInstalled(name, projectRoot)) return { kind: "npm", name, skipped: true };
 	try {
-		await execFileAsync("npm", ["install", name, "--no-save", "--no-audit", "--no-fund"], {
+		await execFileAsync("npm", ["install", name, "--no-save", "--no-package-lock", "--ignore-scripts", "--no-audit", "--no-fund"], {
 			cwd: projectRoot,
 			maxBuffer: 16 * 1024 * 1024,
 			timeout: opts.timeout ?? 300000

@@ -26,8 +26,8 @@ function getStoredLocale(): string | null {
 }
 
 function getInjectedLocale(): string | null {
-	if (typeof window === "undefined") return null;
-	return window.__LANGUAGE__ ?? null;
+	if (typeof document === "undefined") return null;
+	return document.documentElement.dataset.language ?? null;
 }
 
 function getInitialLocale(): Locale {
@@ -80,7 +80,9 @@ export function useI18n(): I18n {
 		if (typeof window === "undefined") return;
 
 		window.localStorage.setItem("locale", locale);
-		if (window.__LANGUAGE__ === locale) return;
+		const previousLanguage = document.documentElement.dataset.language;
+		document.documentElement.dataset.language = locale;
+		if (previousLanguage === locale) return;
 
 		fetch("/api/language", {
 			method: "POST",
@@ -92,7 +94,7 @@ export function useI18n(): I18n {
 			body: JSON.stringify({ language: locale })
 		})
 			.then((res) => {
-				if (res.ok) window.__LANGUAGE__ = locale;
+				if (res.ok) document.documentElement.dataset.language = locale;
 			})
 			.catch(() => {
 				// 离线或未登录时忽略

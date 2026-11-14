@@ -52,37 +52,39 @@ const cleanupTimer = setInterval(() => {
 const currentConnections = new Set<Client>();
 
 function createServer(): WebSocketServer {
+	// 游戏客户端不带 Origin；浏览器必须显式允许，防止任意网页连接本地 WS
+	// 并伪造 PlayerMessage / 发送命令。
+	const allowedOrigins = config.web?.ui?.allowedOrigins ?? [];
+
 	const wsServer = new WebSocketServer({
 		port: config.ws.port,
+		// 默认只监听本机；局域网连接需在 config.ws.host 设置 0.0.0.0
+		host: config.ws.host ?? "127.0.0.1",
 		perMessageDeflate: connCfg.perMessageDeflate === true,
 		clientTracking: true,
-		maxPayload: connCfg.maxPayload ?? 0
+		// 0/未设置时使用 8MB 上限，避免无限 payload 占用内存
+		maxPayload: connCfg.maxPayload && connCfg.maxPayload > 0 ? connCfg.maxPayload : 8 * 1024 * 1024,
+		verifyClient: (info, done) => {
+			const origin = info.origin;
+			if (!origin) return done(true);
+			let host = "";
+			try {
+				host = new URL(origin).host;
+			} catch {
+				// invalid origin
+			}
+			if (allowedOrigins.includes(origin) || (host && allowedOrigins.includes(host))) {
+				return done(true);
+			}
+			logger.warning(`WebSocket connection rejected: Origin=${origin}`);
+			done(false, 403, "Forbidden");
+		}
 	});
 
 	wsServer.on("error", (error: Error) => {
 		logger.error(`WebSocket server error: ${error.message}`);
 		logger.debug(error.stack ?? error.message);
 	});
-
-	// Origin check
-	const allowedOrigins = config.web?.ui?.allowedOrigins ?? [];
-	if (allowedOrigins.length > 0) {
-		wsServer.on("upgrade", (req: IncomingMessage, socket: Duplex) => {
-			const origin = req.headers.origin;
-			if (!origin) return;
-			let host = "";
-			try {
-				host = new URL(origin).host;
-			} catch {
-				// ignore invalid origin
-			}
-			if (host && !allowedOrigins.includes(host) && !allowedOrigins.includes(origin)) {
-				logger.warning(`WebSocket connection rejected: Origin=${origin}`);
-				socket.write("HTTP/1.1 403 Forbidden\r\n\r\n");
-				socket.destroy();
-			}
-		});
-	}
 
 	return wsServer;
 }

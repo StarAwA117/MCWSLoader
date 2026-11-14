@@ -37,16 +37,26 @@ npm run typecheck
 
 | 配置项 | 说明 |
 |--------|------|
-| `ws.name` / `ws.port` | 服务器名称与 WebSocket 端口（默认 8080） |
+| `ws.name` / `ws.port` / `ws.host` | 服务器名称、WebSocket 端口（默认 8080）、监听地址（默认 `127.0.0.1`；局域网需设为 `0.0.0.0`） |
 | `ws.connection.*` | 最大连接数、连接频率限制、`perMessageDeflate`、`maxPayload` |
 | `ws.checkDependenciesOnLoad` | 启动时是否检查并自动安装 Mod 声明的 npm 依赖（默认开启） |
 | `command.maxLength` | 单条命令最大长度 |
 | `command.rateLimit.*` | 命令转发限流（默认 50ms 内 1024 条，超限自动延后到下一窗口） |
 | `commandPrefix` | 游戏内命令前缀（默认 `$`） |
+| `command.allowShellExec` | 是否允许 owner 使用 `t:exec` 执行服务器命令（默认 `false`） |
 | `web.port` | WebUI 端口（默认 50005） |
 | `web.auth.*` | 登录失败尝试次数、锁定时间 |
 
 旧版配置（`safety.*`、顶层 `rateLimit`）会在读取时自动迁移到新结构，无需手动修改。
+
+## 安全
+
+- WebSocket 默认只监听 `127.0.0.1`；需要局域网连接时设置 `ws.host` 为 `0.0.0.0`
+- 浏览器 Origin 默认不允许连接 WebSocket；需要时在 `web.ui.allowedOrigins` 显式列出
+- WebUI 登录仅接受 `POST /api/login`，密码不会出现在 URL 中
+- `t:exec` 默认禁用，需在配置中显式开启 `command.allowShellExec`
+- Mod 导入会校验 zip 条目、拒绝符号链接/路径穿越，并限制解压体积
+- Mod 的 npm 依赖使用 `--ignore-scripts` 安装
 
 ## WebUI 功能
 

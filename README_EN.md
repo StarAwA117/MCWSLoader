@@ -37,16 +37,26 @@ Main keys in `config.json` (see [`config.example.json`](./config.example.json) f
 
 | Key | Description |
 |-----|-------------|
-| `ws.name` / `ws.port` | Server name and WebSocket port (default 8080) |
+| `ws.name` / `ws.port` / `ws.host` | Server name, WebSocket port (default 8080), bind address (default `127.0.0.1`; use `0.0.0.0` for LAN) |
 | `ws.connection.*` | Max connections, connection rate limit, `perMessageDeflate`, `maxPayload` |
 | `ws.checkDependenciesOnLoad` | Check and auto-install the npm dependencies declared by Mods on startup (default on) |
 | `command.maxLength` | Maximum length of a single command |
 | `command.rateLimit.*` | Command forwarding rate limit (default 1024 per 50ms; excess is deferred to the next window) |
 | `commandPrefix` | In-game command prefix (default `$`) |
+| `command.allowShellExec` | Allow the owner to run `t:exec` shell commands (default `false`) |
 | `web.port` | WebUI port (default 50005) |
 | `web.auth.*` | Login attempt limit and lockout window |
 
 Legacy configs (`safety.*`, top-level `rateLimit`) are migrated automatically on read — no manual edit needed.
+
+## Security
+
+- The WebSocket server listens on `127.0.0.1` by default; set `ws.host` to `0.0.0.0` for LAN access
+- Browser origins are rejected unless explicitly listed in `web.ui.allowedOrigins`
+- WebUI login only accepts `POST /api/login`; the password never appears in a URL
+- `t:exec` is disabled unless `command.allowShellExec` is enabled
+- Mod archives are checked for zip-slip, symlinks and extraction size limits
+- Mod npm dependencies are installed with `--ignore-scripts`
 
 ## WebUI Features
 
