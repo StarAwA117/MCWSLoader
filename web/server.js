@@ -5,7 +5,7 @@ import crypto from "crypto";
 import { exec, execFile } from "child_process";
 import { promisify } from "util";
 import { fileURLToPath } from "url";
-import { config, reloadConfig, eventBus, ServerModManager, ClientModManager, modRegistry } from "../lib/mods.js";
+import { config, reloadConfig, ServerModManager, ClientModManager, modRegistry } from "../lib/mods.js";
 import Current from "../lib/current.js";
 import PermissionManager from "../lib/permission.js";
 import Command from "../lib/command.js";
