@@ -1,4 +1,4 @@
-import type { Client } from "../types/client.js";
+import type { Client } from "./types/client.js";
 
 type CommandClass = import("./command.js").default;
 interface CommandConstructor {

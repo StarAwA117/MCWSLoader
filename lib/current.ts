@@ -1,4 +1,4 @@
-import type { Client } from "../types/client.js";
+import type { Client } from "./types/client.js";
 import type { ClientModManager } from "./mods.js";
 
 /**

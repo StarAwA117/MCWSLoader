@@ -10,10 +10,10 @@ import { SAPIMessageHandler } from "./sapi.js";
 import { installNpmDependency, parseDependency } from "./modinstall.js";
 import { resolveCaseInsensitivePath, resolveModuleUrl } from "./paths.js";
 import PermissionManager from "./permission.js";
-import type { AppConfig } from "../types/config.js";
-import type { Client } from "../types/client.js";
-import type { ModConstructor, ModEntry, ModSAPI } from "../types/mod.js";
-import type { CommandResponse } from "../types/config.js";
+import type { AppConfig } from "./types/config.js";
+import type { Client } from "./types/client.js";
+import type { ModConstructor, ModEntry, ModSAPI } from "./types/mod.js";
+import type { CommandResponse } from "./types/config.js";
 
 type AnyRecord = Record<string, any>;
 type ModClass = ModConstructor;
@@ -59,7 +59,7 @@ export function sanitizeConfigObject<T>(value: T): T {
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const MOD_DIR = path.resolve(__dirname, "..", "mod");
+const MOD_DIR = path.resolve(__dirname, "..", "mods");
 const CONFIG_PATH = path.resolve(__dirname, "..", "config.json");
 const CONFIG_EXAMPLE_PATH = path.resolve(__dirname, "..", "config.example.json");
 const MODS_CONFIG_PATH = path.join(MOD_DIR, "mods_config.json");

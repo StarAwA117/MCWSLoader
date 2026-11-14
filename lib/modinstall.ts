@@ -4,7 +4,7 @@ import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { logger } from "./logger.js";
 import { resolveCaseInsensitivePath } from "./paths.js";
-import type { ModManifest } from "../types/mod.js";
+import type { ModManifest } from "./types/mod.js";
 
 const execFileAsync = promisify(execFile);
 

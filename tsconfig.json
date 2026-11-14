@@ -11,8 +11,7 @@
 		],
 		"strict": true,
 		"noEmit": true,
-		"allowJs": true,
-		"checkJs": false,
+		"allowJs": false,
 		"esModuleInterop": true,
 		"forceConsistentCasingInFileNames": true,
 		"skipLibCheck": true,
@@ -22,20 +21,16 @@
 		"useUnknownInCatchVariables": true
 	},
 	"include": [
-		"main.js",
 		"main.ts",
-		"ws.js",
 		"ws.ts",
 		"lib/**/*",
-		"web/server.js",
 		"web/server.ts",
-		"types/**/*.d.ts",
-		"test/**/*.ts"
+		"lib/types/**/*.d.ts"
 	],
 	"exclude": [
 		"node_modules",
 		"web/frontend",
-		"mod",
+		"mods",
 		"resources",
 		"tmp",
 		"logs"

@@ -1,0 +1,15 @@
+{
+	"extends": "./tsconfig.json",
+	"compilerOptions": {
+		"strict": false,
+		"noImplicitAny": false,
+		"noImplicitOverride": false,
+		"noUnusedLocals": false,
+		"noUnusedParameters": false,
+		"useUnknownInCatchVariables": false,
+		"allowJs": false,
+		"noEmit": true
+	},
+	"include": ["mods/**/*.ts", "lib/modbase.ts", "lib/types/**/*.d.ts"],
+	"exclude": ["node_modules", "web/frontend", "resources", "tmp", "logs"]
+}

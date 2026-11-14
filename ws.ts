@@ -9,8 +9,8 @@ import { config, ClientModManager, ServerModManager, modRegistry, checkModDepend
 import Utils from "./lib/utils.js";
 import Current from "./lib/current.js";
 import { startWebServer } from "./web/server.js";
-import type { Client } from "./types/client.js";
-import type { CommandResponse, ConnectionConfig } from "./types/config.js";
+import type { Client } from "./lib/types/client.js";
+import type { CommandResponse, ConnectionConfig } from "./lib/types/config.js";
 
 // WebSocket server instance
 let server: WebSocketServer | null = null;

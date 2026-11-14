@@ -5,7 +5,8 @@
 	"scripts": {
 		"start": "tsx main.ts",
 		"typecheck": "tsc --noEmit",
-		"test": "tsx --test test/*.test.ts"
+		"test": "tsx --test lib/__tests__/*.test.ts",
+		"typecheck:mods": "tsc -p tsconfig.mods.json"
 	},
 	"dependencies": {
 		"@pureeval/voxel-geometry": "^1.2.20",
@@ -24,6 +25,6 @@
 		"typescript": "^5.9.3"
 	},
 	"bin": {
-		"mcwsloader": "bin/mcwsloader.js"
+		"mcwsloader": "scripts/mcwsloader.js"
 	}
 }

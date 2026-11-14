@@ -14,8 +14,8 @@ import { logger } from "../lib/logger.js";
 import { collectCommands as collectTerminalCommands } from "../lib/readline.js";
 import { parseMultipartBody } from "../lib/multipart.js";
 import { extractZip, resolveModRoot, readManifest, copyMerge, removeDir, sanitizeFolderName, installDependencies, makeTempDir, makeTempPath, moveDir } from "../lib/modinstall.js";
-import type { Client } from "../types/client.js";
-import type { ModEntry } from "../types/mod.js";
+import type { Client } from "../lib/types/client.js";
+import type { ModEntry } from "../lib/types/mod.js";
 
 type AnyRecord = Record<string, any>;
 interface AuthState {
@@ -617,13 +617,13 @@ async function handleAPI(req: IncomingMessage, res: ServerResponse, url: URL): P
 		// Mod import
 		if (pathname === "/api/mods/import" && method === "POST") {
 			const overwrite = url.searchParams.get("overwrite") === "1";
-			const modDir = path.join(__dirname, "..", "mod");
+			const modDir = path.join(__dirname, "..", "mods");
 			const tmpBase = path.join(__dirname, "..", "tmp");
 			let tempDir: string | null = null;
 			let backupPath: string | null = null;
 			let folderName: string | null = null;
 			let installed = false;
-			let manifest: import("../types/mod.js").ModManifest | null = null;
+			let manifest: import("../lib/types/mod.js").ModManifest | null = null;
 			let existingEntry: ModEntry | null = null;
 			// 先清理临时文件再回响应，避免响应早于清理完成
 			const finish = (payload: unknown, status = 200): void => {

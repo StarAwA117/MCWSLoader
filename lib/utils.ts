@@ -2,8 +2,8 @@ import WebSocket from "ws";
 import { randomUUID } from "node:crypto";
 import { logger } from "./logger.js";
 import { config } from "./mods.js";
-import type { Client, Location } from "../types/client.js";
-import type { CommandResponse } from "../types/config.js";
+import type { Client, Location } from "./types/client.js";
+import type { CommandResponse } from "./types/config.js";
 
 const { OPEN: wsOPEN } = WebSocket;
 

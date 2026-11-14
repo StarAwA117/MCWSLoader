@@ -1,6 +1,6 @@
 import { logger } from "./logger.js";
 import { config } from "./mods.js";
-import type { Client } from "../types/client.js";
+import type { Client } from "./types/client.js";
 
 /**
  * SAPI 命令不存在时 Minecraft 返回的状态码
