@@ -27,7 +27,11 @@ mods/
 mods/mods_config.json          # enable/disable state for every Mod
 ```
 
-Entry files may be `.js` or `.ts`. Bundled Mods use `.ts` and are loaded by `tsx` without a build step. Only folders containing a `manifest.json` are treated as Mods. A `manifest.json`
+Entry files may be `.js` or `.ts`. Bundled Mods use `.ts` and are loaded by `tsx` without a build step. > Upgrading from 1.3.x: the bundled directory was renamed from `mod/` to
+> `mods/`. Move custom Mod folders and their ignored `config.json` /
+> `mods_config.json` files into `mods/` after updating.
+
+Only folders containing a `manifest.json` are treated as Mods. A `manifest.json`
 that fails to parse is skipped with an error in the log.
 
 ---
