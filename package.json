@@ -6,7 +6,8 @@
 		"start": "tsx main.ts",
 		"typecheck": "tsc --noEmit",
 		"test": "tsx --test lib/__tests__/*.test.ts",
-		"typecheck:mods": "tsc -p tsconfig.mods.json"
+		"typecheck:mods": "tsc -p tsconfig.mods.json",
+		"check:dialogs": "node scripts/check-native-dialogs.mjs"
 	},
 	"dependencies": {
 		"@pureeval/voxel-geometry": "^1.2.20",

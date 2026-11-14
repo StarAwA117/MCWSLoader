@@ -7,11 +7,14 @@ const { t } = useI18n();
 
 const inputRef = ref<HTMLInputElement | null>(null);
 const inputRef2 = ref<HTMLInputElement | null>(null);
+const modalRef = ref<HTMLDivElement | null>(null);
 
 watch(() => state.open, (v: boolean) => {
-	if (v && state.type === "prompt") {
-		setTimeout(() => inputRef.value?.focus(), 100);
-	}
+	if (!v) return;
+	setTimeout(() => {
+		if (state.type === "prompt") inputRef.value?.focus();
+		else modalRef.value?.focus();
+	}, 100);
 });
 
 function onConfirm() {
@@ -40,7 +43,7 @@ function onKeydown(e: KeyboardEvent): void {
 <template>
 	<Transition name="modal-pop">
 	<div v-if="state.open" class="modal-overlay" @click.self="state.type === 'alert' ? close(true) : onCancel()">
-		<div class="modal" @keydown="onKeydown">
+		<div ref="modalRef" class="modal" role="dialog" aria-modal="true" tabindex="-1" @keydown="onKeydown">
 			<div class="modal-header">
 				<h3>{{ state.title }}</h3>
 				<button class="modal-close" @click="state.type === 'alert' ? close(true) : onCancel()">×</button>
