@@ -481,6 +481,7 @@ function mergeBlocksToRects(blocks, sx, sz) {
 }
 
 // 主类
+/** @this {ModContext} */
 export default class Litematic {
 	// 任务存档为静态共享：连接/实例共用同一份，$create 返回的任务 ID 全局有效（$verify / $fix 使用）
 	static taskSeq = 0;

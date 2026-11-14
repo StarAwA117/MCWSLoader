@@ -3,6 +3,7 @@ import path from "path";
 
 // Minecraft 函数文件执行类
 // 支持加载和执行 .mcfunction 格式的指令文件，支持嵌套调用和循环执行
+/** @this {ModContext} */
 export default class MCFunc {
 	constructor(client) {
 		this.client = client;

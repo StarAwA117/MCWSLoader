@@ -102,3 +102,11 @@ export interface ModContext {
 	readline: typeof import("../lib/readline.js");
 	[key: string]: unknown;
 }
+
+declare global {
+	/** JSDoc `@this {ModContext}` 可在纯 JS Mod 中直接引用 */
+	type ModContext = import("./mod.js").ModContext;
+	type ModSAPI = import("./mod.js").ModSAPI;
+	type ModStorageLike = import("./mod.js").ModStorageLike;
+	type ModLoggerLike = import("./mod.js").ModLoggerLike;
+}

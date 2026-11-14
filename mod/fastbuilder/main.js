@@ -84,6 +84,7 @@ function broadcast(client, ...messages) {
 	client.sendCommand(`tellraw @a {"rawtext":[{"text":"§e${text}"}]}`).catch(() => {});
 }
 
+/** @this {ModContext} */
 export default class FastBuilder {
 	constructor(client) {
 		this.client = client;

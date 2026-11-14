@@ -25,6 +25,7 @@ function startSpam(Current, interval, generator, logMessage) {
 	Current.set("loop", setInterval(generator, interval));
 }
 
+/** @this {ModContext} */
 export default class Spam {
 	onTerminalCommand() {
 		const Current = this.Current;

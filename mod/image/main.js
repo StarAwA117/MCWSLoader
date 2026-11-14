@@ -365,6 +365,7 @@ function computeAreas(origin, width, height, dir) {
 }
 
 // Main Class
+/** @this {ModContext} */
 export default class ImageMod {
 	constructor(client) {
 		this.client = client;

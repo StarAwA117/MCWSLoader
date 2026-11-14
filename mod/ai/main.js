@@ -5,6 +5,7 @@ let openai = null;
 
 // AI 对话类
 // 通过 OpenAI 兼容接口与 AI 模型交互，支持单次对话和上下文对话模式
+/** @this {ModContext} */
 export default class AIHelper {
 	// 玩家数据存储
 	// 结构: Map<玩家名, { lastAIChat: number, AIChatContents: Array, AICommandContents: Array }>

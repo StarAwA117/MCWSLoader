@@ -2,6 +2,7 @@ import WebSocket from "ws";
 
 // 扩展 WebSocket 连接类
 // 允许客户端同时连接到多个外部 WebSocket 服务端，实现消息的双向转发
+/** @this {ModContext} */
 export default class MoreWS {
 	// 构造函数
 	constructor(client) {

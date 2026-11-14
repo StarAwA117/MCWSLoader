@@ -123,6 +123,7 @@ function parseMidiFile(filePath, fileName, playPercussion) {
 
 // MusicDisplay 类
 
+/** @this {ModContext} */
 export default class MusicDisplay {
 	constructor(client) {
 		this.client = client;

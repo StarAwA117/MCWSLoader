@@ -63,6 +63,7 @@ function computeXZAreas(minX, minZ, maxX, maxZ) {
 	return areas;
 }
 
+/** @this {ModContext} */
 export default class Position {
 	constructor(client) {
 		this.client = client;
