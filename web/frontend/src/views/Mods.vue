@@ -344,7 +344,7 @@ onBeforeUnmount(unlockScroll);
 .icon-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 .icon-btn:disabled:hover { background: transparent; color: var(--text-secondary); }
 .icon-btn svg { width: 16px; height: 16px; }
-.delete-btn:hover { background: var(--danger-dim); color: var(--danger); }
+.delete-btn:hover { background: var(--delete-bg); color: var(--delete-fg); }
 
 .card-header { display: flex; flex-direction: row; align-items: center; flex-wrap: nowrap; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid var(--border); gap: 8px; }
 

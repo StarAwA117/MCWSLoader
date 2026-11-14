@@ -304,7 +304,7 @@
 		"updatePrerelease": "包含预览版更新",
 		"updatePrereleaseHint": "检查 GitHub Pre-release（如 2.0.0-beta.1）。",
 		"theme": "主题",
-		"themeHint": "仅替换配色，不影响功能。默认使用星风格。",
+		"themeHint": "仅替换配色，不影响功能。默认使用星风格；选择后点击保存生效。",
 		"themeStar": "星风格",
 		"themeMocha": "Catppuccin Mocha"
 	}

@@ -1,32 +1,27 @@
 import { computed, reactive } from "vue";
+import { DEFAULT_THEME, THEME_DEFINITIONS, findTheme, isThemeId, type Theme } from "../theme";
 
-export const THEMES = ["star", "catppuccin-mocha"] as const;
-export type ThemeId = (typeof THEMES)[number];
-
-function isTheme(value: unknown): value is ThemeId {
-	return typeof value === "string" && (THEMES as readonly string[]).includes(value);
+function initialTheme(): string {
+	if (typeof document === "undefined") return DEFAULT_THEME.id;
+	const id = document.documentElement.dataset.theme;
+	return isThemeId(id) ? id : DEFAULT_THEME.id;
 }
 
-function initialTheme(): ThemeId {
-	if (typeof document === "undefined") return "star";
-	const theme = document.documentElement.dataset.theme;
-	return isTheme(theme) ? theme : "star";
-}
+const state = reactive<{ theme: string }>({ theme: initialTheme() });
 
-const state = reactive<{ theme: ThemeId }>({ theme: initialTheme() });
-
-export function applyTheme(theme: string): void {
-	if (!isTheme(theme)) return;
-	state.theme = theme;
-	if (typeof document !== "undefined") {
-		document.documentElement.dataset.theme = theme;
-	}
+export function applyTheme(themeId: string): void {
+	const theme = findTheme(themeId);
+	if (!theme) return;
+	state.theme = theme.id;
+	theme.apply();
 }
 
 export function useTheme() {
 	return {
 		theme: computed(() => state.theme),
-		availableThemes: THEMES,
+		availableThemes: THEME_DEFINITIONS,
 		setTheme: applyTheme
 	};
 }
+
+export type { Theme };

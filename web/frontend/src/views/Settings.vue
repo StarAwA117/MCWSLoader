@@ -8,6 +8,7 @@ import SettingsCard from "../components/SettingsCard.vue";
 import SwitchToggle from "../components/SwitchToggle.vue";
 import UpdatePanel from "../components/UpdatePanel.vue";
 import { useTheme } from "../composables/useTheme";
+import { THEME_DEFINITIONS } from "../theme";
 
 const { t, setLocale, locale, availableLocales } = useI18n();
 const { setTheme } = useTheme();
@@ -44,10 +45,7 @@ const localeLabels: Record<string, string> = {
 	"zh-TW": "繁體中文",
 	en: "English"
 };
-const themeOptions = [
-	{ id: "star", labelKey: "settings.themeStar", swatch: "linear-gradient(135deg, #f0f7ff 0 50%, #60a5fa 50%)" },
-	{ id: "catppuccin-mocha", labelKey: "settings.themeMocha", swatch: "linear-gradient(135deg, #1e1e2e 0 30%, #89b4fa 30% 50%, #a6e3a1 50% 65%, #f9e2af 65% 80%, #cba6f7 80%)" }
-];
+const themeOptions = THEME_DEFINITIONS;
 const tabs: Array<{ key: "server" | "webui" | "system"; labelKey: string; icon: string }> = [
 	{ key: "server", labelKey: "settings.server", icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>` },
 	{ key: "webui", labelKey: "settings.webui", icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>` },
@@ -62,8 +60,9 @@ async function refresh() {
 
 function selectTheme(theme: string): void {
 	if (!config.value) return;
+	// Apply only after the settings are saved; previewing on click caused
+	// stale config/theme pairs when the save failed or the user navigated away.
 	config.value.web.ui.theme = theme;
-	setTheme(theme);
 }
 
 async function save() {
@@ -72,6 +71,7 @@ async function save() {
 	try {
 		const res = await api.saveConfig(config.value);
 		if (res.ok) {
+			setTheme(config.value?.web?.ui?.theme ?? "star");
 			message.value = t("common.saveSuccess");
 		} else {
 			message.value = res.message || t("common.saveFailed");

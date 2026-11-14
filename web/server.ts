@@ -312,7 +312,8 @@ function sendHTML(res: ServerResponse, filePath: string): void {
 	}
 
 	const language = String(config.language ?? "zh-CN");
-	const theme = config.web?.ui?.theme === "catppuccin-mocha" ? "catppuccin-mocha" : "star";
+	const configuredTheme = String(config.web?.ui?.theme ?? "");
+	const theme = /^[a-z0-9][a-z0-9-]{0,31}$/.test(configuredTheme) ? configuredTheme : "star";
 	if (htmlCache.filePath === filePath && htmlCache.mtimeMs === stat.mtimeMs && htmlCache.language === language && htmlCache.theme === theme) {
 		res.writeHead(200, HTML_HEADERS);
 		res.end(htmlCache.html);
