@@ -221,7 +221,7 @@ usePolling(refresh, 3000);
 	display: flex;
 	align-items: center;
 	gap: 18px;
-	padding: 24px 150px 24px 24px;
+	padding: 24px 122px 24px 24px;
 	min-height: 132px;
 	margin-bottom: 16px;
 	border: 1px solid var(--glass-border);
@@ -277,10 +277,10 @@ usePolling(refresh, 3000);
 
 .service-toggle {
 	position: absolute;
-	top: 8px;
-	right: 14px;
-	width: 120px;
-	height: 120px;
+	top: -55px;
+	right: -55px;
+	width: 160px;
+	height: 160px;
 	display: grid;
 	place-items: center;
 	z-index: 1;
@@ -369,8 +369,8 @@ usePolling(refresh, 3000);
 }
 
 .service-action svg {
-	width: 24px;
-	height: 24px;
+	width: 26px;
+	height: 26px;
 }
 
 @keyframes badge-sway {
