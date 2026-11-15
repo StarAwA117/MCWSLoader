@@ -72,28 +72,47 @@ usePolling(refresh, 3000);
 
 <template>
 	<div v-if="status">
-		<div class="stats-grid">
-			<div class="stat-card toggle-card" @click="toggleWebSocket">
-				<div class="label">{{ t('dashboard.serverStatus') }}</div>
-				<div class="value" :class="wsRunning ? 'blue' : 'off'">{{ wsRunning ? t('dashboard.running') : startingWebSocket ? t('dashboard.serverStarting') : stoppingWebSocket ? t('dashboard.serverStopping') : t('dashboard.serverStopped') }}</div>
+		<div
+			class="service-card"
+			:class="{ running: wsRunning, busy: startingWebSocket || stoppingWebSocket }"
+			role="button"
+			tabindex="0"
+			:aria-pressed="wsRunning"
+			@click="toggleWebSocket"
+			@keydown.enter.prevent="toggleWebSocket"
+			@keydown.space.prevent="toggleWebSocket"
+		>
+			<div class="service-orb" aria-hidden="true"></div>
+			<div class="service-copy">
+				<div class="service-label">{{ t('dashboard.serverStatus') }}</div>
+				<div class="service-value">
+					{{ wsRunning ? t('dashboard.running') : startingWebSocket ? t('dashboard.serverStarting') : stoppingWebSocket ? t('dashboard.serverStopping') : t('dashboard.serverStopped') }}
+				</div>
+				<div class="service-meta">
+					<span v-if="wsRunning">WebSocket {{ status.server.wsPort }}</span>
+					<span>WebUI {{ status.server.webPort }}</span>
+				</div>
 			</div>
-			<template v-if="wsRunning">
-				<div class="stat-card">
-					<div class="label">{{ t('dashboard.uptime') }}</div>
-					<div class="value blue">{{ formatUptime(status.server.uptime) }}</div>
-				</div>
-				<div class="stat-card">
-					<div class="label">{{ t('dashboard.connectedClients') }}</div>
-					<div class="value">{{ status.connections.count }}</div>
-				</div>
-				<div class="stat-card">
-					<div class="label">{{ t('dashboard.wsPort') }}</div>
-					<div class="value">{{ status.server.wsPort }}</div>
-				</div>
-			</template>
-			<div v-else class="stat-card">
-				<div class="label">{{ t('dashboard.webuiPort') }}</div>
-				<div class="value">{{ status.server.webPort }}</div>
+			<div class="service-action" aria-hidden="true">
+				<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+					<path d="M18.36 6.64a9 9 0 1 1-12.73 0"/>
+					<line x1="12" y1="2" x2="12" y2="12"/>
+				</svg>
+			</div>
+		</div>
+
+		<div v-if="wsRunning" class="stats-grid">
+			<div class="stat-card">
+				<div class="label">{{ t('dashboard.uptime') }}</div>
+				<div class="value blue">{{ formatUptime(status.server.uptime) }}</div>
+			</div>
+			<div class="stat-card">
+				<div class="label">{{ t('dashboard.connectedClients') }}</div>
+				<div class="value">{{ status.connections.count }}</div>
+			</div>
+			<div class="stat-card">
+				<div class="label">{{ t('dashboard.wsPort') }}</div>
+				<div class="value">{{ status.server.wsPort }}</div>
 			</div>
 		</div>
 
@@ -192,11 +211,154 @@ usePolling(refresh, 3000);
 </template>
 
 <style scoped>
-.toggle-card {
+.service-card {
+	position: relative;
+	display: flex;
+	align-items: center;
+	gap: 18px;
+	padding: 20px 22px;
+	margin-bottom: 16px;
+	border: 1px solid var(--glass-border);
+	border-radius: 18px;
+	background: var(--glass-bg);
+	box-shadow: var(--glass-shadow);
+	backdrop-filter: blur(var(--glass-blur)) saturate(1.35);
+	-webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.35);
+	overflow: hidden;
+	isolation: isolate;
 	cursor: pointer;
+	transition: transform var(--dur-base) var(--ease-out), box-shadow var(--dur-base) var(--ease-out);
 }
 
-.stat-card .value.off {
-	color: var(--text-secondary);
+.service-card::before {
+	content: "";
+	position: absolute;
+	inset: 0;
+	background: radial-gradient(circle at 18% 0%, var(--glass-border), transparent 58%);
+	opacity: 0.55;
+	pointer-events: none;
+	z-index: -1;
+}
+
+.service-card::after {
+	content: "";
+	position: absolute;
+	width: 280px;
+	height: 280px;
+	right: -90px;
+	top: -150px;
+	border-radius: 50%;
+	background: radial-gradient(circle, rgba(148, 163, 184, 0.16), transparent 70%);
+	filter: blur(18px);
+	pointer-events: none;
+	z-index: -1;
+	animation: liquid-drift 9s ease-in-out infinite alternate;
+}
+
+.service-card.running::after {
+	background: radial-gradient(circle, var(--primary-dim), transparent 70%);
+}
+
+.service-card:hover {
+	transform: translateY(-2px);
+	box-shadow: 0 18px 42px rgba(0, 0, 0, 0.10);
+}
+
+.service-card.running:hover {
+	box-shadow: 0 22px 55px rgba(96, 165, 250, 0.18);
+}
+
+.service-card:focus-visible {
+	outline: 2px solid var(--primary);
+	outline-offset: 2px;
+}
+
+.service-orb {
+	width: 54px;
+	height: 54px;
+	flex-shrink: 0;
+	border-radius: 50%;
+	background: var(--glass-orb-off);
+	box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.85), 0 8px 18px rgba(30, 41, 59, 0.10);
+	transition: background var(--dur-base), box-shadow var(--dur-base);
+}
+
+.service-card.running .service-orb {
+	background: var(--glass-orb-on);
+	box-shadow: 0 0 0 8px var(--primary-dim), 0 0 24px var(--primary-dim), inset 0 1px 2px rgba(255, 255, 255, 0.85);
+	animation: orb-breathe 3.8s ease-in-out infinite;
+}
+
+.service-copy {
+	flex: 1;
+	min-width: 0;
+}
+
+.service-label {
+	font-size: 11px;
+	font-weight: 650;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	color: var(--text-muted);
+}
+
+.service-value {
+	margin-top: 2px;
+	font-size: 1.35rem;
+	font-weight: 700;
+	letter-spacing: -0.03em;
+	color: var(--text);
+}
+
+.service-card.running .service-value {
+	color: var(--primary);
+}
+
+.service-meta {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 12px;
+	margin-top: 4px;
+	font-size: 12px;
+	color: var(--text-muted);
+}
+
+.service-action {
+	width: 42px;
+	height: 42px;
+	flex-shrink: 0;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	border-radius: 50%;
+	border: 1px solid var(--glass-border);
+	background: rgba(255, 255, 255, 0.32);
+	color: var(--text-muted);
+	transition: color var(--dur-base), background var(--dur-base);
+}
+
+.service-card.running .service-action {
+	color: var(--primary);
+	background: var(--primary-glow);
+}
+
+.service-action svg {
+	width: 18px;
+	height: 18px;
+}
+
+@keyframes liquid-drift {
+	from { transform: translate3d(0, 0, 0) scale(1); }
+	to { transform: translate3d(-24px, 18px, 0) scale(1.12); }
+}
+
+@keyframes orb-breathe {
+	50% { transform: scale(1.04); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.service-card::after,
+	.service-card.running .service-orb { animation: none; }
+	.service-card { transition: none; }
 }
 </style>
