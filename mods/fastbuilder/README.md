@@ -108,8 +108,23 @@ $fb:run ball.js
 | `setBlocks(block)(space)` | 指定方块后批量放置 |
 | `tell_raw(...msg)` | 向自己发送 tellraw 消息 |
 | `broadcast(...msg)` | 向所有人发送 tellraw 消息 |
-| `pos()` | 异步获取当前位置 |
+| `pos()` | 获取当前位置，可直接使用，也可 `await` |
 | `setting` | 当前设置对象 |
+
+### 安全沙箱
+
+FastBuilder 脚本在独立的 VM 上下文中执行，不使用宿主 `Function` 构造器。沙箱会：
+
+- 拒绝访问 `process`、`require`、`globalThis`、`Object`、`Reflect`、`Proxy`
+- 拒绝 `eval`、`Function`、动态 `import` 和 `with`
+- 拒绝 `constructor`、`prototype`、`__proto__`、`call`、`apply`、`bind` 等逃逸路径
+- 把几何库返回的对象复制到 VM 领域内，避免宿主原型泄漏
+- 关闭字符串代码生成和 WebAssembly 代码生成
+- 对脚本执行设置 5 秒超时
+- 只从 `scripts/` 读取裸 `.js` 文件名，禁止路径穿越
+- 限制脚本文件大小为 256 KB
+
+沙箱用于阻止脚本访问 Node 环境和宿主对象，不应把它当作操作系统级隔离。只运行可信来源的脚本。
 
 ### setting 对象
 

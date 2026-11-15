@@ -7,6 +7,10 @@ config.origin.y=原點 Y
 config.origin.z=原點 Z
 config.particle=粒子效果
 error.readScript=讀取腳本失敗，請檢查檔案是否存在
+fastbuilder.error.sandbox=指令碼包含不允許的語法或 API
+fastbuilder.error.timeout=指令碼執行逾時
+fastbuilder.error.scriptTooLarge=指令碼檔案過大
+fastbuilder.error.scriptNotFound=找不到指令碼檔案
 error.execute=腳本執行失敗，請檢查腳本內容
 
 # Generated user-facing messages

@@ -7,6 +7,10 @@ config.origin.y=Origin Y
 config.origin.z=Origin Z
 config.particle=Particle
 error.readScript=Could not read the script. Check that the file exists.
+fastbuilder.error.sandbox=The script contains a disallowed syntax or API
+fastbuilder.error.timeout=Script execution timed out
+fastbuilder.error.scriptTooLarge=The script file is too large
+fastbuilder.error.scriptNotFound=Script file not found
 error.execute=Script execution failed. Check the script contents.
 
 # Generated user-facing messages

@@ -3,6 +3,7 @@ import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import * as V from "@pureeval/voxel-geometry";
+import { runFastBuilderScript, SandboxError } from "./sandbox.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -141,15 +142,23 @@ export default class FastBuilder extends ModBase {
 	}
 
 	async runScript(sender, input, overrideOrigin = null) {
-		const scriptPath = path.join(SCRIPTS_DIR, input);
-		let code = input;
+		const requested = String(input ?? "").trim();
+		let code = requested;
 
-		if (fs.existsSync(scriptPath)) {
+		// Only a bare .js file name may load from scripts/. Inline code is never treated as a path.
+		if (/^[A-Za-z0-9._-]+\.js$/i.test(requested)) {
+			const scriptPath = path.join(SCRIPTS_DIR, requested);
 			try {
+				const stat = fs.statSync(scriptPath);
+				if (!stat.isFile()) throw new Error("not a file");
+				if (stat.size > 256 * 1024) {
+					this.client.tell(`§cFastBuilder | §fError > §i${this.rawtext("fastbuilder.error.scriptTooLarge")}`, sender);
+					return;
+				}
 				code = fs.readFileSync(scriptPath, "utf-8");
-				this.client.tell(this.rawtext("fastbuilder.msg.37211a31b2", { p0: input }), sender);
-			} catch (e) {
-				this.client.tell(`§cFastBuilder | §fError > §i${this.rawtext("error.readScript")}`, sender);
+				this.client.tell(this.rawtext("fastbuilder.msg.37211a31b2", { p0: requested }), sender);
+			} catch {
+				this.client.tell(`§cFastBuilder | §fError > §i${this.rawtext("fastbuilder.error.scriptNotFound")}`, sender);
 				return;
 			}
 		}
@@ -160,36 +169,37 @@ export default class FastBuilder extends ModBase {
 		const cfgOrigin = (cfg.origin && typeof cfg.origin === "object") ? cfg.origin : { x: 0, y: 0, z: 0 };
 		const origin = overrideOrigin || cfgOrigin;
 		const particle = (cfg.particle && typeof cfg.particle === "string") ? cfg.particle : "minecraft:explosion";
-		const sandbox = {
+		const position = await this.getPlayerPosition(sender);
+		const geometry = {
 			...V.Generator,
 			...V.Exp,
 			...V.Transform,
 			...V.LSystem,
 			...V.IFS,
-			...V.DLA,
-			vec3: (x, y, z) => ({ x, y, z }),
-		setBlocks: setBlocks(session, defaultBlock, origin),
-			tell_raw: (...msg) => tellRaw(session, ...msg),
-			broadcast: (...msg) => broadcast(session, ...msg),
-			pos: () => this.getPlayerPosition(sender),
-			setting: {
-				block: defaultBlock,
-				origin,
-				particle
-			}
+			...V.DLA
 		};
 
 		try {
 			this.client.tell(this.rawtext("fastbuilder.msg.1484ca13f8"), sender);
-			const body = `with(inside) { ${code} }`;
-			const fn = new Function("inside", body);
-			const result = fn(sandbox);
-			if (result instanceof Promise) {
-				await result;
-			}
+			await runFastBuilderScript({
+				code,
+				geometry,
+				position,
+				setting: { block: defaultBlock, origin, particle },
+				setBlocks: setBlocks(session, defaultBlock, origin),
+				tellRaw: (...msg) => tellRaw(session, ...msg),
+				broadcast: (...msg) => broadcast(session, ...msg)
+			});
 			this.client.tell(this.rawtext("fastbuilder.msg.5bbfcda2d0"), sender);
 		} catch (e) {
-			this.client.tell(`§cFastBuilder | §fError > §i${this.rawtext("error.execute")}`, sender);
+			if (e instanceof SandboxError) {
+				const key = e.kind === "timeout" ? "fastbuilder.error.timeout" : "fastbuilder.error.sandbox";
+				this.logger.warning(`FastBuilder script rejected: ${e.message}`);
+				this.client.tell(`§cFastBuilder | §fError > §i${this.rawtext(key)}`, sender);
+			} else {
+				this.logger.error(`FastBuilder script failed: ${e instanceof Error ? e.stack ?? e.message : String(e)}`);
+				this.client.tell(`§cFastBuilder | §fError > §i${this.rawtext("error.execute")}`, sender);
+			}
 		}
 	}
 }
