@@ -34,10 +34,15 @@ project = assets / "nodejs-project"
 dirs = ["nodejs-project"]
 files = []
 for path in project.rglob("*"):
+    relative = path.relative_to(project)
+    # Android's AAPT does not package hidden files/directories. They are not
+    # needed by the runtime and would make the precomputed lists fail.
+    if any(part.startswith(".") for part in relative.parts):
+        continue
     rel = path.relative_to(assets).as_posix()
     if path.is_dir():
         dirs.append(rel)
-    elif path.is_file() and "/.bin/" not in f"/{rel}":
+    elif path.is_file():
         files.append(rel)
 (assets / "dir.list").write_text("\n".join(dirs) + "\n")
 (assets / "file.list").write_text("\n".join(files) + "\n")

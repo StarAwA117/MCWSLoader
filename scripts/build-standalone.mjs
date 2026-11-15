@@ -172,14 +172,27 @@ function prepareServer() {
 	}
 	// Type declarations and source maps are not needed by the runtime and add
 	// several MB to the packed Node project.
+	const documentationDirs = new Set([
+		"test", "tests", "__tests__", "example", "examples", "docs", "doc",
+		"benchmark", "benchmarks", "coverage", ".github", ".vscode", ".history"
+	]);
 	const walkRemove = (dir) => {
 		if (!fs.existsSync(dir)) return;
 		for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
 			const full = path.join(dir, entry.name);
 			if (entry.isDirectory()) {
-				if (entry.name === "@types") fs.rmSync(full, { recursive: true, force: true });
-				else walkRemove(full);
-			} else if (entry.name.endsWith(".d.ts") || entry.name.endsWith(".map")) {
+				if (entry.name === "@types" || documentationDirs.has(entry.name)) {
+					fs.rmSync(full, { recursive: true, force: true });
+				} else {
+					walkRemove(full);
+				}
+			} else if (
+				entry.name.startsWith(".") ||
+				entry.name.endsWith(".d.ts") ||
+				entry.name.endsWith(".map") ||
+				entry.name.endsWith(".md") ||
+				entry.name.endsWith(".markdown")
+			) {
 				fs.rmSync(full, { force: true });
 			}
 		}
