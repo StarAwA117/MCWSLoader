@@ -106,14 +106,13 @@ jobs:
           PLUGIN=$(find "$HOME/.pub-cache/hosted/pub.dev" -maxdepth 1 -type d -name 'webview_all_linux-*' | head -1)
           echo "webview plugin: $PLUGIN"
           grep -RIl 'G_REGEX_DEFAULT\|G_REGEX_MATCH_DEFAULT\|G_CONNECT_DEFAULT' "$PLUGIN/linux/src" 2>/dev/null | while read -r file; do
-            sed -i 's/G_REGEX_DEFAULT/0/g; s/G_REGEX_MATCH_DEFAULT/0/g; s/G_CONNECT_DEFAULT/G_CONNECT_AFTER/g' "$file"
+            sed -i 's/G_REGEX_DEFAULT/static_cast<GRegexCompileFlags>(0)/g; s/G_REGEX_MATCH_DEFAULT/static_cast<GRegexMatchFlags>(0)/g; s/G_CONNECT_DEFAULT/G_CONNECT_AFTER/g' "$file"
           done || true
           grep -RIl 'cxx_std_14' "$PLUGIN/linux" 2>/dev/null | while read -r file; do
             sed -i 's/cxx_std_14/cxx_std_17/g' "$file"
           done || true
           printf '\nset(CMAKE_CXX_STANDARD 17)\nset(CMAKE_CXX_STANDARD_REQUIRED ON)\n' >> build/flutter_app/linux/CMakeLists.txt
           sed -i '1i set(CMAKE_CXX_STANDARD 17)' "$PLUGIN/linux/CMakeLists.txt"
-          printf 'add_compile_definitions(G_REGEX_DEFAULT=0 G_REGEX_MATCH_DEFAULT=0 G_CONNECT_DEFAULT=G_CONNECT_AFTER)\n' >> "$PLUGIN/linux/CMakeLists.txt"
 
       - name: Install Linux desktop libraries
         if: matrix.target == 'linux'
@@ -130,7 +129,12 @@ jobs:
         if: matrix.target == 'windows'
         shell: bash
         run: |
-          printf '\nadd_compile_definitions(_SILENCE_EXPERIMENTAL_COROUTINE_DEPRECATION_WARNINGS)\n' >> build/flutter_app/windows/CMakeLists.txt
+          PLUGIN=$(find "$HOME/AppData/Local/Pub/Cache/hosted/pub.dev" -maxdepth 1 -type d -name 'webview_all_windows-*' | head -1)
+          echo "webview windows plugin: $PLUGIN"
+          if [ -n "$PLUGIN" ] && [ -f "$PLUGIN/windows/CMakeLists.txt" ]; then
+            sed -i '1i add_compile_definitions(_SILENCE_EXPERIMENTAL_COROUTINE_DEPRECATION_WARNINGS)' "$PLUGIN/windows/CMakeLists.txt"
+          fi
+          sed -i '1i add_compile_definitions(_SILENCE_EXPERIMENTAL_COROUTINE_DEPRECATION_WARNINGS)' build/flutter_app/windows/CMakeLists.txt
 
       - name: Build Windows app
         if: matrix.target == 'windows'
