@@ -122,7 +122,39 @@ Chat commands are rate-limited per player (`command.playerRateLimit`, default 10
 
 | Command | Description | Parameters |
 |---------|-------------|------------|
-| `ai:c <message>` | Ask AI to execute Bedrock commands | `message` — chat content |
+| `ai:c <message>` | Ask AI to execute Bedrock commands (supports chained rounds) | `message` — chat content |
+
+`ai:c` is command mode only. The model must answer with one JSON object:
+
+```json
+{
+  "message": "short reply for the player",
+  "commands": ["say hello"],
+  "continue": false
+}
+```
+
+- `commands` contains Bedrock commands without a leading slash.
+- If `continue` is `true`, every command is executed, and the next AI round receives a user message with the command text and the raw JSON completion result:
+  `{"type":"command_results","round":1,"results":[{"command":"say hello","result":{...}}]}`.
+- The conversation context is preserved, and chained rounds stop at `command.maxRounds` (default `4`).
+- Command execution timeout: `command.commandTimeoutMs` (default `15000`).
+
+AI config uses one shared model and persona; there is no separate `chat` / `command` model block:
+
+```json
+{
+  "model": "gpt-4o-mini",
+  "messages": [{ "role": "system", "content": "Your persona here." }],
+  "max_tokens": 1024,
+  "command": {
+    "maxRounds": 4,
+    "commandTimeoutMs": 15000
+  }
+}
+```
+
+The command-mode JSON protocol prompt is appended automatically to the user persona at request time.
 
 ---
 
