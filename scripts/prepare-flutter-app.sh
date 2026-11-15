@@ -94,7 +94,22 @@ if [[ "$TARGET" == "macos" ]]; then
 import sys
 from pathlib import Path
 
+import re
 app = Path(sys.argv[1])
+
+# webview_all_wkwebview requires macOS 11+.
+podfile = app / "macos" / "Podfile"
+if podfile.exists():
+    text = podfile.read_text()
+    text = re.sub(r"platform :osx, '[^']+'", "platform :osx, '11.0'", text)
+    podfile.write_text(text)
+
+for project in app.glob("macos/Runner.xcodeproj/project.pbxproj"):
+    text = project.read_text()
+    text = text.replace("MACOSX_DEPLOYMENT_TARGET = 10.14;", "MACOSX_DEPLOYMENT_TARGET = 11.0;")
+    text = text.replace("MACOSX_DEPLOYMENT_TARGET = 10.15;", "MACOSX_DEPLOYMENT_TARGET = 11.0;")
+    project.write_text(text)
+
 for name in ("DebugProfile.entitlements", "Release.entitlements"):
     path = app / "macos" / "Runner" / name
     if not path.exists():

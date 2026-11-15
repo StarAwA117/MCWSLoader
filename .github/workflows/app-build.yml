@@ -46,6 +46,7 @@ jobs:
         run: npm ci
 
       - name: Build WebUI
+        shell: bash
         run: |
           cd web/frontend
           npm ci
@@ -138,14 +139,15 @@ jobs:
         shell: bash
         run: |
           mkdir -p dist
-          cp build/flutter_app/build/app/outputs/flutter-apk/app-release.apk "dist/MCWSLoader-${GITHUB_REF_NAME:-dev}-arm64.apk"
+          TAG=$(printf '%s' "${GITHUB_REF_NAME:-dev}" | tr '/' '-')
+          cp build/flutter_app/build/app/outputs/flutter-apk/app-release.apk "dist/MCWSLoader-$TAG-arm64.apk"
 
       - name: Package Windows
         if: matrix.target == 'windows'
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force dist | Out-Null
-          $tag = if ($env:GITHUB_REF_NAME) { $env:GITHUB_REF_NAME } else { "dev" }
+          $tag = if ($env:GITHUB_REF_NAME) { $env:GITHUB_REF_NAME.Replace('/', '-') } else { "dev" }
           Compress-Archive -Path build/flutter_app/build/windows/x64/runner/Release/* -DestinationPath "dist/MCWSLoader-$tag-windows-x64.zip"
 
       - name: Package Linux
@@ -153,14 +155,16 @@ jobs:
         shell: bash
         run: |
           mkdir -p dist
-          tar -C build/flutter_app/build/linux/x64/release/bundle -czf "dist/MCWSLoader-${GITHUB_REF_NAME:-dev}-linux-x64.tar.gz" .
+          TAG=$(printf '%s' "${GITHUB_REF_NAME:-dev}" | tr '/' '-')
+          tar -C build/flutter_app/build/linux/x64/release/bundle -czf "dist/MCWSLoader-$TAG-linux-x64.tar.gz" .
 
       - name: Package macOS
         if: matrix.target == 'macos'
         shell: bash
         run: |
           mkdir -p dist
-          ditto -c -k --sequesterRsrc --keepParent build/flutter_app/build/macos/Build/Products/Release/mcwsloader.app "dist/MCWSLoader-${GITHUB_REF_NAME:-dev}-macos.zip"
+          TAG=$(printf '%s' "${GITHUB_REF_NAME:-dev}" | tr '/' '-')
+          ditto -c -k --sequesterRsrc --keepParent build/flutter_app/build/macos/Build/Products/Release/mcwsloader.app "dist/MCWSLoader-$TAG-macos.zip"
 
       - uses: actions/upload-artifact@v4
         with:
