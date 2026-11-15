@@ -98,7 +98,7 @@ class _MainShellState extends State<MainShell> {
                     content: Text(_error!, style: const TextStyle(fontSize: 12)),
                     actions: [TextButton(onPressed: _refresh, child: const Text('重试'))],
                   ),
-                Expanded(child: IndexedStack(index: _index, children: List.generate(7, _page))),
+                Expanded(child: _page(_index)),
               ],
             ),
           ),

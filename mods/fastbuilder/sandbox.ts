@@ -1,5 +1,5 @@
 import vm from "node:vm";
-import ts from "typescript";
+import { parse } from "acorn";
 
 export type SandboxErrorKind = "validation" | "timeout" | "runtime";
 
@@ -61,64 +61,61 @@ function cloneToContext(value: unknown, context: vm.Context): unknown {
 	}
 }
 
-function syntaxError(source: ts.SourceFile): SandboxError {
-	const diagnostics = (source as unknown as { parseDiagnostics?: readonly ts.Diagnostic[] }).parseDiagnostics ?? [];
-	const first = diagnostics[0];
-	const detail = first ? ts.flattenDiagnosticMessageText(first.messageText, " ") : "invalid syntax";
-	return new SandboxError("validation", `JavaScript syntax error: ${detail}`);
-}
-
-function bannedIdentifier(node: ts.Identifier): string | null {
-	return BANNED_IDENTIFIERS.has(node.text) ? node.text : null;
-}
-
 function validateScript(code: string): void {
 	// Wrap the script so top-level await and return behave like the old function body.
 	const wrapped = `(async () => {\n${code}\n})();`;
-	const source = ts.createSourceFile("fastbuilder.js", wrapped, ts.ScriptTarget.Latest, true, ts.ScriptKind.JS);
-	if (((source as unknown as { parseDiagnostics?: readonly ts.Diagnostic[] }).parseDiagnostics ?? []).length) {
-		throw syntaxError(source);
+	let source: any;
+	try {
+		source = parse(wrapped, { ecmaVersion: "latest", sourceType: "script" });
+	} catch (error) {
+		throw new SandboxError("validation", `JavaScript syntax error: ${error instanceof Error ? error.message : String(error)}`);
 	}
 
-	const visit = (node: ts.Node): void => {
-		const identifier = ts.isIdentifier(node) ? bannedIdentifier(node) : null;
-		if (identifier) throw new SandboxError("validation", `Identifier "${identifier}" is not allowed`);
+	const visit = (node: any): void => {
+		if (!node || typeof node !== "object") return;
 
-		if (node.kind === ts.SyntaxKind.ThisKeyword || node.kind === ts.SyntaxKind.SuperKeyword) {
+		if (node.type === "Identifier" && BANNED_IDENTIFIERS.has(node.name)) {
+			throw new SandboxError("validation", `Identifier "${node.name}" is not allowed`);
+		}
+
+		if (node.type === "ThisExpression" || node.type === "Super") {
 			throw new SandboxError("validation", "`this` and `super` are not allowed");
 		}
 
-		if (ts.isMetaProperty(node)) throw new SandboxError("validation", "meta properties are not allowed");
-
-		if (ts.isPropertyAccessExpression(node) && BANNED_MEMBERS.has(node.name.text)) {
-			throw new SandboxError("validation", `Property "${node.name.text}" is not allowed`);
+		if (node.type === "MetaProperty") {
+			throw new SandboxError("validation", "meta properties are not allowed");
 		}
 
-		if (ts.isElementAccessExpression(node) && ts.isStringLiteralLike(node.argumentExpression)) {
-			if (BANNED_MEMBERS.has(node.argumentExpression.text)) {
-				throw new SandboxError("validation", `Property "${node.argumentExpression.text}" is not allowed`);
+		if (node.type === "MemberExpression" && !node.computed && node.property?.type === "Identifier" && BANNED_MEMBERS.has(node.property.name)) {
+			throw new SandboxError("validation", `Property "${node.property.name}" is not allowed`);
+		}
+
+		if (node.type === "MemberExpression" && node.computed && node.property?.type === "Literal" && typeof node.property.value === "string" && BANNED_MEMBERS.has(node.property.value)) {
+			throw new SandboxError("validation", `Property "${node.property.value}" is not allowed`);
+		}
+
+		if (node.type === "CallExpression") {
+			if (node.callee?.type === "Import") throw new SandboxError("validation", "dynamic import is not allowed");
+			if (node.callee?.type === "Identifier" && BANNED_IDENTIFIERS.has(node.callee.name)) {
+				throw new SandboxError("validation", `Calling "${node.callee.name}" is not allowed`);
 			}
 		}
 
-		if (ts.isCallExpression(node)) {
-			if (node.expression.kind === ts.SyntaxKind.ImportKeyword) {
-				throw new SandboxError("validation", "dynamic import is not allowed");
-			}
-			if (ts.isIdentifier(node.expression) && BANNED_IDENTIFIERS.has(node.expression.text)) {
-				throw new SandboxError("validation", `Calling "${node.expression.text}" is not allowed`);
-			}
+		if (node.type === "NewExpression" && node.callee?.type === "Identifier" && BANNED_IDENTIFIERS.has(node.callee.name)) {
+			throw new SandboxError("validation", `Constructing "${node.callee.name}" is not allowed`);
 		}
 
-		if (ts.isNewExpression(node) && ts.isIdentifier(node.expression) && BANNED_IDENTIFIERS.has(node.expression.text)) {
-			throw new SandboxError("validation", `Constructing "${node.expression.text}" is not allowed`);
-		}
-
-		if (ts.isWithStatement(node)) throw new SandboxError("validation", "`with` is not allowed");
-		if (ts.isImportDeclaration(node) || ts.isExportDeclaration(node) || ts.isImportEqualsDeclaration(node)) {
+		if (node.type === "ImportExpression") throw new SandboxError("validation", "dynamic import is not allowed");
+		if (node.type === "WithStatement") throw new SandboxError("validation", "`with` is not allowed");
+		if (node.type === "ImportDeclaration" || node.type === "ExportDeclaration" || node.type === "ImportEqualsDeclaration") {
 			throw new SandboxError("validation", "module imports and exports are not allowed");
 		}
 
-		ts.forEachChild(node, visit);
+		for (const [key, value] of Object.entries(node)) {
+			if (key === "parent") continue;
+			if (Array.isArray(value)) value.forEach(visit);
+			else if (value && typeof value === "object") visit(value);
+		}
 	};
 	visit(source);
 }
