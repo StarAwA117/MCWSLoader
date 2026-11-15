@@ -12,11 +12,22 @@ export default defineConfig(({ mode }) => {
 			outDir: standalone ? "dist-standalone" : "dist",
 			emptyOutDir: true,
 			rollupOptions: {
-				output: {
-					manualChunks: {
-						vendor: ["vue", "vue-router"]
+				output: standalone
+					// file:// pages cannot load ES module scripts in a WebView
+					// because module requests are subject to CORS. Emit one
+					// classic script for the embedded build.
+					? {
+						format: "iife",
+						inlineDynamicImports: true,
+						entryFileNames: "assets/app.js",
+						chunkFileNames: "assets/[name].js",
+						assetFileNames: "assets/[name][extname]"
 					}
-				}
+					: {
+						manualChunks: {
+							vendor: ["vue", "vue-router"]
+						}
+					}
 			}
 		},
 		server: {

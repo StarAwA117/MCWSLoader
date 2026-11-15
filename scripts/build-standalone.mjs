@@ -213,6 +213,14 @@ function copyWebuiAssets() {
 	const target = path.join(ASSETS, "webui");
 	fs.rmSync(target, { recursive: true, force: true });
 	copyDir(dist, target);
+	// Vite still marks the single IIFE bundle as type="module". A WebView
+	// loading file:// would enforce module CORS, so use a classic script.
+	const indexPath = path.join(target, "index.html");
+	let html = fs.readFileSync(indexPath, "utf-8");
+	html = html.replace(/<script type="module" crossorigin src=/g, "<script src=");
+	html = html.replace(/<script type="module" src=/g, "<script src=");
+	html = html.replace(/<link rel="modulepreload"[^>]*>\n?/g, "");
+	fs.writeFileSync(indexPath, html);
 	console.log(`WebUI assets: ${target}`);
 }
 
