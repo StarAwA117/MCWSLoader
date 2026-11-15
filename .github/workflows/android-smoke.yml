@@ -63,7 +63,7 @@ jobs:
           ss = service.read_text()
           ss = ss.replace('arrayOf("node", "$nodeJsProjectPath/$mainFileName")', 'arrayOf("node", "--max-old-space-size=128", "$nodeJsProjectPath/$mainFileName")')
           service.write_text(ss)
-          manifest = p.parent.parent.parent / "AndroidManifest.xml"
+          manifest = p.parents[4] / "AndroidManifest.xml"
           ms = manifest.read_text()
           if 'android:process=":node"' not in ms:
               ms = ms.replace('<service android:name=".NodeService"', '<service android:name=".NodeService" android:process=":node"', 1)
