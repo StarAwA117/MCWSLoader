@@ -129,6 +129,24 @@ for name in ("DebugProfile.entitlements", "Release.entitlements"):
             "</dict>",
         )
     path.write_text(s)
+
+# The WebView loads a file:// page and fetches the loopback API over HTTP.
+# Allow local networking without enabling arbitrary remote HTTP.
+info = app / "macos" / "Runner" / "Info.plist"
+if info.exists():
+    text = info.read_text()
+    if "NSAppTransportSecurity" not in text:
+        text = text.replace(
+            "</dict>\n</plist>",
+            "\t<key>NSAppTransportSecurity</key>\n"
+            "\t<dict>\n"
+            "\t\t<key>NSAllowsLocalNetworking</key>\n"
+            "\t\t<true/>\n"
+            "\t</dict>\n"
+            "</dict>\n</plist>",
+            1,
+        )
+    info.write_text(text)
 PY
 fi
 
