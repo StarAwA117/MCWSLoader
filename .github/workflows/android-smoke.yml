@@ -41,7 +41,7 @@ jobs:
       - name: Install nodejs-mobile
         run: |
           ZIP="$RUNNER_TEMP/nodejs-mobile.zip"
-          curl -L --fail -o "$ZIP" https://github.com/gmaclennan/nodejs-mobile/releases/download/v24.18.0-0/nodejs-mobile-android-24.18.0-0.zip
+          curl -L --fail -o "$ZIP" https://github.com/gmaclennan/nodejs-mobile/releases/download/v24.18.0-0/nodejs-mobile-android-lite-24.18.0-0.zip
           PLUGIN=$(find "$HOME/.pub-cache/hosted/pub.dev" -maxdepth 1 -type d -name 'node_flutter-*' | head -1)
           rm -rf "$PLUGIN/android/libnode"
           mkdir -p "$PLUGIN/android/libnode" "$PLUGIN/android/libs/bin"
