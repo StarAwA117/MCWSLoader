@@ -1,7 +1,7 @@
 import vm from "node:vm";
 import ts from "typescript";
 
-export type SandboxErrorKind = "validation" | "timeout";
+export type SandboxErrorKind = "validation" | "timeout" | "runtime";
 
 export class SandboxError extends Error {
 	constructor(public readonly kind: SandboxErrorKind, message: string) {
@@ -57,7 +57,7 @@ function cloneToContext(value: unknown, context: vm.Context): unknown {
 		if (json === undefined) return undefined;
 		return vm.runInContext(`(${json})`, context, { timeout: 1000 });
 	} catch {
-		throw new SandboxError("validation", "The script returned an unsupported geometry value");
+		throw new SandboxError("runtime", "The script returned an unsupported geometry value");
 	}
 }
 
@@ -225,7 +225,7 @@ export async function runFastBuilderScript(options: FastBuilderSandboxOptions): 
 		if (/timed out/i.test(message)) {
 			throw new SandboxError("timeout", message.replace(/^Error:\s*/, ""));
 		}
-		throw new SandboxError("validation", message);
+		throw new SandboxError("runtime", message);
 	} finally {
 		if (timer) clearTimeout(timer);
 	}

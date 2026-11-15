@@ -192,10 +192,12 @@ export default class FastBuilder extends ModBase {
 			});
 			this.client.tell(this.rawtext("fastbuilder.msg.5bbfcda2d0"), sender);
 		} catch (e) {
-			if (e instanceof SandboxError) {
-				const key = e.kind === "timeout" ? "fastbuilder.error.timeout" : "fastbuilder.error.sandbox";
+			if (e instanceof SandboxError && e.kind === "timeout") {
+				this.logger.warning(`FastBuilder script timed out: ${e.message}`);
+				this.client.tell(`§cFastBuilder | §fError > §i${this.rawtext("fastbuilder.error.timeout")}`, sender);
+			} else if (e instanceof SandboxError && e.kind === "validation") {
 				this.logger.warning(`FastBuilder script rejected: ${e.message}`);
-				this.client.tell(`§cFastBuilder | §fError > §i${this.rawtext(key)}`, sender);
+				this.client.tell(`§cFastBuilder | §fError > §i${this.rawtext("fastbuilder.error.sandbox")}`, sender);
 			} else {
 				this.logger.error(`FastBuilder script failed: ${e instanceof Error ? e.stack ?? e.message : String(e)}`);
 				this.client.tell(`§cFastBuilder | §fError > §i${this.rawtext("error.execute")}`, sender);

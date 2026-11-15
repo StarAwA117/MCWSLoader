@@ -44,6 +44,14 @@ test("FastBuilder sandbox rejects host and constructor access", async () => {
 	}
 });
 
+test("FastBuilder sandbox reports runtime errors separately", async () => {
+	const fixture = options("missingFunction()");
+	await assert.rejects(
+		() => runFastBuilderScript(fixture.options),
+		(error: unknown) => error instanceof SandboxError && error.kind === "runtime"
+	);
+});
+
 test("FastBuilder sandbox enforces a timeout", async () => {
 	const fixture = options("while (true) {}", 50);
 	await assert.rejects(
