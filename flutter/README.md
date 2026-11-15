@@ -1,100 +1,98 @@
-# MCWSLoader Native App
+# MCWSLoader App
 
-独立版 Flutter 原生 GUI，内置 Node 24 LTS 服务端。界面不再使用 WebView，也不启动 WebUI 页面服务器。
+独立版使用 Flutter 原生外壳承载 Vue WebUI，并内置 Node 24 LTS 服务端。WebUI 从 Flutter assets 以 `file://` 加载，不启动静态页面服务器；本地 API 仍监听 `127.0.0.1:50100`。
 
-Standalone native Flutter GUI with an embedded Node 24 LTS server. It no longer uses WebView or starts a WebUI page server.
+The standalone app hosts the shared Vue WebUI in a Flutter WebView shell with an embedded Node 24 LTS server. The WebUI is loaded from Flutter assets via `file://`; no static page server is started. The local API still listens on `127.0.0.1:50100`.
 
 ## 平台 / Platforms
 
-- Android APK arm64
+- Android arm64
 - Windows x64
 - Linux x64
 - macOS arm64
 
 ## 默认行为 / Default behavior
 
-- 本机 API 监听 `127.0.0.1:50100`
-- 默认模式为 `gui`
+- WebUI 由 Flutter WebView 从本地 assets 渲染
+- 不启动 WebUI 静态服务器
 - 默认不启动 WebSocket
-- 不显示登录页，不使用密码
-- 不启动 Vue WebUI 静态服务
-- WebSocket 在仪表盘手动启动
-- 更新和进程控制入口在独立版中隐藏
+- 默认模式为 `gui`
+- 不需要登录密码
+- 本地 API 只监听 `127.0.0.1:50100`
+- 仪表盘手动启动 WebSocket
 
-- Local API listens on `127.0.0.1:50100`.
-- Default mode is `gui`.
+- The WebUI is rendered from local Flutter assets in a WebView.
+- No static WebUI server is started.
 - WebSocket is off by default.
-- There is no login screen or password.
-- The Vue WebUI static server is not started.
-- WebSocket is started manually from the dashboard.
-- Update and process-control entries are hidden in standalone builds.
+- Default mode is `gui`.
+- No login password is required.
+- The local API listens only on `127.0.0.1:50100`.
+- Start WebSocket manually from the dashboard.
 
-## 原生界面 / Native UI
+## 页面 / Pages
+
+WebUI 与普通 WebUI 共用同一套页面：
 
 - 仪表盘
-- 客户端管理
-- 命令执行
+- 客户端
+- 命令
 - 消息
 - 模组
-- 应用日志
+- 日志
 - 设置
+- 关于
 
-The native UI includes dashboard, clients, commands, chat, Mods, logs and settings.
+The standalone build uses the same pages as the normal WebUI: dashboard, clients, commands, chat, Mods, logs, settings and about.
 
 ## Android 后台 / Android background
 
 - Node 运行在独立的 `:node` 进程
-- 使用前台服务保持运行
-- 支持启动时自启动
+- 前台服务保持 Node 运行
+- 支持开机自启动
 - 设置页可打开电池优化豁免
 - Node 堆上限为 128 MB
+- 默认不加载 libnode 到 Flutter UI 进程
 
 - Node runs in a separate `:node` process.
 - A foreground service keeps it alive.
 - Boot autostart is supported.
 - Battery optimization settings are available from Settings.
 - The Node heap is capped at 128 MB.
+- libnode is not loaded into the Flutter UI process.
 
 ## 构建 / Build
 
-GitHub Actions:
-
-```text
-.github/workflows/app-build.yml
-```
-
-产物 / Artifacts：
-
-- `MCWSLoader-<tag>-arm64.apk`
-- `MCWSLoader-<tag>-windows-x64.zip`
-- `MCWSLoader-<tag>-linux-x64.tar.gz`
-- `MCWSLoader-<tag>-macos.zip`
-
-本地构建 / Local build：
-
 ```bash
 npm ci
-cd web/frontend && npm ci && npm run build && cd ../..
+cd web/frontend
+npm ci
+VITE_API_BASE=http://127.0.0.1:50100 npm run build -- --mode standalone
+cd ../..
 
 node scripts/build-standalone.mjs --target android
 bash scripts/prepare-flutter-app.sh android
-
-# desktop / macOS
-node scripts/build-standalone.mjs --target desktop
-bash scripts/prepare-flutter-app.sh windows
-bash scripts/prepare-flutter-app.sh linux
-bash scripts/prepare-flutter-app.sh macos
 ```
+
+桌面端 / Desktop:
+
+```bash
+node scripts/build-standalone.mjs --target desktop
+bash scripts/prepare-flutter-app.sh windows   # 或 linux / macos
+```
+
+`build-standalone.mjs` 会把 `web/frontend/dist-standalone` 复制到 `flutter/assets/webui`。
+
+`build-standalone.mjs` copies `web/frontend/dist-standalone` into `flutter/assets/webui`.
 
 ## 运行依赖 / Runtime requirements
 
 - Android 7 以上
-- Windows 10 1809 以上
-- Linux 需要 GTK 3
+- Windows 10 1809 以上，需要 WebView2 Runtime
+- Linux 需要 GTK 3 和 WebKitGTK 4.1
 - macOS 11 以上
 - macOS 首次运行如被 Gatekeeper 阻止，请在系统设置中允许
 
-Android 7 or newer. Windows 10 1809 or newer. Linux needs GTK 3. macOS 11 or newer.
+Android 7 or newer. Windows 10 1809 or newer with WebView2 Runtime. Linux needs GTK 3 and WebKitGTK 4.1. macOS 11 or newer.
 
 ## 数据目录 / Data
 
