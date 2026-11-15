@@ -2,7 +2,18 @@
 
 # MCWSLoader
 
+<div align="center">
+
+[English](./README_EN.md) | 简体中文
+
+[![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![Node.js Version](https://img.shields.io/badge/Node.js-%3E%3D22-339933?style=flat-square&logo=node.js&logoColor=white)](https://nodejs.org/)
+[![Platform](https://img.shields.io/badge/Platform-Android%20%7C%20Windows-lightgrey?style=flat-square)]()
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg?style=flat-square)](https://www.gnu.org/licenses/gpl-3.0)
+
 Minecraft 基岩版 WebSocket 桥接服务器。通过游戏内置 WebSocket API 连接客户端，以 Mod 方式注入命令与自动化能力，并提供 Web 管理界面。
+
+</div>
 
 ## 功能
 
