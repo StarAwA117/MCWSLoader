@@ -1,10 +1,11 @@
 {
-  "name": "Spam",
-  "description": "提供刷屏、广告与攻击服务",
+  "name": "pack.name",
+  "description": "pack.description",
   "version": "1.0.0",
   "author": "StarAwA117",
   "entry": {
     "server": "main.ts",
     "client": null
-  }
+  },
+  "uuid": "Spam"
 }

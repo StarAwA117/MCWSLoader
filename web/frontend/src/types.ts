@@ -11,7 +11,9 @@ export interface ClientInfo {
 
 export interface ModInfo {
 	name: string;
+	displayName?: string;
 	description: string;
+	displayDescription?: string;
 	version: string;
 	author: string;
 	enabled: boolean;

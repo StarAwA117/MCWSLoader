@@ -13,6 +13,11 @@ const FILE_BY_LANGUAGE: Record<string, string> = {
 
 export type LanguageId = "zh-CN" | "zh-TW" | "en";
 
+/** A manifest value is treated as a translation key only when it looks like one. */
+export function isTranslationKey(value: unknown): value is string {
+	return typeof value === "string" && /^[A-Za-z0-9_-]+(?:\.[A-Za-z0-9_-]+)+$/.test(value.trim());
+}
+
 export function normalizeLanguage(value: unknown): LanguageId {
 	const language = String(value ?? "").trim().replace(/_/g, "-").toLowerCase();
 	if (language === "zh-tw" || language === "zh-hk" || language === "zh-mo") return "zh-TW";

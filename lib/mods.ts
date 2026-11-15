@@ -15,7 +15,7 @@ import type { Client } from "./types/client.js";
 import type { ModConstructor, ModEntry, ModSAPI } from "./types/mod.js";
 import type { CommandResponse } from "./types/config.js";
 import { errorDetail, toUserError } from "./errors.js";
-import { tForMod } from "./texts.js";
+import { isTranslationKey, tForMod } from "./texts.js";
 
 type AnyRecord = Record<string, any>;
 
@@ -268,6 +268,18 @@ class ModRegistry {
 		}
 	}
 
+	displayName(entry: ModEntry): string {
+		if (!entry.nameKey) return entry.name;
+		const value = tForMod(entry.path, config.language, entry.nameKey);
+		return value === entry.nameKey ? entry.name : value;
+	}
+
+	displayDescription(entry: ModEntry): string {
+		if (!entry.descriptionKey) return entry.description;
+		const value = tForMod(entry.path, config.language, entry.descriptionKey);
+		return value === entry.descriptionKey ? entry.description : value;
+	}
+
 	scan(): void {
 		this.mods.clear();
 		this.byName.clear();
@@ -287,7 +299,11 @@ class ModRegistry {
 			if (!manifest) continue;
 
 			const modId = manifest.uuid || entry.name;
-			const modName = manifest.name || entry.name;
+			const rawName = typeof manifest.name === "string" && manifest.name ? manifest.name : entry.name;
+			const rawDescription = typeof manifest.description === "string" ? manifest.description : "";
+			const nameKey = isTranslationKey(rawName) ? rawName : null;
+			const descriptionKey = isTranslationKey(rawDescription) ? rawDescription : null;
+			const modName = nameKey ? modId : rawName;
 			const configPath = resolveCaseInsensitivePath(modPath, "config.json") || path.join(modPath, "config.json");
 			const configExamplePath = resolveCaseInsensitivePath(modPath, "config.example.json") || path.join(modPath, "config.example.json");
 			const hasConfig = fs.existsSync(configPath) || fs.existsSync(configExamplePath);
@@ -312,7 +328,9 @@ class ModRegistry {
 			this.mods.set(modId, {
 				id: modId,
 				name: modName,
-				description: manifest.description || "",
+				nameKey,
+				descriptionKey,
+				description: rawDescription,
 				version: manifest.version || "0.0.0",
 				author: manifest.author || "",
 				enabled,

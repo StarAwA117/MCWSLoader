@@ -74,6 +74,28 @@ that fails to parse is skipped with an error in the log.
 A Mod with neither `entry.server` nor `entry.client` is valid but does nothing,
 and does not appear in the WebUI list.
 
+### Localized name and description
+
+Only `name` and `description` can be translation keys. If the value looks like a
+text key, the Mod's `texts/` files are used for display:
+
+```json
+{
+  "uuid": "Spam",
+  "name": "pack.name",
+  "description": "pack.description"
+}
+```
+
+```properties
+pack.name=Spam tool
+pack.description=Spam, advertisements and attack helpers
+```
+
+The Mod identity remains the `uuid` or folder name. Set a stable `uuid` when
+changing an existing Mod to key-based text so its config and enabled state are
+preserved. Other manifest fields are never translated.
+
 Bundled Mods that use npm packages declare them, for example:
 
 | Mod | `dependencies` |

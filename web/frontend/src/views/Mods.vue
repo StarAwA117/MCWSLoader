@@ -49,7 +49,7 @@ const modal = ref<ModModalState>({
 
 const sortedMods = computed<ModInfo[]>(() => [...mods.value].sort((a, b) => {
 	if (a.enabled !== b.enabled) return Number(b.enabled) - Number(a.enabled);
-	return a.name.localeCompare(b.name);
+	return (a.displayName || a.name).localeCompare(b.displayName || b.name);
 }));
 
 // README 只在内容变化时解析一次，避免无关状态更新触发重复渲染
@@ -271,8 +271,8 @@ onBeforeUnmount(unlockScroll);
 		<div v-for="(m, index) in sortedMods" :key="m.name" class="card mod-card" :class="{ disabled: !m.enabled }" :style="{ '--i': Math.min(index, 6) }">
 			<div class="mod-top">
 				<div class="mod-info">
-					<div class="mod-name">{{ m.name }}</div>
-					<div v-if="m.description" class="mod-desc">{{ m.description }}</div>
+					<div class="mod-name">{{ m.displayName || m.name }}</div>
+					<div v-if="m.description" class="mod-desc">{{ m.displayDescription || m.description }}</div>
 				</div>
 				<SwitchToggle :model-value="m.enabled" @change="toggleMod(m)" />
 			</div>
@@ -300,7 +300,7 @@ onBeforeUnmount(unlockScroll);
 
 	<Transition name="modal-pop">
 	<ModalShell v-if="modal.open" @close="closeModal">
-		<template #title>{{ modal.modName }}{{ modal.type === "settings" ? " - " + t('mods.config') : modal.type === "manifest" ? " - " + t('mods.manifest') : " - " + t('mods.readme') }}</template>
+		<template #title>{{ modal.mod?.displayName || modal.modName }}{{ modal.type === "settings" ? " - " + t('mods.config') : modal.type === "manifest" ? " - " + t('mods.manifest') : " - " + t('mods.readme') }}</template>
 		<div v-if="modal.type === 'settings'">
 			<div v-if="!modal.config" class="empty-state"><p>{{ modal.message || t('common.loading') }}</p></div>
 			<ConfigField v-else v-for="f in modal.fields" :key="f.path" :field="f" :config="modal.config" :depth="0" :labels="modal.labels" />
@@ -308,9 +308,9 @@ onBeforeUnmount(unlockScroll);
 
 		<div v-if="modal.type === 'manifest'">
 			<div v-if="modal.manifest" class="manifest-info">
-				<p><b>{{ t('mods.name') }}：</b>{{ modal.manifest.name || modal.modName }}</p>
+				<p><b>{{ t('mods.name') }}：</b>{{ modal.mod?.displayName || modal.manifest.name || modal.modName }}</p>
 				<p><b>{{ t('mods.version') }}：</b>{{ modal.manifest.version || t('mods.unknown') }}</p>
-				<p><b>{{ t('mods.description') }}：</b>{{ modal.manifest.description || t('mods.notSet') }}</p>
+				<p><b>{{ t('mods.description') }}：</b>{{ modal.mod?.displayDescription || modal.manifest.description || t('mods.notSet') }}</p>
 				<p><b>{{ t('mods.author') }}：</b>{{ modal.manifest.author || t('mods.unknown') }}</p>
 				<p><b>{{ t('mods.type') }}：</b>{{ modType(modal.mod) }}</p>
 			</div>

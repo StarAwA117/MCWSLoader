@@ -608,14 +608,20 @@ async function handleAPI(req: IncomingMessage, res: ServerResponse, url: URL): P
 		// Mods
 		if (pathname === "/api/mods" && method === "GET") {
 			const allMods = modRegistry.list();
-			const serverMods = allMods.filter(m => m.entry.server).map(m => ({
-				name: m.name, description: m.description, version: m.version, author: m.author,
-				enabled: m.enabled, hasConfig: m.hasConfig, hasReadme: m.hasReadme, entry: m.entry
-			}));
-			const clientMods = allMods.filter(m => m.entry.client).map(m => ({
-				name: m.name, description: m.description, version: m.version, author: m.author,
-				enabled: m.enabled, hasConfig: m.hasConfig, hasReadme: m.hasReadme, entry: m.entry
-			}));
+			const toPublicMod = (m: ModEntry) => ({
+				name: m.name,
+				displayName: modRegistry.displayName(m),
+				description: m.description,
+				displayDescription: modRegistry.displayDescription(m),
+				version: m.version,
+				author: m.author,
+				enabled: m.enabled,
+				hasConfig: m.hasConfig,
+				hasReadme: m.hasReadme,
+				entry: m.entry
+			});
+			const serverMods = allMods.filter(m => m.entry.server).map(toPublicMod);
+			const clientMods = allMods.filter(m => m.entry.client).map(toPublicMod);
 			return json(res, { server: serverMods, client: clientMods });
 		}
 		if (pathname === "/api/mods/reload-all" && method === "POST") {

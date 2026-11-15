@@ -26,6 +26,8 @@ export interface ModEntry {
 		client: string | null;
 	};
 	path: string;
+	nameKey?: string | null;
+	descriptionKey?: string | null;
 	config: Record<string, unknown>;
 	hasConfig: boolean;
 	hasReadme: boolean;
