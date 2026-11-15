@@ -21,7 +21,7 @@ jobs:
         run: |
           cd web/frontend
           npm ci
-          VITE_STANDALONE=1 VITE_API_BASE=http://127.0.0.1:50100 npm run build
+          VITE_API_BASE=http://127.0.0.1:50100 npm run build -- --mode standalone
       - run: node scripts/build-standalone.mjs --target android
       - uses: subosito/flutter-action@v2
         with:

@@ -50,7 +50,7 @@ jobs:
         run: |
           cd web/frontend
           npm ci
-          VITE_STANDALONE=1 VITE_API_BASE=http://127.0.0.1:50100 npm run build
+          VITE_API_BASE=http://127.0.0.1:50100 npm run build -- --mode standalone
 
       - name: Build standalone server
         shell: bash
