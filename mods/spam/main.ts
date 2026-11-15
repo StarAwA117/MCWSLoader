@@ -19,11 +19,26 @@ function replaceZeros(str) {
 	});
 }
 
+function stopSpam(Current) {
+	if (!Current.has("loop")) return;
+	const timer = Current.get("loop");
+	if (timer) clearInterval(timer);
+	Current.set("loop", null);
+}
+
 // 通用刷屏启动方法
 function startSpam(Current, interval, generator, logMessage) {
-	if (Current.has("loop")) clearInterval(Current.get("loop"));
+	stopSpam(Current);
 	console.log(`< ${logMessage}`);
-	Current.set("loop", setInterval(generator, interval));
+	Current.set("loop", setInterval(() => {
+		// The main client may disconnect while a loop is still running.
+		if (!Current.client) return;
+		try {
+			generator();
+		} catch (error) {
+			console.error(`Spam loop error: ${error?.message ?? error}`);
+		}
+	}, interval));
 }
 
 export default class Spam extends ModBase {
@@ -61,13 +76,17 @@ export default class Spam extends ModBase {
 				this.Command.create("c:ad", this.rawtext("command.cAd"))
 					.setFunc((_) => {
 						if (!Current.client) { console.log(`< ${this.rawtext("terminal.spam.noMain")}`); return; }
+						if (!Array.isArray(this.config.ad) || this.config.ad.length === 0) {
+							console.log(`< ${this.rawtext("terminal.spam.noAds")}`);
+							return;
+						}
 						startSpam(Current, (this.config.adInterval || 60000), () => {
 							Current.client.tellAll(`${this.config.ad[Math.floor(Math.random() * this.config.ad.length)]}`);
 						}, this.rawtext("terminal.spam.adStart"));
 					}),
 
 				this.Command.create("c:repeat", this.rawtext("command.cRepeat"))
-					.addString(this.rawtext("spam.param.eb9f14e9a0"), true)
+					.addString(this.rawtext("spam.param.eb9f14e9a0"))
 					.setFunc((_, text) => {
 						if (!Current.client) { console.log(`< ${this.rawtext("terminal.spam.noMain")}`); return; }
 						startSpam(Current, 50, () => {
@@ -77,19 +96,20 @@ export default class Spam extends ModBase {
 
 				this.Command.create("c:stop", this.rawtext("command.cStop"))
 					.setFunc((_) => {
-						if (Current.has("loop")) clearInterval(Current.get("loop"));
-						Current.set("loop", null);
+						stopSpam(Current);
 						console.log(`< ${this.rawtext("terminal.spam.stopped")}`);
 					})
 			]
 		};
 	}
 
+	onClientDisconnect(client) {
+		if (client && client.trusted === false) return;
+		const trusted = [...this.Current.clientMods.keys()].filter((candidate) => candidate.trusted !== false).length;
+		if (trusted <= 1) stopSpam(this.Current);
+	}
+
 	static onDestroy() {
-		const Current = this.Current;
-		if (Current.has("loop")) {
-			clearInterval(Current.get("loop"));
-			Current.set("loop", null);
-		}
+		stopSpam(this.Current);
 	}
 }

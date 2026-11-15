@@ -98,13 +98,13 @@ export default class FastBuilder extends ModBase {
 		this.onCommand = () => ({
 			op: [
 				this.Command.create("fb:run", this.rawtext("fastbuilder.msg.f5ae68e235"))
-					.addString(this.rawtext("fastbuilder.param.b3d4e7e1d9"), true)
+					.addString(this.rawtext("fastbuilder.param.b3d4e7e1d9"))
 					.setFunc(async (sender, input) => {
 						await this.runScript(sender, input);
 					}),
 
 				this.Command.create("fb:runthis", this.rawtext("fastbuilder.msg.b67238a2f1"))
-					.addString(this.rawtext("fastbuilder.param.b3d4e7e1d9"), true)
+					.addString(this.rawtext("fastbuilder.param.b3d4e7e1d9"))
 					.setFunc(async (sender, input) => {
 						const pos = await this.getPlayerPosition(sender);
 						await this.runScript(sender, input, pos);

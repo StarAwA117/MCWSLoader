@@ -185,7 +185,7 @@ this.Command.create("m:percussion", this.rawtext("music.msg.8572b677ca"))
 
 			user: [
 this.Command.create("m:run", this.rawtext("music.msg.3ab9be074c"))
-				.addString(this.rawtext("music.param.983770e129"), true)
+				.addString(this.rawtext("music.param.983770e129"))
 				.setFunc((_, fileName) => {
 					this.fastrun(fileName);
 				}),

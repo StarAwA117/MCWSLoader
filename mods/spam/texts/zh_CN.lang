@@ -11,6 +11,7 @@ command.cClear=清屏聊天消息
 command.cAd=推送广告
 command.cRepeat=刷屏指定内容
 command.cStop=停止所有刷屏
+terminal.spam.noAds=广告消息列表为空
 terminal.spam.noMain=主客户端未连接
 terminal.spam.attackStart=正在攻击客户端聊天...
 terminal.spam.clearStart=正在为客户端聊天清屏...

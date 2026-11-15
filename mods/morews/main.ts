@@ -18,7 +18,7 @@ export default class MoreWS extends ModBase {
 		return {
 			op: [
 this.Command.create("c:connect", this.rawtext("morews.msg.cb538f864e"))
-				.addString(this.rawtext("morews.param.0d32d8793d"), true)
+				.addString(this.rawtext("morews.param.0d32d8793d"))
 				.setFunc((_, ip) => {
 					this.connect(ip);
 				})

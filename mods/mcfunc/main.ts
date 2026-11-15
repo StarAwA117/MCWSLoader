@@ -17,13 +17,13 @@ export default class MCFunc extends ModBase {
 		return {
 			op: [
 this.Command.create("f:function", this.rawtext("command.fFunction"))
-				.addString(this.rawtext("mcfunc.param.0fd3a9b4ea"), true)
+				.addString(this.rawtext("mcfunc.param.0fd3a9b4ea"))
 				.setFunc((_, filePath) => {
 					this.run(filePath);
 				}),
 
 this.Command.create("f:loop", this.rawtext("command.fLoop"))
-				.addString(this.rawtext("mcfunc.param.0fd3a9b4ea"), true)
+				.addString(this.rawtext("mcfunc.param.0fd3a9b4ea"))
 				.addString(this.rawtext("mcfunc.param.f330f510c5"), true)
 				.addFloat(this.rawtext("mcfunc.param.f4fdfcf6f7"), true)
 				.setFunc((_, filePath, name, interval) => {

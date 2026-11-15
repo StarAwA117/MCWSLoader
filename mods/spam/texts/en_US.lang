@@ -11,6 +11,7 @@ command.cClear=Clear chat messages
 command.cAd=Push advertisements
 command.cRepeat=Repeat specified content
 command.cStop=Stop all repeats
+terminal.spam.noAds=No ad messages configured
 terminal.spam.noMain=Main client not connected
 terminal.spam.attackStart=Attacking client chat...
 terminal.spam.clearStart=Clearing client chat...
