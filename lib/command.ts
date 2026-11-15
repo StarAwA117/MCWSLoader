@@ -1,4 +1,5 @@
 import { toUserError } from "./errors.js";
+import { tCore } from "./texts.js";
 
 /** 参数类型：基础类型名、自定义类型名或枚举值数组 */
 export type CommandParameterType = string | readonly string[];
@@ -6,9 +7,19 @@ export type CommandParameterType = string | readonly string[];
 /** [类型, 描述, 是否可选] */
 export type ParameterTuple = [CommandParameterType, string | null, boolean];
 
+export class CommandError extends Error {
+	readonly userMessage: string;
+
+	constructor(message: string) {
+		super(message);
+		this.name = "CommandError";
+		this.userMessage = message;
+	}
+}
+
 export type CommandResult = {
 	status: boolean;
-	message?: string | unknown[];
+	message?: string | unknown[] | CommandError;
 };
 
 export type CommandErrorHandler = (error: Error) => void;
@@ -27,17 +38,17 @@ const PARAM_PARSERS: Record<string, ValueParser> = {
 	Boolean: (text) =>
 		text === "true" || text === "false"
 			? { value: text === "true" }
-			: { error: `"${text}" 处应为布尔型` },
+			: { error: tCore("core.command.boolean", { value: text }) },
 	String: (text) => ({ value: text }),
 	Integer: (text) => {
-		if (!/^-?\d+$/.test(text)) return { error: `"${text}" 处应为整型` };
+		if (!/^-?\d+$/.test(text)) return { error: tCore("core.command.integer", { value: text }) };
 		const value = Number(text);
-		return Number.isSafeInteger(value) ? { value } : { error: `"${text}" 处应为整型` };
+		return Number.isSafeInteger(value) ? { value } : { error: tCore("core.command.integer", { value: text }) };
 	},
 	Float: (text) => {
-		if (!/^-?\d*\.?\d+(?:e[+-]?\d+)?$/i.test(text)) return { error: `"${text}" 处应为浮点型` };
+		if (!/^-?\d*\.?\d+(?:e[+-]?\d+)?$/i.test(text)) return { error: tCore("core.command.float", { value: text }) };
 		const value = parseFloat(text);
-		return Number.isFinite(value) ? { value } : { error: `"${text}" 处应为浮点型` };
+		return Number.isFinite(value) ? { value } : { error: tCore("core.command.float", { value: text }) };
 	}
 };
 
@@ -100,7 +111,7 @@ export default class Command {
 				hasToken = true;
 			}
 		}
-		if (inQuote) throw new Error("未闭合的双引号");
+		if (inQuote) throw new Error(tCore("core.command.unclosedQuote"));
 		if (hasToken) tokens.push(cur);
 		return tokens;
 	}
@@ -205,7 +216,7 @@ export default class Command {
 		try {
 			tokens = Command.parseArgs(text);
 		} catch (e) {
-			return { status: false, message: toUserError(e, "命令格式不正确") };
+			return { status: false, message: new CommandError(toUserError(e, tCore("core.command.invalid"))) };
 		}
 		return this.executeTokens(commander, tokens, onError);
 	}
@@ -225,7 +236,11 @@ export default class Command {
 		if (providedArgs < requiredCount || providedArgs > totalCount) {
 			return {
 				status: false,
-				message: `参数数量错误：需要 ${requiredCount}-${totalCount} 个参数，但提供了 ${providedArgs} 个`
+				message: new CommandError(tCore("core.command.argCount", {
+					min: requiredCount,
+					max: totalCount,
+					provided: providedArgs
+				}))
 			};
 		}
 
@@ -245,7 +260,10 @@ export default class Command {
 			// 枚举类型
 			if (typeof type !== "string") {
 				if (!type.includes(text ?? "")) {
-					return { status: false, message: `"${text}" 处应为枚举 ${type}` };
+					return {
+						status: false,
+						message: new CommandError(tCore("core.command.enum", { value: text ?? "", values: type.join("|") }))
+					};
 				}
 				resultList.push(text);
 				continue;
@@ -256,12 +274,15 @@ export default class Command {
 				? PARAM_PARSERS[type]
 				: null;
 			const parsed = parser ? parser(text ?? "") : { value: text };
-			if (parsed.error) return { status: false, message: parsed.error };
+			if (parsed.error) return { status: false, message: new CommandError(parsed.error) };
 			resultList.push(parsed.value);
 		}
 
 		if (!this.func || typeof this.func !== "function") {
-			return { status: false, message: `命令 ${Command.commandPrefix}${this.name} 未实现` };
+			return {
+				status: false,
+				message: new CommandError(tCore("core.command.notImplemented", { command: `${Command.commandPrefix}${this.name}` }))
+			};
 		}
 
 		try {
@@ -273,7 +294,7 @@ export default class Command {
 				});
 			}
 		} catch (e) {
-			return { status: false, message: toUserError(e, "命令格式不正确") };
+			return { status: false, message: new CommandError(toUserError(e, tCore("core.command.invalid"))) };
 		}
 
 		return {

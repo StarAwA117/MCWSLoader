@@ -1,5 +1,6 @@
 import type { Client } from "./types/client.js";
 import { errorDetail, toUserError } from "./errors.js";
+import { tCore } from "./texts.js";
 
 type CommandClass = import("./command.js").default;
 interface CommandConstructor {
@@ -27,6 +28,7 @@ export default class Tool {
 	declare ClientModManager: ClientModManagerClass;
 	declare reloadConfig: () => unknown;
 	declare exec: typeof import("node:child_process").exec;
+	declare logger: { warning(message: string): void; error(message: string): void };
 	declare config: Record<string, any>;
 
 	/**
@@ -42,7 +44,7 @@ export default class Tool {
 		page = 1,
 		perPage = 5,
 		navCommand = "t:help",
-		title = "命令帮助",
+		title = tCore("core.help.title"),
 		prefix = "$",
 		tr: (key: string, params?: Record<string, unknown>) => string = (key) => key
 	): string[] {
@@ -184,11 +186,15 @@ export default class Tool {
 						// 未提供参数：显示当前模式
 						if (mode === undefined) {
 							const cur = utils.getTellAllMode();
-							this.client.tell(this.rawtext("core.msg.aae32ad469", { p0: cur ? "转发为 tell" : "按原样广播" }), sender);
+							this.client.tell(this.rawtext("core.msg.aae32ad469", {
+								p0: cur ? this.rawtext("core.tool.tellAllForward") : this.rawtext("core.tool.tellAllRaw")
+							}), sender);
 							return;
 						}
 						utils.setTellAllMode(mode);
-						this.client.tell(this.rawtext("core.msg.b1f1bb08d1", { p0: mode ? "开启转发" : "恢复原样" }), sender);
+						this.client.tell(this.rawtext("core.msg.b1f1bb08d1", {
+								p0: mode ? this.rawtext("core.tool.tellAllOn") : this.rawtext("core.tool.tellAllOff")
+							}), sender);
 					}),
 
 				this.Command.create("t:cmd", this.rawtext("core.msg.9d34ca936d"))
@@ -197,11 +203,11 @@ export default class Tool {
 						try {
 							const data = await this.client.runCommand(command);
 							const status = data.body?.statusCode;
-							const msg = data.body?.statusMessage || "无返回消息";
-							this.client.tellAll(`§eTool | §fCommand > §i[${status}] ${msg}`);
+							const msg = data.body?.statusMessage || this.rawtext("core.tool.noMessage");
+							this.client.tellAll(this.rawtext("core.tool.commandResult", { status, message: msg }));
 						} catch (e) {
 							console.error(`t:cmd failed: ${errorDetail(e)}`);
-							this.client.tellAll(`§cTool | §fError > §i${toUserError(e, this.rawtext("core.error.command"))}`);
+							this.client.tellAll(this.rawtext("core.tool.error", { p0: toUserError(e, this.rawtext("core.error.command")) }));
 						}
 					})
 			],
@@ -213,10 +219,10 @@ export default class Tool {
 					.setFunc(async (_: string, object: string, value: string) => {
 						const result = await this.PermissionManager.add(object, value);
 						if (result instanceof Error) {
-							this.client.tellAll(`§cPermission | §fError > §i${toUserError(result, this.rawtext("core.error.permission"))}`);
+							this.client.tellAll(this.rawtext("core.tool.permissionError", { p0: toUserError(result, this.rawtext("core.error.permission")) }));
 							return;
 						}
-						this.client.tellAll(`§ePermission | §fAdd > §i${value} -> ${object}`);
+						this.client.tellAll(this.rawtext("core.tool.permissionAdd", { p0: value, p1: object }));
 					}),
 
 				this.Command.create("p:remove", this.rawtext("core.msg.05850b4973"))
@@ -225,10 +231,10 @@ export default class Tool {
 					.setFunc(async (_: string, object: string, value: string) => {
 						const result = await this.PermissionManager.remove(object, value);
 						if (result instanceof Error) {
-							this.client.tellAll(`§cPermission | §fError > §i${toUserError(result, this.rawtext("core.error.permission"))}`);
+							this.client.tellAll(this.rawtext("core.tool.permissionError", { p0: toUserError(result, this.rawtext("core.error.permission")) }));
 							return;
 						}
-						this.client.tellAll(`§ePermission | §fRemove > §i${value} <- ${object}`);
+						this.client.tellAll(this.rawtext("core.tool.permissionRemove", { p0: value, p1: object }));
 					}),
 
 				this.Command.create("t:ping", this.rawtext("core.msg.8afb414481")).setFunc(() => {
@@ -237,7 +243,7 @@ export default class Tool {
 						.runCommand("list")
 						.then(() => {
 							const ms = Date.now() - start;
-							this.client.tellAll(`§eTool | §fPing > §i${ms}ms`);
+							this.client.tellAll(this.rawtext("core.tool.ping", { p0: ms }));
 						})
 						.catch(() => {
 							this.client.tellAll(this.rawtext("core.msg.0f4edba4c2"));
@@ -249,7 +255,7 @@ export default class Tool {
 					const pad = (n: number): string => String(n).padStart(2, "0");
 					const date = `${bj.getUTCFullYear()}-${pad(bj.getUTCMonth() + 1)}-${pad(bj.getUTCDate())}`;
 					const time = `${pad(bj.getUTCHours())}:${pad(bj.getUTCMinutes())}:${pad(bj.getUTCSeconds())}`;
-					this.client.tell(`§eTool | §fTime > §i${date} ${time}`, sender);
+					this.client.tell(this.rawtext("core.tool.time", { p0: `${date} ${time}` }), sender);
 				}),
 
 				this.Command.create("t:start", this.rawtext("core.msg.4aae5f9c09")).setFunc(async (sender: string) => {
@@ -307,7 +313,7 @@ export default class Tool {
 						try {
 							this.reloadConfig();
 						} catch (e) {
-							client.tell(`§cTool | §fError > §i${toUserError(e, this.rawtext("core.error.configReload"))}`, sender);
+							client.tell(this.rawtext("core.tool.error", { p0: toUserError(e, this.rawtext("core.error.configReload")) }), sender);
 							return;
 						}
 						if (modName) {
@@ -317,14 +323,19 @@ export default class Tool {
 								return;
 							}
 							const result = await manager.reload(modName);
-							client.tellAll(`§eTool | §fReload > §i${result.message}`);
+							if (result.success) {
+								client.tellAll(this.rawtext("core.tool.reloadSuccess", { p0: modName }));
+							} else {
+								this.logger?.warning?.(`Client Mod ${modName} reload failed: ${result.message}`);
+								client.tellAll(this.rawtext("core.tool.reloadFailed", { p0: modName }));
+							}
 						} else {
 							const result = await this.ClientModManager.reloadAllClients();
 							client.tellAll(
 								this.rawtext("core.msg.c5e76d2abe", { p0: result.success.length || 0, p1: result.failed.length || 0 })
 							);
 							if (result.failed.length > 0) {
-								result.failed.forEach((f) => client.tellAll(`§cTool | §fError > §i${f}`));
+								result.failed.forEach((f) => client.tellAll(this.rawtext("core.tool.error", { p0: f })));
 							}
 						}
 					}),
@@ -350,7 +361,7 @@ export default class Tool {
 						this.exec(command, { timeout: 30000 }, (error, stdout, stderr) => {
 							if (error) {
 								console.error(`t:exec failed: ${errorDetail(error)}`);
-								this.client.tellAll(`§cTool | §fexec > §i${toUserError(error, this.rawtext("core.error.command"))}`);
+								this.client.tellAll(this.rawtext("core.tool.execError", { p0: toUserError(error, this.rawtext("core.error.command")) }));
 							}
 							const output = stdout || stderr || "";
 							const lines = output.split("\n").filter((l) => l.length > 0);

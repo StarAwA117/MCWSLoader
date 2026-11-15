@@ -13,6 +13,19 @@ const FILE_BY_LANGUAGE: Record<string, string> = {
 
 export type LanguageId = "zh-CN" | "zh-TW" | "en";
 
+// Modules that cannot import the global config without a cycle use this active
+// language for their user-facing messages. mods.ts updates it on load/reload.
+let activeLanguage: LanguageId = "en";
+
+export function setTextLanguage(value: unknown): void {
+	activeLanguage = normalizeLanguage(value);
+}
+
+/** Translate a core key using the active language. */
+export function tCore(key: string, params?: Record<string, unknown>): string {
+	return tForMod(null, activeLanguage, key, params);
+}
+
 /** A manifest value is treated as a translation key only when it looks like one. */
 export function isTranslationKey(value: unknown): value is string {
 	return typeof value === "string" && /^[A-Za-z0-9_-]+(?:\.[A-Za-z0-9_-]+)+$/.test(value.trim());

@@ -15,7 +15,7 @@ import type { Client } from "./types/client.js";
 import type { ModConstructor, ModEntry, ModSAPI } from "./types/mod.js";
 import type { CommandResponse } from "./types/config.js";
 import { errorDetail, toUserError } from "./errors.js";
-import { isTranslationKey, normalizeLanguage, tForMod } from "./texts.js";
+import { isTranslationKey, normalizeLanguage, setTextLanguage, tForMod } from "./texts.js";
 
 type AnyRecord = Record<string, any>;
 
@@ -179,6 +179,7 @@ function normalizeConfig(cfg: AnyRecord): AnyRecord {
 }
 normalizeConfig(config);
 config.language = normalizeLanguage(config.language);
+setTextLanguage(config.language);
 
 Command.commandPrefix = sanitizePrefix(config.commandPrefix);
 config.commandPrefix = Command.commandPrefix;
@@ -212,6 +213,7 @@ export function reloadConfig(): AppConfig {
 	if (fresh.commandPrefix == null) config.commandPrefix = prevPrefix;
 	config.commandPrefix = sanitizePrefix(config.commandPrefix);
 	config.language = normalizeLanguage(config.language);
+	setTextLanguage(config.language);
 	Command.commandPrefix = config.commandPrefix;
 	// config.json 全量替换后，Mod 合并配置缓存全部失效
 	modRegistry.invalidateConfigCache();

@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { tCore } from "./texts.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -23,6 +24,13 @@ export interface PermissionData {
 }
 
 const EMPTY: PermissionData = { owner: "", op: [], user: [], blocker: [] };
+
+function permissionError(key: string, params?: Record<string, unknown>): Error {
+	const message = tCore(key, params);
+	const error = new Error(message) as Error & { userMessage: string };
+	error.userMessage = message;
+	return error;
+}
 
 /** Cached parsed permissions. The file is checked by mtime so manual edits still apply. */
 let cache: PermissionData | null = null;
@@ -83,7 +91,7 @@ export default class PermissionManager {
 	}
 
 	static set(data: unknown): true | Error {
-		if (!data || typeof data !== "object" || Array.isArray(data)) return new Error("无效的权限数据");
+		if (!data || typeof data !== "object" || Array.isArray(data)) return permissionError("core.permission.invalidData");
 		save(normalize(data));
 		return true;
 	}
@@ -109,7 +117,7 @@ export default class PermissionManager {
 	 * @param name 玩家名
 	 */
 	static add(type: PermissionGroup | string, name: string): true | Error {
-		if (!Object.prototype.hasOwnProperty.call(LEVELS, type)) return new Error(`未知权限类型: ${type}`);
+		if (!Object.prototype.hasOwnProperty.call(LEVELS, type)) return permissionError("core.permission.unknownType", { type });
 		const data = load();
 		if (type === "owner") {
 			data.owner = name;
@@ -127,7 +135,7 @@ export default class PermissionManager {
 	 * @param name 玩家名
 	 */
 	static remove(type: PermissionGroup | string, name: string): true | Error {
-		if (!Object.prototype.hasOwnProperty.call(LEVELS, type)) return new Error(`未知权限类型: ${type}`);
+		if (!Object.prototype.hasOwnProperty.call(LEVELS, type)) return permissionError("core.permission.unknownType", { type });
 		const data = load();
 		if (type === "owner") {
 			data.owner = "";
