@@ -1,8 +1,17 @@
-English | [简体中文](./README.md)
-
 # MCWSLoader
 
+English | [简体中文](./README.md)
+
+<div align="center">
+
+[![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![Node.js Version](https://img.shields.io/badge/Node.js-%3E%3D22-339933?style=flat-square&logo=node.js&logoColor=white)](https://nodejs.org/)
+[![Platform](https://img.shields.io/badge/Platform-Android%20%7C%20Windows-lightgrey?style=flat-square)]()
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg?style=flat-square)](https://www.gnu.org/licenses/gpl-3.0)
+
 Minecraft Bedrock Edition WebSocket bridge server. Connects clients through the game's built-in WebSocket API, injects commands and automation through a Mod system, and ships with a web management UI.
+
+</div>
 
 ## Features
 
