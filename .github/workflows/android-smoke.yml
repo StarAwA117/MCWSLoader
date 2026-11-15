@@ -66,7 +66,6 @@ jobs:
             adb shell am start -n com.mcwsloader.mcwsloader/.MainActivity
             sleep 150
             adb shell pidof com.mcwsloader.mcwsloader || true
-            adb shell dumpsys activity services com.mcwsloader.mcwsloader | head -80 || true
             adb logcat -d > /tmp/logcat.txt
             grep -E "AndroidRuntime|FATAL EXCEPTION|NODEJS-FLUTTER|mcwsloader|UnsatisfiedLinkError" /tmp/logcat.txt | tail -120 || true
       - uses: actions/upload-artifact@v4
