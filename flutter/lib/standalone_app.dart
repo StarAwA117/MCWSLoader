@@ -1,9 +1,11 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
 
+import 'api.dart';
 import 'local_server.dart';
-import 'webui_page.dart';
+import 'main_shell.dart';
 
 class StandaloneApp extends StatefulWidget {
   const StandaloneApp({super.key});
@@ -14,9 +16,8 @@ class StandaloneApp extends StatefulWidget {
 
 class _StandaloneAppState extends State<StandaloneApp> with WidgetsBindingObserver {
   final LocalServer _server = LocalServer();
-  String? _token;
   String? _error;
-  bool _ready = false;
+  ApiClient? _api;
 
   @override
   void initState() {
@@ -42,13 +43,12 @@ class _StandaloneAppState extends State<StandaloneApp> with WidgetsBindingObserv
   Future<void> _boot() async {
     setState(() {
       _error = null;
-      _ready = false;
+      _api = null;
     });
     try {
       await _server.start();
-      _token = await _server.login();
       if (!mounted) return;
-      setState(() => _ready = true);
+      setState(() => _api = ApiClient(standaloneBaseUrl));
     } catch (e) {
       if (!mounted) return;
       setState(() => _error = e.toString());
@@ -57,9 +57,8 @@ class _StandaloneAppState extends State<StandaloneApp> with WidgetsBindingObserv
 
   @override
   Widget build(BuildContext context) {
-    if (_ready) {
-      return WebUiPage(baseUrl: standaloneBaseUrl, token: _token);
-    }
+    final api = _api;
+    if (api != null) return MainShell(api: api);
     return Scaffold(
       body: Center(
         child: ConstrainedBox(
@@ -70,19 +69,16 @@ class _StandaloneAppState extends State<StandaloneApp> with WidgetsBindingObserv
               mainAxisSize: MainAxisSize.min,
               children: [
                 Container(
-                  width: 64,
-                  height: 64,
+                  width: 66,
+                  height: 66,
                   decoration: BoxDecoration(
                     color: const Color(0xFFDBEAFE),
-                    borderRadius: BorderRadius.circular(20),
+                    borderRadius: BorderRadius.circular(22),
                   ),
-                  child: const Icon(Icons.dns_rounded, color: Color(0xFF2563EB), size: 32),
+                  child: const Icon(Icons.dns_rounded, color: Color(0xFF2563EB), size: 34),
                 ),
                 const SizedBox(height: 20),
-                const Text(
-                  'MCWSLoader',
-                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.w700),
-                ),
+                const Text('MCWSLoader', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w700)),
                 const SizedBox(height: 8),
                 Text(
                   _error == null ? '正在启动本地服务...' : '本地服务启动失败',
@@ -91,20 +87,12 @@ class _StandaloneAppState extends State<StandaloneApp> with WidgetsBindingObserv
                 ),
                 if (_error != null) ...[
                   const SizedBox(height: 16),
-                  Text(
-                    _error!,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(color: Color(0xFFDC2626), fontSize: 12),
-                  ),
+                  Text(_error!, textAlign: TextAlign.center, style: const TextStyle(color: Color(0xFFDC2626), fontSize: 12)),
                   const SizedBox(height: 20),
                   FilledButton(onPressed: _boot, child: const Text('重试')),
                 ] else ...[
                   const SizedBox(height: 28),
-                  const SizedBox(
-                    width: 22,
-                    height: 22,
-                    child: CircularProgressIndicator(strokeWidth: 2.4),
-                  ),
+                  const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2.4)),
                 ],
               ],
             ),

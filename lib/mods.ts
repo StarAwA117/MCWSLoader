@@ -154,7 +154,7 @@ function normalizeConfig(cfg: AnyRecord): AnyRecord {
 	if (cfg.update.autoCheck === undefined) cfg.update.autoCheck = false;
 	if (cfg.update.allowPrerelease === undefined) cfg.update.allowPrerelease = false;
 
-	if (cfg.mode !== "webui" && cfg.mode !== "websocket") cfg.mode = "both";
+	if (cfg.mode !== "webui" && cfg.mode !== "websocket" && cfg.mode !== "gui") cfg.mode = "both";
 
 	if (!cfg.web || typeof cfg.web !== "object" || Array.isArray(cfg.web)) cfg.web = {};
 	if (typeof cfg.web.host !== "string" || !cfg.web.host) cfg.web.host = "0.0.0.0";
@@ -183,7 +183,7 @@ normalizeConfig(config);
 config.language = normalizeLanguage(config.language);
 setTextLanguage(config.language);
 const envMode = process.env.MCWS_MODE;
-if (envMode === "both" || envMode === "webui" || envMode === "websocket") config.mode = envMode;
+if (envMode === "both" || envMode === "webui" || envMode === "websocket" || envMode === "gui") config.mode = envMode;
 const envWebPort = Number(process.env.MCWS_WEB_PORT);
 if (Number.isInteger(envWebPort) && envWebPort > 0 && envWebPort <= 65535) config.web!.port = envWebPort;
 
@@ -221,7 +221,7 @@ export function reloadConfig(): AppConfig {
 	config.language = normalizeLanguage(config.language);
 	setTextLanguage(config.language);
 	const envMode = process.env.MCWS_MODE;
-	if (envMode === "both" || envMode === "webui" || envMode === "websocket") config.mode = envMode;
+	if (envMode === "both" || envMode === "webui" || envMode === "websocket" || envMode === "gui") config.mode = envMode;
 	const envWebPort = Number(process.env.MCWS_WEB_PORT);
 	if (Number.isInteger(envWebPort) && envWebPort > 0 && envWebPort <= 65535) config.web!.port = envWebPort;
 	Command.commandPrefix = config.commandPrefix;

@@ -16,6 +16,7 @@ cp "$ROOT/flutter/analysis_options.yaml" "$APP/analysis_options.yaml"
 rm -rf "$APP/assets"
 mkdir -p "$APP/assets"
 cp -R "$ROOT/flutter/assets/." "$APP/assets/"
+cp "$ROOT/flutter/icon.png" "$APP/assets/icon.png"
 
 if [[ "$TARGET" == "android" ]]; then
   mkdir -p "$APP/android/app/src/main/assets"
@@ -58,3 +59,4 @@ fi
 
 cd "$APP"
 flutter pub get
+dart run flutter_launcher_icons

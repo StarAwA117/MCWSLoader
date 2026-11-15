@@ -228,7 +228,7 @@ await checkModDependencies();
 await ServerModManager.load();
 await ClientModManager.load();
 
-if (MODE !== "webui") {
+if (MODE !== "webui" && MODE !== "gui") {
 	await startWebSocketServer();
 }
 

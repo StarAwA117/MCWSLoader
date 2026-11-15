@@ -98,43 +98,25 @@ jobs:
           cp -R "$PLUGIN/android/libnode/bin/." "$PLUGIN/android/libs/bin/"
           sed -i '1i set(CMAKE_CXX_STANDARD 20)' "$PLUGIN/android/CMakeLists.txt"
           sed -i '1i set(CMAKE_CXX_STANDARD_REQUIRED ON)' "$PLUGIN/android/CMakeLists.txt"
-
-      - name: Patch Linux WebView plugin for older GLib
-        if: matrix.target == 'linux'
-        shell: bash
-        run: |
-          PLUGIN=$(find "$HOME/.pub-cache/hosted/pub.dev" -maxdepth 1 -type d -name 'webview_all_linux-*' | head -1)
-          echo "webview plugin: $PLUGIN"
-          grep -RIl 'G_REGEX_DEFAULT\|G_REGEX_MATCH_DEFAULT\|G_CONNECT_DEFAULT' "$PLUGIN/linux/src" 2>/dev/null | while read -r file; do
-            sed -i 's/G_REGEX_DEFAULT/static_cast<GRegexCompileFlags>(0)/g; s/G_REGEX_MATCH_DEFAULT/static_cast<GRegexMatchFlags>(0)/g; s/G_CONNECT_DEFAULT/G_CONNECT_AFTER/g' "$file"
-          done || true
-          grep -RIl 'cxx_std_14' "$PLUGIN/linux" 2>/dev/null | while read -r file; do
-            sed -i 's/cxx_std_14/cxx_std_17/g' "$file"
-          done || true
-          printf '\nset(CMAKE_CXX_STANDARD 17)\nset(CMAKE_CXX_STANDARD_REQUIRED ON)\n' >> build/flutter_app/linux/CMakeLists.txt
-          sed -i '1i set(CMAKE_CXX_STANDARD 17)' "$PLUGIN/linux/CMakeLists.txt"
+          python3 - "$PLUGIN" <<'PY'
+          import sys
+          from pathlib import Path
+          p = Path(sys.argv[1]) / "android/src/main/kotlin/org/binbard/node_flutter/NodeFlutterPlugin.kt"
+          s = p.read_text()
+          s = s.replace('arrayOf("node", "$nodeJsProjectPath/$mainFileName")', 'arrayOf("node", "--max-old-space-size=128", "$nodeJsProjectPath/$mainFileName")')
+          p.write_text(s)
+          PY
 
       - name: Install Linux desktop libraries
         if: matrix.target == 'linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev libwebkit2gtk-4.1-dev libjavascriptcoregtk-4.1-dev
+          sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev
 
       - name: Build Android APK
         if: matrix.target == 'android'
         working-directory: build/flutter_app
         run: flutter build apk --release --target-platform android-arm64
-
-      - name: Patch Windows WebView plugin for newer MSVC
-        if: matrix.target == 'windows'
-        shell: bash
-        run: |
-          PLUGIN=$(find "$HOME/AppData/Local/Pub/Cache/hosted/pub.dev" -maxdepth 1 -type d -name 'webview_all_windows-*' | head -1)
-          echo "webview windows plugin: $PLUGIN"
-          if [ -n "$PLUGIN" ] && [ -f "$PLUGIN/windows/CMakeLists.txt" ]; then
-            sed -i '1i add_compile_definitions(_SILENCE_EXPERIMENTAL_COROUTINE_DEPRECATION_WARNINGS)' "$PLUGIN/windows/CMakeLists.txt"
-          fi
-          sed -i '1i add_compile_definitions(_SILENCE_EXPERIMENTAL_COROUTINE_DEPRECATION_WARNINGS)' build/flutter_app/windows/CMakeLists.txt
 
       - name: Build Windows app
         if: matrix.target == 'windows'

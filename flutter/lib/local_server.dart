@@ -5,13 +5,11 @@ import 'dart:io';
 import 'package:archive/archive.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
-import 'package:http/http.dart' as http;
 import 'package:node_flutter/node_flutter.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
 const String standaloneBaseUrl = 'http://127.0.0.1:50100';
-const String standalonePassword = 'mcwsloader';
 
 class LocalServer {
   Process? _process;
@@ -92,7 +90,7 @@ class LocalServer {
     try {
       while (DateTime.now().isBefore(deadline)) {
         try {
-          final req = await client.getUrl(Uri.parse('$standaloneBaseUrl/login'));
+          final req = await client.getUrl(Uri.parse('$standaloneBaseUrl/api/status'));
           final res = await req.close().timeout(const Duration(seconds: 2));
           await res.drain<void>();
           if (res.statusCode >= 200 && res.statusCode < 500) return;
@@ -107,22 +105,6 @@ class LocalServer {
     throw Exception('Local service did not start. Port 50100 may be occupied.');
   }
 
-  Future<String?> login() async {
-    try {
-      final res = await http
-          .post(
-            Uri.parse('$standaloneBaseUrl/api/login'),
-            headers: {'Content-Type': 'application/json'},
-            body: jsonEncode({'password': standalonePassword}),
-          )
-          .timeout(const Duration(seconds: 8));
-      if (res.statusCode != 200) return null;
-      final data = jsonDecode(res.body) as Map<String, dynamic>;
-      return data['ok'] == true ? data['token'] as String? : null;
-    } catch (_) {
-      return null;
-    }
-  }
 
   Future<void> stop() async {
     if (isAndroid) return;

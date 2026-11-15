@@ -12,7 +12,6 @@
  */
 import fs from "node:fs";
 import path from "node:path";
-import crypto from "node:crypto";
 import os from "node:os";
 import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
@@ -23,7 +22,6 @@ const SERVER = path.join(BUILD, "server");
 const MODS_OUT = path.join(BUILD, "modsout", "mods");
 const FLUTTER = path.join(ROOT, "flutter");
 const ASSETS = path.join(FLUTTER, "assets");
-const DEFAULT_PASSWORD = "mcwsloader";
 const WEB_PORT = 50100;
 
 function parseArgs() {
@@ -66,13 +64,7 @@ function copyDir(src, dest, filter = null) {
 	}
 }
 
-function sha256File(file) {
-	return crypto.createHash("sha256").update(fs.readFileSync(file)).digest("hex");
-}
-
 function writeDefaultConfig() {
-	const salt = crypto.randomBytes(16).toString("hex");
-	const hash = crypto.scryptSync(DEFAULT_PASSWORD, salt, 64).toString("hex");
 	const config = {
 		ws: {
 			name: "MCWSLoader",
@@ -100,7 +92,6 @@ function writeDefaultConfig() {
 		web: {
 			host: "127.0.0.1",
 			port: WEB_PORT,
-			auth: { maxAttempts: 5, windowMs: 60000, lockoutMs: 60000, salt, passwordHash: hash },
 			ui: { theme: "star", allowedOrigins: [] }
 		},
 		logLevel: "info",
@@ -109,7 +100,7 @@ function writeDefaultConfig() {
 		utils: { tellAllToTell: false, enablePolling: true },
 		language: "zh-CN",
 		update: { autoCheck: false, allowPrerelease: false },
-		mode: "webui",
+		mode: "gui",
 		standalone: true
 	};
 	fs.writeFileSync(path.join(SERVER, "config.json"), JSON.stringify(config, null, "\t") + "\n", { encoding: "utf-8", mode: 0o600 });
@@ -134,8 +125,7 @@ function prepareServer() {
 		return !entry.name.endsWith(".ts") && !entry.name.endsWith(".map");
 	});
 	copyDir(path.join(ROOT, "texts"), path.join(SERVER, "texts"));
-	copyDir(path.join(ROOT, "web", "frontend", "dist"), path.join(SERVER, "web", "frontend", "dist"));
-	for (const file of ["package.json", "package-lock.json", "config.example.json", "permission.example.json"]) {
+		for (const file of ["package.json", "package-lock.json", "config.example.json", "permission.example.json"]) {
 		const src = path.join(ROOT, file);
 		if (fs.existsSync(src)) fs.copyFileSync(src, path.join(SERVER, file));
 	}
@@ -166,6 +156,11 @@ function prepareServer() {
 		cwd: SERVER,
 		shell: process.platform === "win32"
 	});
+	// The GUI launches compiled main.js directly; tsx/esbuild are not needed at
+	// runtime and account for a noticeable part of the standalone package.
+	for (const name of ["tsx", "esbuild", "@esbuild"]) {
+		fs.rmSync(path.join(SERVER, "node_modules", name), { recursive: true, force: true });
+	}
 }
 
 function createDesktopAssets(nodePath) {

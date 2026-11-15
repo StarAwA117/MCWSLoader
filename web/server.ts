@@ -65,6 +65,12 @@ function isWebSocketRunning(): boolean {
 	return webSocketRunningHandler ? webSocketRunningHandler() : true;
 }
 
+function isLoopbackAddress(address: string | undefined): boolean {
+	if (!address) return false;
+	const value = address.startsWith("::ffff:") ? address.slice(7) : address;
+	return value === "::1" || value.startsWith("127.");
+}
+
 function requireWebSocket(res: ServerResponse): boolean {
 	if (isWebSocketRunning()) return true;
 	json(res, { ok: false, code: "WEBSOCKET_OFF", message: tr("webui.websocketOff") }, 409);
@@ -531,9 +537,11 @@ async function handleAPI(req: IncomingMessage, res: ServerResponse, url: URL): P
 		return json(res, { ok: false, message: "Invalid username or password", remaining: Math.max(0, maxAttempts - state.attempts.length) }, 401);
 	}
 
-	// Auth check for all other API routes
+	// Auth check for all other API routes. The standalone GUI talks to the
+	// loopback API without a browser session; it has no password or login screen.
 	const token = req.headers["x-auth-token"];
-	if (!validateSession(token)) {
+	const standaloneLocal = config.standalone === true && isLoopbackAddress(req.socket.remoteAddress);
+	if (!standaloneLocal && !validateSession(token)) {
 		return json(res, { ok: false, message: "Unauthorized" }, 401);
 	}
 
@@ -1255,6 +1263,11 @@ const server = http.createServer((req, res) => {
 		});
 		return;
 	}
+	if (config.standalone === true) {
+		res.writeHead(404, { "X-Content-Type-Options": "nosniff" });
+		res.end("Not Found");
+		return;
+	}
 	let filePath = path.join(DIST_DIR, url.pathname);
 	if (filePath.endsWith("/") || filePath.endsWith(path.sep)) filePath = path.join(filePath, "index.html");
 
@@ -1292,7 +1305,7 @@ export function startWebServer(
 			server.on("error", (err: Error) => logger.error(`WebUI server error: ${err.message}`));
 			const auth = config.web?.auth;
 			const hasCustomPassword = !!(auth?.password || (auth?.passwordHash && auth.salt));
-			if (!hasCustomPassword) {
+			if (!hasCustomPassword && config.standalone !== true) {
 				temporaryPassword = crypto.randomBytes(8).toString("hex");
 				logger.info(tr("terminal.webui.temporaryPassword", { password: temporaryPassword }));
 			}

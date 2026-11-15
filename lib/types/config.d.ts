@@ -77,7 +77,7 @@ export interface UpdateConfig {
 }
 
 
-export type ServerMode = "both" | "webui" | "websocket";
+export type ServerMode = "both" | "webui" | "websocket" | "gui";
 
 export interface AppConfig {
 	ws: WsConfig;
