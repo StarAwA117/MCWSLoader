@@ -18,6 +18,7 @@ import type { Client } from "../lib/types/client.js";
 import type { ModEntry } from "../lib/types/mod.js";
 import { CURRENT_VERSION, checkForUpdate, latestRelease, listReleases } from "../lib/update.js";
 import { errorDetail, toUserError } from "../lib/errors.js";
+import { modConfigLabels } from "../lib/texts.js";
 
 type AnyRecord = Record<string, any>;
 interface AuthState {
@@ -854,7 +855,7 @@ async function handleAPI(req: IncomingMessage, res: ServerResponse, url: URL): P
 					const modConfig = sourcePath
 						? JSON.parse(fs.readFileSync(sourcePath, "utf-8"))
 						: {};
-					return json(res, { ok: true, config: modConfig });
+					return json(res, { ok: true, config: modConfig, labels: modConfigLabels(modEntry.path, config.language) });
 				}
 				if (method === "PUT") {
 					const payload = await readJson(req, res);

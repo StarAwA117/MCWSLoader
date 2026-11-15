@@ -11,9 +11,12 @@ const props = defineProps<{
 	field: FieldNode;
 	config: Record<string, any>;
 	depth: number;
+	labels?: Record<string, string>;
 }>();
 
-function lbl(key: string): string { return key; }
+function lbl(path: string, key: string): string {
+	return props.labels?.[`config.${path}`] ?? props.labels?.[path] ?? key;
+}
 
 function getVal(obj: Record<string, any>, path: string): any {
 	return path.split(".").reduce<any>((o, k) => o?.[k], obj);
@@ -43,25 +46,28 @@ function fromText(path: string, raw: string): void {
 
 <template>
 	<div v-if="field.type === 'group'" class="cfg-group" :style="{ marginLeft: depth > 0 ? '12px' : '0' }">
-		<label class="cfg-group-label">{{ lbl(field.key) }}</label>
+		<label class="cfg-group-label">{{ lbl(field.path, field.key) }}</label>
 		<div class="cfg-group-body">
-			<ConfigField v-for="c in field.children" :key="c.path" :field="c" :config="config" :depth="depth + 1" />
+			<ConfigField v-for="c in field.children" :key="c.path" :field="c" :config="config" :depth="depth + 1" :labels="labels" />
 		</div>
 	</div>
-	<div v-else-if="field.type === 'row'" class="cfg-row" :style="{ marginLeft: depth > 0 ? '12px' : '0' }">
-		<div v-for="c in field.children" :key="c.path" class="cfg-cell">
-			<label>{{ lbl(c.key) }}</label>
-			<input v-if="c.type === 'boolean'" type="checkbox" :checked="getVal(config, c.path)" @change="setVal(config, c.path, ($event.target as HTMLInputElement).checked)" />
-			<input v-else-if="c.type === 'number'" type="number" :value="getVal(config, c.path)" @input="setVal(config, c.path, Number(($event.target as HTMLInputElement).value))" />
-			<input v-else type="text" :value="getVal(config, c.path)" @input="setVal(config, c.path, ($event.target as HTMLInputElement).value)" />
+	<div v-else-if="field.type === 'row'" class="cfg-row-wrap" :style="{ marginLeft: depth > 0 ? '12px' : '0' }">
+		<label v-if="labels?.[`config.${field.path}`]" class="cfg-group-label">{{ lbl(field.path, field.key) }}</label>
+		<div class="cfg-row">
+			<div v-for="c in field.children" :key="c.path" class="cfg-cell">
+				<label>{{ lbl(c.path, c.key) }}</label>
+				<input v-if="c.type === 'boolean'" type="checkbox" :checked="getVal(config, c.path)" @change="setVal(config, c.path, ($event.target as HTMLInputElement).checked)" />
+				<input v-else-if="c.type === 'number'" type="number" :value="getVal(config, c.path)" @input="setVal(config, c.path, Number(($event.target as HTMLInputElement).value))" />
+				<input v-else type="text" :value="getVal(config, c.path)" @input="setVal(config, c.path, ($event.target as HTMLInputElement).value)" />
+			</div>
 		</div>
 	</div>
 	<div v-else-if="field.type === 'json' || field.type === 'array'" class="cfg-field" :style="{ marginLeft: depth > 0 ? '12px' : '0' }">
-		<label>{{ lbl(field.key) }}</label>
+		<label>{{ lbl(field.path, field.key) }}</label>
 		<textarea :value="toText(getVal(config, field.path))" @blur="fromText(field.path, ($event.target as HTMLInputElement).value)" rows="4" spellcheck="false"></textarea>
 	</div>
 	<div v-else class="cfg-field" :style="{ marginLeft: depth > 0 ? '12px' : '0' }">
-		<label>{{ lbl(field.key) }}</label>
+		<label>{{ lbl(field.path, field.key) }}</label>
 		<input v-if="field.type === 'boolean'" type="checkbox" :checked="getVal(config, field.path)" @change="setVal(config, field.path, ($event.target as HTMLInputElement).checked)" />
 		<input v-else-if="field.type === 'number'" type="number" :value="getVal(config, field.path)" @input="setVal(config, field.path, Number(($event.target as HTMLInputElement).value))" />
 		<input v-else type="text" :value="getVal(config, field.path)" @input="setVal(config, field.path, ($event.target as HTMLInputElement).value)" />
@@ -72,7 +78,8 @@ function fromText(path: string, raw: string): void {
 .cfg-group { margin-bottom: 12px; }
 .cfg-group-label { font-weight: 600; font-size: 13px; color: var(--text-secondary); margin-bottom: 6px; display: block; }
 .cfg-group-body { padding-left: 10px; border-left: 2px solid var(--border); }
-.cfg-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+.cfg-row-wrap { margin-bottom: 10px; }
+.cfg-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .cfg-cell label { display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 3px; }
 .cfg-field { margin-bottom: 10px; }
 .cfg-field label { display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 3px; }

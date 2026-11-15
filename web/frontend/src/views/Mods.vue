@@ -22,6 +22,7 @@ interface ModModalState {
 	mod: ModInfo | null;
 	config: Record<string, any> | null;
 	fields: ModFieldNode[];
+	labels: Record<string, string>;
 	manifest: ModManifest | null;
 	readme: string;
 	saving: boolean;
@@ -39,6 +40,7 @@ const modal = ref<ModModalState>({
 	mod: null,
 	config: null,
 	fields: [],
+	labels: {},
 	manifest: null,
 	readme: "",
 	saving: false,
@@ -203,19 +205,20 @@ function buildFields(obj: unknown, prefix: string): ModFieldNode[] {
 }
 
 async function openSettings(mod: ModInfo): Promise<void> {
-	modal.value = { open: true, type: "settings", modName: mod.name, mod, config: null, fields: [], manifest: null, readme: "", saving: false, message: "" };
+	modal.value = { open: true, type: "settings", modName: mod.name, mod, config: null, fields: [], labels: {}, manifest: null, readme: "", saving: false, message: "" };
 	lockScroll();
 	try {
 		const res = await api.getModConfig(mod.name);
 		if (res.ok) {
 			modal.value.config = JSON.parse(JSON.stringify(res.config)) as Record<string, any>;
 			modal.value.fields = buildFields(res.config, "");
+			modal.value.labels = (res.labels && typeof res.labels === "object") ? res.labels as Record<string, string> : {};
 		}
 	} catch { modal.value.message = t("mods.loadFailed"); }
 }
 
 async function openManifest(mod: ModInfo): Promise<void> {
-	modal.value = { open: true, type: "manifest", modName: mod.name, mod, config: null, fields: [], manifest: null, readme: "", saving: false, message: "" };
+	modal.value = { open: true, type: "manifest", modName: mod.name, mod, config: null, fields: [], labels: {}, manifest: null, readme: "", saving: false, message: "" };
 	lockScroll();
 	try {
 		const res = await api.getModManifest(mod.name);
@@ -224,7 +227,7 @@ async function openManifest(mod: ModInfo): Promise<void> {
 }
 
 async function openReadme(mod: ModInfo): Promise<void> {
-	modal.value = { open: true, type: "readme", modName: mod.name, mod, config: null, fields: [], manifest: null, readme: "", saving: false, message: "" };
+	modal.value = { open: true, type: "readme", modName: mod.name, mod, config: null, fields: [], labels: {}, manifest: null, readme: "", saving: false, message: "" };
 	lockScroll();
 	try {
 		const res = await api.getModReadme(mod.name);
@@ -300,7 +303,7 @@ onBeforeUnmount(unlockScroll);
 		<template #title>{{ modal.modName }}{{ modal.type === "settings" ? " - " + t('mods.config') : modal.type === "manifest" ? " - " + t('mods.manifest') : " - " + t('mods.readme') }}</template>
 		<div v-if="modal.type === 'settings'">
 			<div v-if="!modal.config" class="empty-state"><p>{{ modal.message || t('common.loading') }}</p></div>
-			<ConfigField v-else v-for="f in modal.fields" :key="f.path" :field="f" :config="modal.config" :depth="0" />
+			<ConfigField v-else v-for="f in modal.fields" :key="f.path" :field="f" :config="modal.config" :depth="0" :labels="modal.labels" />
 		</div>
 
 		<div v-if="modal.type === 'manifest'">

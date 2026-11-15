@@ -1,16 +1,17 @@
 import { reactive, computed } from "vue";
 import type { ComputedRef } from "vue";
-import zhCN from "../locales/zh-CN.json";
-import zhTW from "../locales/zh-TW.json";
-import en from "../locales/en.json";
+import zhCNSource from "../../../../texts/zh_CN.lang?raw";
+import zhTWSource from "../../../../texts/zh_TW.lang?raw";
+import enSource from "../../../../texts/en_US.lang?raw";
+import { parseLang } from "../utils/lang";
 
-type Messages = Record<string, any>;
+type Messages = Record<string, string>;
 type Locale = "zh-CN" | "zh-TW" | "en";
 
 const locales: Record<string, Messages> = {
-	"zh-CN": zhCN as Messages,
-	"zh-TW": zhTW as Messages,
-	en: en as Messages
+	"zh-CN": parseLang(zhCNSource),
+	"zh-TW": parseLang(zhTWSource),
+	en: parseLang(enSource)
 };
 
 function detectLocale(): Locale {
@@ -42,7 +43,7 @@ function getInitialLocale(): Locale {
 
 const state = reactive<{ locale: Locale; messages: Messages }>({
 	locale: getInitialLocale(),
-	messages: locales[getInitialLocale()] ?? (en as Messages)
+	messages: locales[getInitialLocale()] ?? locales.en!
 });
 
 export interface I18n {
@@ -55,20 +56,20 @@ export interface I18n {
 
 export function useI18n(): I18n {
 	const t = (key: string, params: Record<string, unknown> = {}): string => {
-		const keys = key.split(".");
-		let value: unknown = state.messages;
-		for (const k of keys) {
-			if (value && typeof value === "object" && k in value) {
-				value = (value as Record<string, unknown>)[k];
-			} else {
-				value = key;
-				break;
+		let text = state.messages[key];
+		if (text === undefined) {
+			// Backward-compatible lookup for any nested keys still passed by mods.
+			const keys = key.split(".");
+			let value: unknown = state.messages;
+			for (const k of keys) {
+				if (value && typeof value === "object" && k in value) value = (value as Record<string, unknown>)[k];
+				else { value = undefined; break; }
 			}
+			if (typeof value === "string") text = value;
 		}
-		if (typeof value !== "string") return key;
-		let text = value;
+		if (text === undefined) return key;
 		Object.keys(params).forEach((k) => {
-			text = text.replace(new RegExp(`\\{${k}\\}`, "g"), String(params[k]));
+			text = text!.split(`{${k}}`).join(String(params[k]));
 		});
 		return text;
 	};
@@ -90,7 +91,6 @@ export function useI18n(): I18n {
 			method: "POST",
 			headers: {
 				"Content-Type": "application/json",
-				// 语言切换接口需要登录态
 				"X-Auth-Token": window.sessionStorage.getItem("auth_token") || ""
 			},
 			body: JSON.stringify({ language: locale })
@@ -98,9 +98,7 @@ export function useI18n(): I18n {
 			.then((res) => {
 				if (res.ok) document.documentElement.dataset.language = locale;
 			})
-			.catch(() => {
-				// 离线或未登录时忽略
-			});
+			.catch(() => {});
 	};
 
 	return {

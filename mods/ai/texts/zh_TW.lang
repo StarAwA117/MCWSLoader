@@ -1,0 +1,18 @@
+# AI Mod — Traditional Chinese
+command.ai=與 AI 進行對話
+command.aiReset=重置對話上下文
+command.aiCommand=讓 AI 執行命令（支援連續對話）
+ai.contextReset=對話上下文已重置
+config.options=API 選項
+config.options.baseURL=API 位址
+config.options.apiKey=API 金鑰
+config.model=模型
+config.messages=人格提示詞
+config.max_tokens=最大 Token 數
+config.stream=串流輸出
+config.chatCooldown=聊天冷卻（毫秒）
+config.command=命令模式
+config.command.maxRounds=最大連續對話輪數
+config.command.commandTimeoutMs=命令逾時（毫秒）
+config.thinking=思考模式
+config.thinking.type=思考模式類型

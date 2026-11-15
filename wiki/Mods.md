@@ -8,6 +8,7 @@ MCWSLoader loads Mods from the `mods/` directory. A Mod is a folder containing a
 - [Dependencies](#dependencies)
 - [mods_config.json](#mods_configjson)
 - [Per-Mod config](#per-mod-config)
+- [Mod texts](#mod-texts)
 - [Installing Mods](#installing-mods)
 - [Import / overwrite / rollback](#import--overwrite--rollback)
 - [Deleting Mods](#deleting-mods)
@@ -23,6 +24,10 @@ mods/
     ├── main.ts               # entry script (name is defined by manifest.entry)
     ├── config.example.json   # optional, copied to config.json on first scan
     ├── config.json           # optional, per-Mod settings
+    ├── texts/                # optional translations
+    │   ├── zh_CN.lang
+    │   ├── zh_TW.lang
+    │   └── en_US.lang
     └── README.md             # optional, shown in the WebUI
 mods/mods_config.json          # enable/disable state for every Mod
 ```
@@ -143,6 +148,44 @@ as `this.config`.
 
 Saving Mod settings from the WebUI writes `config.json` and updates the in-memory
 registry so a subsequent reload picks up the new values.
+
+---
+
+## Mod texts
+
+Mods can ship the same three language files as the core:
+
+```text
+texts/
+├── zh_CN.lang
+├── zh_TW.lang
+└── en_US.lang
+```
+
+Format is `key=value`, one entry per line; `#` starts a comment.
+
+```properties
+command.hello=Say hello
+config.command=Command mode
+config.command.maxRounds=Maximum chained rounds
+```
+
+Two things use these files:
+
+1. **WebUI config labels.** Keys starting with `config.` are matched against the
+   config path in the Mod settings editor. For example:
+   - `config.command` → label for the `command` object
+   - `config.command.maxRounds` → label for `command.maxRounds`
+   If a label is missing, the raw key is shown.
+2. **Mod code.** Every Mod instance receives a translation function:
+   ```ts
+   this.t("command.hello")
+   this.t("some.key", { name: "Alex" })
+   ```
+   Mod texts take priority; the core `texts/` files are used as a fallback,
+   followed by English.
+
+The core WebUI translations also live in the repository-level `texts/` folder.
 
 ---
 

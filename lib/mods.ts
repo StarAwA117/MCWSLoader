@@ -15,6 +15,7 @@ import type { Client } from "./types/client.js";
 import type { ModConstructor, ModEntry, ModSAPI } from "./types/mod.js";
 import type { CommandResponse } from "./types/config.js";
 import { errorDetail, toUserError } from "./errors.js";
+import { tForMod } from "./texts.js";
 
 type AnyRecord = Record<string, any>;
 type ModClass = ModConstructor;
@@ -609,6 +610,8 @@ class ModManagerBase {
 		instance.storage = StorageManager.getStore(this._storageKey(name));
 		instance.logger = new ModLogger(loggerName);
 		injectModDependencies(instance, ModClass);
+		const entry = modRegistry.getByName(name);
+		instance.t = (key: string, params?: Record<string, unknown>) => tForMod(entry?.path ?? null, config.language, key, params);
 	}
 
 	_storageKey(name: string): string { return `mod_${name}`; }

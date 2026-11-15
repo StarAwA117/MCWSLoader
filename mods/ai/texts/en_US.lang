@@ -1,0 +1,18 @@
+# AI Mod — English
+command.ai=Chat with AI
+command.aiReset=Reset conversation context
+command.aiCommand=Let AI execute commands (supports chained rounds)
+ai.contextReset=Conversation context reset
+config.options=API options
+config.options.baseURL=API base URL
+config.options.apiKey=API key
+config.model=Model
+config.messages=Persona messages
+config.max_tokens=Max tokens
+config.stream=Streaming
+config.chatCooldown=Chat cooldown (ms)
+config.command=Command mode
+config.command.maxRounds=Max chained rounds
+config.command.commandTimeoutMs=Command timeout (ms)
+config.thinking=Thinking mode
+config.thinking.type=Thinking mode type

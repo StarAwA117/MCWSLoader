@@ -349,21 +349,21 @@ export default class AIHelper extends ModBase {
 	onCommand() {
 		return {
 			normal: [
-				this.Command.create("ai", "与 AI 进行对话")
+				this.Command.create("ai", this.t("command.ai"))
 					.addString("对话内容", true)
 					.setFunc(async (commander: string, text: string) => {
 						await this.chat(text, commander);
 					}),
 
-				this.Command.create("ai:reset", "重置对话上下文")
+				this.Command.create("ai:reset", this.t("command.aiReset"))
 					.setFunc((commander: string) => {
 						this.reset(commander);
-						this.client?.tellAll(`§eAI | §fSystem > §i对话上下文已重置`);
+						this.client?.tellAll(`§eAI | §fSystem > §i${this.t("ai.contextReset")}`);
 					})
 			],
 
 			op: [
-				this.Command.create("ai:c", "让 AI 执行命令（支持连续对话）")
+				this.Command.create("ai:c", this.t("command.aiCommand"))
 					.addString("对话内容", true)
 					.setFunc(async (commander: string, text: string) => {
 						await this.command(text, commander);

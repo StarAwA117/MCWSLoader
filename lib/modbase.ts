@@ -38,6 +38,7 @@ export class ModBase {
 	declare storage: ModStorageLike;
 	declare logger: ModLoggerLike;
 	declare sapi: ModSAPI;
+	declare t: (key: string, params?: Record<string, unknown>) => string;
 
 	declare emit: (event: string, data?: unknown) => void;
 	declare on: (event: string, callback: (data: unknown) => void) => void;

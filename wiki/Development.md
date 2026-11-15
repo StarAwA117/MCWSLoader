@@ -45,6 +45,7 @@ web/
   server.ts          HTTP API + static WebUI
   frontend/          Vue 3 + TypeScript (Vite)
 mods/                 bundled Mods (TypeScript, hot-loaded via tsx)
+texts/                core language files (zh_CN / zh_TW / en_US)
 flutter/             Flutter WebView shell (Android / Windows)
 lib/types/           shared TypeScript types (config, client, ModContext)
 lib/__tests__/       node:test suite
