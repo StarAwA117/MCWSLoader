@@ -45,7 +45,7 @@ class _WebUiPageState extends State<WebUiPage> {
             if (mounted) setState(() => _loading = false);
           },
           onWebResourceError: (error) {
-            if (!error.isForMainFrame || !mounted) return;
+            if (error.isForMainFrame != true || !mounted) return;
             setState(() {
               _loading = false;
               _error = error.description;
