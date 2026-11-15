@@ -21,3 +21,6 @@ terminal.spam.stopped=已停止客户端刷屏
 # Manifest display
 pack.name=刷屏工具
 pack.description=提供刷屏、广告与攻击服务
+
+# Command parameter labels
+spam.param.eb9f14e9a0=刷屏内容

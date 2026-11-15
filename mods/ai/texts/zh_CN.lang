@@ -38,3 +38,6 @@ ai.error.content=AI 拒绝回答该请求。
 ai.error.config=AI 配置无效，请检查 baseURL 和 apiKey。
 ai.error.invalidJson=AI 返回的内容不是有效 JSON，请重试。
 ai.error.emptyOutput=AI 没有返回可显示的内容，空输出。
+
+# Command parameter labels
+ai.param.e55fa91ecf=对话内容

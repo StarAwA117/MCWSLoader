@@ -1006,26 +1006,26 @@ export class ClientModManager extends ModManagerBase {
 			if (!tokens.length) return;
 
 			if (this._isPlayerRateLimited(sender)) {
-				this._tellError(sender, "too many commands, please slow down");
+				this._tellError(sender, tr("core.error.rateLimit"));
 				return;
 			}
 
 			const permission = PermissionManager.query(sender);
 			if (permission < 0) {
-				this._tellError(sender, "command permission error");
+				this._tellError(sender, tr("core.error.permission"));
 				return;
 			}
 
 			const commandName = tokens[0] ?? "";
 			const entry = this._commandIndex.get(commandName.slice(prefix.length));
 			if (!entry) {
-				this._tellError(sender, `unknown command ${commandName}`);
+				this._tellError(sender, tr("core.error.unknownCommand", { command: commandName }));
 				return;
 			}
 
 			const required = TIER_LEVELS[entry.tier] ?? 0;
 			if (permission < required) {
-				this._tellError(sender, "permission denied");
+				this._tellError(sender, tr("core.error.permissionDenied"));
 				return;
 			}
 
@@ -1057,7 +1057,7 @@ export class ClientModManager extends ModManagerBase {
 
 	_tellError(sender: string, message: unknown): void {
 		if (!this.client) return;
-		const text = `§cCommand | §fError > §i${toUserError(message, "命令执行失败")}`;
+		const text = `§cCommand | §fError > §i${toUserError(message, tr("core.error.command"))}`;
 		if (sender) this.client.tell(text, sender);
 		else this.client.tellAll(text);
 	}

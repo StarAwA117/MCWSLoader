@@ -1,3 +1,12 @@
 # morews texts (en_US)
 
 error.connection=WebSocket connection failed. Check the address.
+
+# Generated user-facing messages
+morews.msg.cb538f864e=Connect to a WebSocket server
+morews.msg.439db6c908=§eMoreWS | §fConnect > §iConnected
+morews.msg.95a2b7b053=§cMoreWS | §fDisconnect > §iClosed -> {p0}
+morews.msg.60f4721620=§cMoreWS | §fError > §iConnection failed {p0}
+
+# Command parameter labels
+morews.param.0d32d8793d=WebSocket address

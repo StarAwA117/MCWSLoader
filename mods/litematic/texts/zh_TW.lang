@@ -5,3 +5,124 @@ error.import=建築匯入失敗，請檢查檔案
 error.parse=建築檔案解析失敗
 error.tickingarea=建立區域失敗，請檢查座標
 error.export=建築匯出失敗
+
+# Generated user-facing messages
+litematic.msg.55d0a93ffa=檢視命令用法
+litematic.msg.2eef424bb4=§cLitematic | §fError > §i沒有找到命令: {p0}：輸入 !l:help 檢視全部命令
+litematic.msg.64bdede940=匯入 Litematic 建築投影
+litematic.msg.1c6c253c2c=§cLitematic | §fError > §i已有匯入程序執行中，請等待完成或 !l:n 中斷
+litematic.msg.a4a9f8b1de=粒子邊框 + 實體標記預覽建築位置
+litematic.msg.dd9f92e16a=清除建築預覽
+litematic.msg.afd9598d3e=匯出為 MCBE 結構方塊檔案 ：.mcstructure
+litematic.msg.4ef4895c37=檢視建築檔案列表
+litematic.msg.20931c277d=檢視所有任務 ID
+litematic.msg.3af148c315=搜尋建築檔案
+litematic.msg.345501eb59=確認匯入操作
+litematic.msg.b85e5af369=§cLitematic | §fError > §i沒有待確認的匯入任務
+litematic.msg.761c183d93=§eLitematic | §fImport > §i已確認，開始匯入…
+litematic.msg.e7c0c52559=取消/中斷操作
+litematic.msg.b027d38cdc=§cLitematic | §fCancel > §i正在中斷匯入…
+litematic.msg.4ec50ec45c=§cLitematic | §fCancel > §i正在中斷世界檢查…
+litematic.msg.78071de9e4=§cLitematic | §fCancel > §i正在中斷修復…
+litematic.msg.c2f550d90a=§cLitematic | §fCancel > §i已取消匯入
+litematic.msg.5975493e92=§cLitematic | §fError > §i沒有進行中的操作
+litematic.msg.09df761536=檢視作者資訊
+litematic.msg.c4b9fd3506=檢視匯入/檢查/修復進度
+litematic.msg.a2ddc2c46e=§cLitematic | §fError > §i當前沒有進行中的任務
+litematic.msg.f19dc8e959=檢查投影與世界的差異 / 方塊對映錯誤
+litematic.msg.f797f736c0=§cLitematic | §fError > §i沒有找到任務 ID，請先 !l:create 獲取任務 ID
+litematic.msg.41543e2d1b=§cLitematic | §fError > §i模式引數無效：應為 map：檢查方塊對映或留空：檢查世界一致性
+litematic.msg.721476b0d7=修復被挖掉的方塊 / 替換無法對映的方塊
+litematic.msg.292dfab147=§cLitematic | §fError > §i已有修復任務進行中，請等待完成或 !l:n 中斷
+litematic.msg.7fcea5727c=§cLitematic | §fError > §i建築目錄不存在
+litematic.msg.585561adf8=§cLitematic | §fError > §i沒有找到 .litematic 檔案
+litematic.msg.e481cdb991={p0} §f：{p1}/{p2}頁 §i共 {p3} 個\n{p4}
+litematic.msg.9ed8daf320=§cLitematic | §fError > §i當前沒有任務，先 !l:create 建立
+litematic.msg.8d44701b2a=§cLitematic | §fError > §i模式引數無效：應為 raw：保留原始高度或 trim：裁剪底部空氣，預設
+litematic.msg.60fce4dc33=§cLitematic | §fError > §i座標引數不完整，需要同時提供 X Y Z 或都不提供：使用自身座標
+litematic.msg.6343575e0b=§cLitematic | §fError > §i非法的檔名: {p0}
+litematic.msg.4b2a0817b2=§cLitematic | §fError > §i檔案不存在: {p0}
+litematic.msg.4bfbdbb632=§i正在解析 Litematic 檔案…
+litematic.msg.484ff1f550=§cLitematic | §fError > §i無法獲取你的座標
+litematic.msg.6e5483a31a=§cLitematic | §fError > §iY 軸超出限制: {p0} ~ {p1} ：允許 -64 ~ 320
+litematic.msg.4d1afbdd03=§cLitematic | §fWarn > §i無法對映方塊: {p0} 個 ：可用 !l:verify {p1} map 檢查，!l:fix {p2} 修復
+litematic.msg.ecd8d87d2d=§f確認請傳送 §e!l:y，取消請傳送 §c!l:n
+litematic.msg.1e401015e2=§eLitematic | §fImport > §i{p0} 匯入完成 共 {p1} 方塊 {p2} 指令 耗時 {p3}s 速度 {p4}方塊/s
+litematic.msg.456abddfe1=§cLitematic | §fCancel > §i匯入已中斷 ：{p0}
+litematic.msg.76219c3773=§aLitematic | §fVerify > §i任務 #{p0} 沒有可檢查的方塊
+litematic.msg.4e5ceda6de=§i開始世界檢查… {p0} 個方塊 ：預計 {p1}s 左右，!l:n 可中斷
+litematic.msg.893b86842e=§7Litematic | §fVerify >  §i世界檢查進度: {p0}/{p1} | 不匹配: {p2} 個
+litematic.msg.64cbada0a7=§cLitematic | §fVerify > §i世界檢查已中斷
+litematic.msg.dfacbd8ea0=§aLitematic | §fVerify > §i世界檢查完成 ：任務 #{p0} 已逐塊 testforblock 比對 {p1} 個方塊，全部與投影一致 耗時 {p2}s
+litematic.msg.d4954caaef=§aLitematic | §fFix > §i任務 #{p0} 沒有需要修復的方塊
+litematic.msg.e80b25706c=§aLitematic | §fFix > §i已修復 ：任務 #{p0}\n{p1}
+litematic.msg.f0872cf8d1=§7Litematic | §fPreview > §i已清除建築預覽
+litematic.msg.2e53e138da=§cLitematic | §fError > §i模式引數無效：應為 raw 或 trim
+
+# Command parameter labels
+litematic.param.0a77b99236=命令名
+
+# Command parameter labels
+litematic.param.ed0eea8f20=模式
+
+# Command parameter labels
+litematic.param.1275f6feb7=檔名
+
+# Command parameter labels
+litematic.param.e2179ba860=匯出名
+
+# Command parameter labels
+litematic.param.7b0930e205=頁碼
+
+# Command parameter labels
+litematic.param.cc1b21e800=關鍵詞
+
+# Command parameter labels
+litematic.param.9f4a6f3a72=替代方塊
+
+litematic.help.param= §f引數{p0}: §7<{p1}> §f{p2}{p3}
+
+litematic.help.optional=可選
+
+litematic.help.required=必選
+
+litematic.help.noParams= §7無引數
+
+litematic.help.details=§eLitematic | §fHelp > §b{p0} §7用法:\n§f說明: §7{p1}\n§f引數:\n{p2}
+
+litematic.help.list=§eLitematic | §fHelp > §7可用命令\n{p0}\n§7輸入 §a!l:help <命令名> §7檢視詳細用法
+
+litematic.status.progress=§eLitematic | §fStatus > §i匯入 §f{p0}\n§f總進度 {p1}% | 預計 {p2}s\n§f階段: {p3} | 區域 {p4}/{p5}\n§f進度: {p6}% | {p7} / {p8} 命令 | 方塊 {p9} / {p10}\n§f速度: {p11} 命令/s | {p12}s
+
+litematic.verify.pass=§aLitematic | §fVerify > §i任務 #{p0} {p1} 方塊對映檢查透過，無 mod 方塊錯誤\n§f提示: 要檢查遊戲世界裡方塊是否被挖掉或替換，請用 !l:verify {p0}
+
+litematic.verify.report=§eLitematic | §fVerify > §i方塊檢查報告，任務 #{p0}\n§f檔案: {p1}\n§c無法對映方塊: {p2} 個，匯入時會被跳過\n{p3}\n§7傳送 !l:fix {p0} §7將用 stone 替換，可指定替代方塊
+
+litematic.verify.worldReport=§eLitematic | §fVerify > §i世界檢查報告，任務 #{p0}\n§f檔案: {p1}\n§f檢查: {p2} 個方塊 | 不匹配: {p3} 個 | 耗時 {p4}s\n{p5}\n§7差異可能是方塊被挖掉或替換\n§7傳送 !l:fix {p0} 可重新放置這些方塊
+
+litematic.fix.repaired=§a已重新放置 {p0} / {p1} 個方塊，恢復與投影一致
+
+litematic.fix.failed=§c未成功 {p0} 個，命令被伺服器限流，可再次 !l:verify {p1} 檢查並 !l:fix {p1} 重試
+
+litematic.fix.unmapped=§a已將 {p0} 個無法對映方塊替換為 {p1}，任務存檔已更新，直接傳送 !l:y 即可用修復後的資料匯入
+
+litematic.preview.info=§eLitematic | §fPreview > §i已生成預覽: {p0} 尺寸 {p1}×{p2}×{p3}\n§f範圍: {p4}, {p5}, {p6} → {p7}, {p8}, {p9}\n§f底部空氣: {p10} 層 §7{p11}\n§f§o實體標記持續顯示，輸入 !l:unpreview 清除
+
+litematic.preview.raw=保留原始高度
+
+litematic.preview.trim=已裁剪，建築底部對齊放置點
+
+litematic.export.info=§aLitematic | §fExport > §i已匯出結構檔案: {p0}\n§f尺寸: {p1} × {p2} × {p3} | 方塊: {p4} | 底部空氣: {p5} 層\n§7用法: 將檔案放入行為包的 structures 資料夾或存檔的 structures 資料夾，遊戲內用結構方塊預覽放置
+
+# Task list and import info
+litematic.time.justNow=剛剛
+litematic.time.minutes={p0} 分鐘前
+litematic.time.hours={p0} 小時前
+litematic.time.days={p0} 天前
+litematic.tasks.mismatch=§c差異 §e{p0}§c 個
+litematic.tasks.unmapped=§e未對映 {p0} 個
+litematic.tasks.item=§b{p0}. §f{p1} §7| §f{p2}§7 方塊 §7| §7{p3}{p4}
+litematic.tasks.title=§eLitematic | §fID > §i任務列表 {p0} 個\n{p1}\n§7使用 §a!l:verify <ID>§7 檢查世界差異 / §a!l:fix <ID>§7 修復
+litematic.import.info=§eLitematic | §fImport > §i{p0}\n§f任務ID: §b{p1} §7用於 !l:verify / !l:fix\n§f尺寸: {p2} × {p3} × {p4} = {p5} 座標\n§f方塊: {p6} → {p7} 條指令\n§f底部空氣: {p8} 層 §7{p9}\n§f區塊: {p10} 個 {p11}×{p12} → {p13} 個區域\n§f範圍: {p14}, {p15}, {p16} → {p17}, {p18}, {p19}\n§f預計耗時: {p20}s
+litematic.import.raw=raw: 保留高度偏移
+litematic.import.trim=trim: 已裁剪對齊地面

@@ -352,7 +352,7 @@ export default class AIHelper extends ModBase {
 		return {
 			normal: [
 				this.Command.create("ai", this.rawtext("command.ai"))
-					.addString("对话内容", true)
+					.addString(this.rawtext("ai.param.e55fa91ecf"), true)
 					.setFunc(async (commander: string, text: string) => {
 						await this.chat(text, commander);
 					}),
@@ -366,7 +366,7 @@ export default class AIHelper extends ModBase {
 
 			op: [
 				this.Command.create("ai:c", this.rawtext("command.aiCommand"))
-					.addString("对话内容", true)
+					.addString(this.rawtext("ai.param.e55fa91ecf"), true)
 					.setFunc(async (commander: string, text: string) => {
 						await this.command(text, commander);
 					})

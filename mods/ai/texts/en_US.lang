@@ -38,3 +38,6 @@ ai.error.content=AI declined this request.
 ai.error.config=Invalid AI configuration. Check baseURL and apiKey.
 ai.error.invalidJson=AI returned invalid JSON. Try again.
 ai.error.emptyOutput=AI returned no visible content, empty output.
+
+# Command parameter labels
+ai.param.e55fa91ecf=Message

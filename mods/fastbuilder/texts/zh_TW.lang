@@ -8,3 +8,16 @@ config.origin.z=原點 Z
 config.particle=粒子效果
 error.readScript=讀取腳本失敗，請檢查檔案是否存在
 error.execute=腳本執行失敗，請檢查腳本內容
+
+# Generated user-facing messages
+fastbuilder.msg.f5ae68e235=執行 FastBuilder 指令碼
+fastbuilder.msg.b67238a2f1=以玩家當前位置為中心執行 FastBuilder 指令碼
+fastbuilder.msg.4208a1c0a0=列出 FastBuilder 可用指令碼
+fastbuilder.msg.6611c90182=§eFastBuilder | §fList > §i暫無指令碼
+fastbuilder.msg.80dc9e8353=§eFastBuilder | §fList > §i共 {p0} 個指令碼:
+fastbuilder.msg.37211a31b2=§eFastBuilder | §fRun > §i載入指令碼: {p0}
+fastbuilder.msg.1484ca13f8=§eFastBuilder | §fRun > §i正在執行指令碼...
+fastbuilder.msg.5bbfcda2d0=§eFastBuilder | §fRun > §i執行完成
+
+# Command parameter labels
+fastbuilder.param.b3d4e7e1d9=指令碼內容或檔名

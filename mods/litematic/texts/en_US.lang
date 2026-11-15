@@ -5,3 +5,124 @@ error.import=Structure import failed. Check the file.
 error.parse=Structure file parsing failed
 error.tickingarea=Could not create the working area. Check the coordinates.
 error.export=Structure export failed
+
+# Generated user-facing messages
+litematic.msg.55d0a93ffa=View command usage
+litematic.msg.2eef424bb4=§cLitematic | §fError > §iCommand not found: {p0}. Use !l:help for all commands.
+litematic.msg.64bdede940=Import a Litematic projection
+litematic.msg.1c6c253c2c=§cLitematic | §fError > §iAn import is already running. Wait or use !l:n to cancel.
+litematic.msg.a4a9f8b1de=Preview the build position with particles and markers
+litematic.msg.dd9f92e16a=Clear the build preview
+litematic.msg.afd9598d3e=Export as a Bedrock structure file .mcstructure
+litematic.msg.4ef4895c37=View build file list
+litematic.msg.20931c277d=View all task IDs
+litematic.msg.3af148c315=Search build files
+litematic.msg.345501eb59=Confirm import
+litematic.msg.b85e5af369=§cLitematic | §fError > §iNo import is waiting for confirmation.
+litematic.msg.761c183d93=§eLitematic | §fImport > §iConfirmed. Starting import...
+litematic.msg.e7c0c52559=Cancel or interrupt operation
+litematic.msg.b027d38cdc=§cLitematic | §fCancel > §iInterrupting import...
+litematic.msg.4ec50ec45c=§cLitematic | §fCancel > §iInterrupting world check...
+litematic.msg.78071de9e4=§cLitematic | §fCancel > §iInterrupting repair...
+litematic.msg.c2f550d90a=§cLitematic | §fCancel > §iImport cancelled.
+litematic.msg.5975493e92=§cLitematic | §fError > §iNo operation is running.
+litematic.msg.09df761536=View author information
+litematic.msg.c4b9fd3506=View import, check and repair progress
+litematic.msg.a2ddc2c46e=§cLitematic | §fError > §iNo task is running.
+litematic.msg.f19dc8e959=Check differences between the projection and the world, or block mapping errors
+litematic.msg.f797f736c0=§cLitematic | §fError > §iTask ID not found. Run !l:create first.
+litematic.msg.41543e2d1b=§cLitematic | §fError > §iInvalid mode. Use map to check block mapping, or leave empty to check the world.
+litematic.msg.721476b0d7=Repair missing blocks or replace unmapped blocks
+litematic.msg.292dfab147=§cLitematic | §fError > §iA repair task is already running. Wait or use !l:n to cancel.
+litematic.msg.7fcea5727c=§cLitematic | §fError > §iBuild directory does not exist.
+litematic.msg.585561adf8=§cLitematic | §fError > §iNo .litematic files found.
+litematic.msg.e481cdb991={p0} §fPage {p1}/{p2} §iTotal: {p3}\n{p4}
+litematic.msg.9ed8daf320=§cLitematic | §fError > §iNo task is running. Run !l:create first.
+litematic.msg.8d44701b2a=§cLitematic | §fError > §iInvalid mode. Use raw to keep the original height, or trim to remove bottom air. Trim is the default.
+litematic.msg.60fce4dc33=§cLitematic | §fError > §iCoordinates are incomplete. Provide X Y Z together or omit all to use your position.
+litematic.msg.6343575e0b=§cLitematic | §fError > §iInvalid file name: {p0}
+litematic.msg.4b2a0817b2=§cLitematic | §fError > §iFile not found: {p0}
+litematic.msg.4bfbdbb632=§iParsing Litematic file...
+litematic.msg.484ff1f550=§cLitematic | §fError > §iCould not get your position.
+litematic.msg.6e5483a31a=§cLitematic | §fError > §iY axis out of range: {p0} to {p1}. Allowed -64 to 320.
+litematic.msg.4d1afbdd03=§cLitematic | §fWarn > §iUnable to map {p0} blocks. Use !l:verify {p1} map to inspect or !l:fix {p2} to repair.
+litematic.msg.ecd8d87d2d=§fSend §e!l:y to confirm, or §c!l:n to cancel.
+litematic.msg.1e401015e2=§eLitematic | §fImport > §i{p0} imported. {p1} blocks, {p2} commands, {p3}s, {p4} blocks/s.
+litematic.msg.456abddfe1=§cLitematic | §fCancel > §iImport interrupted. {p0}
+litematic.msg.76219c3773=§aLitematic | §fVerify > §iTask #{p0} has no blocks to check.
+litematic.msg.4e5ceda6de=§iStarting world check: {p0} blocks. About {p1}s. Use !l:n to cancel.
+litematic.msg.893b86842e=§7Litematic | §fVerify >  §iProgress: {p0}/{p1} | Mismatches: {p2}
+litematic.msg.64cbada0a7=§cLitematic | §fVerify > §iWorld check interrupted.
+litematic.msg.dfacbd8ea0=§aLitematic | §fVerify > §iWorld check complete for task #{p0}. Compared {p1} blocks with testforblock; all match. {p2}s.
+litematic.msg.d4954caaef=§aLitematic | §fFix > §iTask #{p0} has no blocks to repair.
+litematic.msg.e80b25706c=§aLitematic | §fFix > §iRepaired task #{p0}\n{p1}
+litematic.msg.f0872cf8d1=§7Litematic | §fPreview > §iBuild preview cleared.
+litematic.msg.2e53e138da=§cLitematic | §fError > §iInvalid mode. Use raw or trim.
+
+# Command parameter labels
+litematic.param.0a77b99236=Command name
+
+# Command parameter labels
+litematic.param.ed0eea8f20=Mode
+
+# Command parameter labels
+litematic.param.1275f6feb7=File name
+
+# Command parameter labels
+litematic.param.e2179ba860=Export name
+
+# Command parameter labels
+litematic.param.7b0930e205=Page
+
+# Command parameter labels
+litematic.param.cc1b21e800=Keyword
+
+# Command parameter labels
+litematic.param.9f4a6f3a72=Replace block
+
+litematic.help.param= §fParameter {p0}: §7<{p1}> §f{p2}{p3}
+
+litematic.help.optional=optional
+
+litematic.help.required=required
+
+litematic.help.noParams= §7No parameters
+
+litematic.help.details=§eLitematic | §fHelp > §b{p0} §7usage:\n§fDescription: §7{p1}\n§fParameters:\n{p2}
+
+litematic.help.list=§eLitematic | §fHelp > §7Available commands\n{p0}\n§7Type §a!l:help <command> §7for details
+
+litematic.status.progress=§eLitematic | §fStatus > §iImporting §f{p0}\n§fTotal {p1}% | ETA {p2}s\n§fPhase: {p3} | Areas {p4}/{p5}\n§fProgress: {p6}% | {p7} / {p8} commands | Blocks {p9} / {p10}\n§fSpeed: {p11} commands/s | {p12}s
+
+litematic.verify.pass=§aLitematic | §fVerify > §iTask #{p0} {p1} block mapping passed with no mod block errors\n§fTip: use !l:verify {p0} to check world blocks
+
+litematic.verify.report=§eLitematic | §fVerify > §iBlock report for task #{p0}\n§fFile: {p1}\n§cUnmapped blocks: {p2}, skipped on import\n{p3}\n§7Send !l:fix {p0} to replace them with stone
+
+litematic.verify.worldReport=§eLitematic | §fVerify > §iWorld report for task #{p0}\n§fFile: {p1}\n§fChecked: {p2} blocks | Mismatches: {p3} | {p4}s\n{p5}\n§7Differences may be mined or replaced blocks\n§7Send !l:fix {p0} to place them again
+
+litematic.fix.repaired=§aReplaced {p0} / {p1} blocks, matching the projection
+
+litematic.fix.failed=§c{p0} failed due to server rate limits. Run !l:verify {p1} and !l:fix {p1} again
+
+litematic.fix.unmapped=§aReplaced {p0} unmapped blocks with {p1}. The task data is updated; send !l:y to import the repaired data
+
+litematic.preview.info=§eLitematic | §fPreview > §iPreview generated: {p0} size {p1}x{p2}x{p3}\n§fRange: {p4}, {p5}, {p6} → {p7}, {p8}, {p9}\n§fBottom air: {p10} layers §7{p11}\n§f§oMarkers stay visible. Use !l:unpreview to clear
+
+litematic.preview.raw=keep original height
+
+litematic.preview.trim=trimmed, building bottom aligned to placement
+
+litematic.export.info=§aLitematic | §fExport > §iStructure exported: {p0}\n§fSize: {p1} x {p2} x {p3} | Blocks: {p4} | Bottom air: {p5} layers\n§7Put the file in a behavior pack structures folder or a world structures folder
+
+# Task list and import info
+litematic.time.justNow=just now
+litematic.time.minutes={p0} minutes ago
+litematic.time.hours={p0} hours ago
+litematic.time.days={p0} days ago
+litematic.tasks.mismatch=§cMismatches §e{p0}
+litematic.tasks.unmapped=§eUnmapped {p0}
+litematic.tasks.item=§b{p0}. §f{p1} §7| §f{p2} blocks §7| §7{p3}{p4}
+litematic.tasks.title=§eLitematic | §fID > §iTasks: {p0}\n{p1}\n§7Use §a!l:verify <ID>§7 to check the world or §a!l:fix <ID>§7 to repair
+litematic.import.info=§eLitematic | §fImport > §i{p0}\n§fTask ID: §b{p1} §7for !l:verify / !l:fix\n§fSize: {p2} x {p3} x {p4} = {p5} coordinates\n§fBlocks: {p6} → {p7} commands\n§fBottom air: {p8} layers §7{p9}\n§fChunks: {p10} {p11}x{p12} → {p13} areas\n§fRange: {p14}, {p15}, {p16} → {p17}, {p18}, {p19}\n§fEstimated time: {p20}s
+litematic.import.raw=raw: keep height offset
+litematic.import.trim=trim: aligned to the ground

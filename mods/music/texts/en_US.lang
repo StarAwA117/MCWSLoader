@@ -4,3 +4,58 @@ config.playPercussion=Play percussion
 config.basePath=Music directory
 error.midi=MIDI file parsing failed
 error.json=Music JSON parsing failed
+
+# Generated user-facing messages
+music.msg.f4778c2d3f=Join music listening
+music.msg.031bf5fec2=§eMusic | §fJoin > §iJoined music listening~
+music.msg.25fe0410be=Leave music listening
+music.msg.58fa1dc7c7=§eMusic | §fExit > §iLeft music listening~
+music.msg.14005e91b7=View current playback progress
+music.msg.90b1716840=View music list
+music.msg.16f6387e73=Search music files
+music.msg.59106563f8=Toggle state: on=enable off=disable
+music.msg.8572b677ca=Enable or disable percussion
+music.msg.c5e9b6b66d=§eMusic | §fPercussion > §i{p0}
+music.msg.3ab9be074c=Quickly play a music file
+music.msg.9c717e3b82=Switch to the next track
+music.msg.80b8afeadd=Play random music
+music.msg.2be9eb9243=Playback mode: next=sequential random=random single=repeat one
+music.msg.ca2222eac7=Set loop mode
+music.msg.50aaf42acf=§cMusic | §fError > §iA track name can only be used in single mode.
+music.msg.8fa8b57743=Stop scope: music=music only loop=loop only all=everything, default all
+music.msg.a0b1c82732=Stop playback. Without a parameter it stops everything.
+music.msg.f8d464677d=§cMusic | §fError > §iCould not read directory: {p0}
+music.msg.714141c923=§cMusic | §fError > §iInvalid file name: {p0}
+music.msg.b24d42c6c8=§cMusic | §fError > §iMusic load failed: {p0}
+music.msg.ba96112421=§cMusic | §fError > §iMusic process does not exist.
+music.msg.5dfe26fee3=§eMusic | §fStop > §iMusic process cancelled.
+music.msg.76ceabb6ba=§cMusic | §fError > §iMusic file not found.
+music.msg.f103429ebf=§cMusic | §fError > §iMusic process already exists.
+music.msg.7b430dcedf=§eMusic | §fPlay > §iNow playing {p0}
+music.msg.0d34a80f76=§cMusic | §fError > §iPlayback timed out: {p0}
+music.msg.d9cc38fab2=§eMusic | §fPlay > §i{p0} finished.
+music.msg.49ef9817d8=§cMusic | §fError > §iPlayback error: {p0}
+music.msg.3ff791b7d0=§cMusic | §fError > §iIndex load failed.
+music.msg.265d0bb0af=§cMusic | §fError > §iInvalid index.
+music.msg.be055f6b5e=§cMusic | §fError > §iMusic file list is empty.
+music.msg.550409daa1=§cMusic | §fError > §iInvalid loop time.
+music.msg.cb0c8391f0=§eMusic | §fLoop > §iLoop already exists.
+music.msg.2c4ed3f5f9=§cMusic | §fError > §iPlay a track before enabling single-track loop.
+music.msg.09f7b2e7a8=§eMusic | §fLoop > §i{p0}{p1} enabled.
+music.msg.947214a99b=§eMusic | §fLoop > §iLoop disabled.
+music.msg.ac2aa7c344=§cMusic | §fError > §iLoop does not exist.
+music.msg.919b47ca7b=§cMusic | §fError > §iNothing is playing.
+music.msg.ad7105e7fa=§eMusic | §fStatus > §iNow playing {p0} -> {p1}/{p2}
+music.msg.7a364198b6=§cMusic | §fError > §iNo music found containing "{p0}".
+
+# Command parameter labels
+music.param.7b0930e205=Page
+
+# Command parameter labels
+music.param.cc1b21e800=Keyword
+
+# Command parameter labels
+music.param.983770e129=Music file name
+
+# Command parameter labels
+music.param.5012ab48b2=Track name, single mode only

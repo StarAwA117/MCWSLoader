@@ -361,3 +361,80 @@ terminal.mod.serverLoaded=Server Mod loaded: {name}
 terminal.mod.clientReloaded=Client Mod reloaded: {name}
 terminal.mod.serverReloaded=Server Mod reloaded: {name}
 terminal.mod.npmInstalled=Installed npm package {packageName} for Mod {mod}
+
+# Generated user-facing messages
+core.msg.cc9eeb2606=View command help
+core.msg.934897b462=Search commands
+core.msg.7a84ff9b79=§cTool | §fSearch > §iNo commands found for "{p0}".
+core.msg.c08869f963=Check permission level. Without a target it checks yourself.
+core.msg.3c6602ee2f=§ePermission | §fQuery > §i{p0} permission: {p1}
+core.msg.fde335fd21=Send a message to an external client
+core.msg.13a04ca765=View or toggle tellAll forwarding for this client
+core.msg.807e153fc1=§cTool | §fError > §iThis client does not support the setting.
+core.msg.aae32ad469=§eTool | §fTellAll > §iCurrent: {p0}
+core.msg.b1f1bb08d1=§eTool | §fTellAll > §i{p0}
+core.msg.9d34ca936d=Run a Bedrock command
+core.msg.14461c82f5=Add a permission entry
+core.msg.05850b4973=Remove a permission entry
+core.msg.8afb414481=Measure latency to the server
+core.msg.0f4edba4c2=§cTool | §fError > §iCommand failed.
+core.msg.152b57845f=View current time in Beijing
+core.msg.4aae5f9c09=Restart SAPI polling
+core.msg.35849702b4=§eTool | §fSAPI > §iRestarted {p0} SAPI pollers.
+core.msg.3b07d9a276=Set this client as the main client
+core.msg.04e2677e9d=§cTool | §fError > §iThere is no main client.
+core.msg.bdd0f159a5=§cTool | §fError > §iYou are already the main client.
+core.msg.ac46e35c76=§eTool | §fMove > §iMain client switched to {p0}
+core.msg.914a62f6e2=Reload client Mods. With a name reloads one; without a name reloads all clients.
+core.msg.26ad246d3b=§cTool | §fError > §iCannot reload: the client Mod manager is unavailable.
+core.msg.c5e76d2abe=§eTool | §fReload > §iClient Mod reload complete. Success: {p0} Failed: {p1}
+core.msg.a2a7f123ee=Show all client Mods
+core.msg.06b9b3aee2=§eTool | §fMods > §iTotal: {p0}
+core.msg.b624002cd2=§iNone
+core.msg.ae4b234e0d=Run a command in the server terminal
+core.msg.0892755781=§cTool | §fError > §it:exec is disabled. config.command.allowShellExec = false
+core.msg.3fb2f425f4=§eTool | §fexec > §i{p0} lines
+core.msg.56b4d8de5f=§iNo output
+
+# Command parameter labels
+core.param.7b0930e205=Page
+
+# Command parameter labels
+core.param.cc1b21e800=Keyword
+
+# Command parameter labels
+core.param.9013849179=Account
+
+# Command parameter labels
+core.param.acbc5a5d36=Message content
+
+# Command parameter labels
+core.param.136f673d03=Mode: true forwards as tell, false broadcasts as-is
+
+# Command parameter labels
+core.param.a95e895a9b=Command content
+
+# Command parameter labels
+core.param.56ee7d07b1=Permission type
+
+# Command parameter labels
+core.param.72b49265ed=Mod name
+
+# Core errors
+core.error.command=Command failed. Try again later.
+core.error.permission=Permission operation failed. Try again later.
+core.error.configReload=Config reload failed. Try again later.
+
+# Help output
+core.help.title=Command help
+core.help.searchTitle=Search results
+core.help.nextPage=§7Type {p0}{p1} {p2} for the next page
+core.help.noDescription=§7No description
+core.help.params=  §iParams
+
+# Command errors
+core.error.rateLimit=Too many requests. Try again later.
+core.error.permission=Command permission check failed.
+core.error.unknownCommand=Unknown command: {command}
+core.error.permissionDenied=You do not have permission to run this command.
+core.error.command=Command failed. Try again later.

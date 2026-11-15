@@ -145,71 +145,71 @@ export default class MusicDisplay extends ModBase {
 	onCommand() {
 		return {
 			normal: [
-this.Command.create("m:join", "加入音乐收听")
+this.Command.create("m:join", this.rawtext("music.msg.f4778c2d3f"))
 				.setFunc((commander) => {
 					this.client.sendCommand(`tag @a[name="${commander}"] remove non-listener`);
-					this.client.tell("§eMusic | §fJoin > §i已加入收听音乐~", commander);
+					this.client.tell(this.rawtext("music.msg.031bf5fec2"), commander);
 				}),
 
-this.Command.create("m:exit", "退出音乐收听")
+this.Command.create("m:exit", this.rawtext("music.msg.25fe0410be"))
 				.setFunc((commander) => {
 					this.client.sendCommand(`tag @a[name="${commander}"] add non-listener`);
-					this.client.tell("§eMusic | §fExit > §i已退出收听音乐~", commander);
+					this.client.tell(this.rawtext("music.msg.58fa1dc7c7"), commander);
 				}),
 
-this.Command.create("m:status", "查看当前播放进度")
+this.Command.create("m:status", this.rawtext("music.msg.14005e91b7"))
 				.setFunc((commander) => {
 					this.status(commander);
 				}),
 
-this.Command.create("m:list", "查看音乐列表")
-				.addOptionalInteger("页码")
+this.Command.create("m:list", this.rawtext("music.msg.90b1716840"))
+				.addOptionalInteger(this.rawtext("music.param.7b0930e205"))
 				.setFunc(async (commander, page) => {
 					await this.show(10, page, commander);
 				}),
 
-this.Command.create("m:search", "搜索音乐文件")
-				.addString("关键词", false)
-				.addOptionalInteger("页码")
+this.Command.create("m:search", this.rawtext("music.msg.16f6387e73"))
+				.addString(this.rawtext("music.param.cc1b21e800"), false)
+				.addOptionalInteger(this.rawtext("music.param.7b0930e205"))
 				.setFunc(async (commander, keyword, page) => {
 					await this.search(keyword, 10, page, commander);
 				}),
 
-this.Command.create("m:percussion", "开启/关闭打击乐器")
-				.addEnum(["on", "off"], "开关状态 (on=开启 off=关闭)")
+this.Command.create("m:percussion", this.rawtext("music.msg.8572b677ca"))
+				.addEnum(["on", "off"], this.rawtext("music.msg.59106563f8"))
 				.setFunc((commander, mode) => {
 					this.playPercussion = mode === "on";
-					this.client.tell(`§eMusic | §fPercussion > §i已${this.playPercussion ? "开启" : "关闭"}`, commander);
+					this.client.tell(this.rawtext("music.msg.c5e9b6b66d", { p0: this.playPercussion ? "开启" : "关闭" }), commander);
 				})
 			],
 
 			user: [
-this.Command.create("m:run", "快速播放指定音乐")
-				.addString("音乐文件名", true)
+this.Command.create("m:run", this.rawtext("music.msg.3ab9be074c"))
+				.addString(this.rawtext("music.param.983770e129"), true)
 				.setFunc((_, fileName) => {
 					this.fastrun(fileName);
 				}),
 
-this.Command.create("m:next", "切换到下一首音乐")
+this.Command.create("m:next", this.rawtext("music.msg.9c717e3b82"))
 				.setFunc((_) => {
 					this.next();
 				}),
 
-this.Command.create("m:random", "随机播放音乐")
+this.Command.create("m:random", this.rawtext("music.msg.80b8afeadd"))
 				.setFunc((_) => {
 					this.random();
 				}),
 
-this.Command.create("m:loop", "设置循环播放模式")
-				.addEnum(["next", "random", "single"], "播放模式 (next=顺序 random=随机 single=单曲)")
-				.addOptionalString("歌名 (仅 single 模式有效)")
+this.Command.create("m:loop", this.rawtext("music.msg.ca2222eac7"))
+				.addEnum(["next", "random", "single"], this.rawtext("music.msg.2be9eb9243"))
+				.addOptionalString(this.rawtext("music.param.5012ab48b2"))
 				.setFunc((commander, mode, fileName) => {
 					if (mode === "single") {
 						if (fileName) this.fastrun(fileName);
 						else this.singleLoop();
 					} else {
 						if (fileName) {
-							this.client.tell("§cMusic | §fError > §i非 single 模式不支持指定歌名", commander);
+							this.client.tell(this.rawtext("music.msg.50aaf42acf"), commander);
 							return;
 						}
 						if (mode === "next") this.nextLoop();
@@ -217,8 +217,8 @@ this.Command.create("m:loop", "设置循环播放模式")
 					}
 				}),
 
-this.Command.create("m:stop", "停止播放（不带参数停止全部）")
-				.addOptionalEnum(["music", "loop", "all"], "停止范围 (music=仅音乐 loop=仅循环 all=全部，默认 all)")
+this.Command.create("m:stop", this.rawtext("music.msg.a0b1c82732"))
+				.addOptionalEnum(["music", "loop", "all"], this.rawtext("music.msg.8fa8b57743"))
 				.setFunc((_, mode) => {
 					if (mode === undefined || mode === "all") this.stopAll();
 					if (mode === "music") this.stop();
@@ -244,7 +244,7 @@ this.Command.create("m:stop", "停止播放（不带参数停止全部）")
 		return new Promise<void>((resolve, reject) => {
 			fs.readdir(this.config.basePath, (error, files) => {
 				if (error) {
-					this.client.tell(`§cMusic | §fError > §i获取目录失败: ${error}`);
+					this.client.tell(this.rawtext("music.msg.f8d464677d", { p0: error }));
 					reject(new Error("目录获取失败"));
 					return;
 				}
@@ -301,7 +301,7 @@ this.Command.create("m:stop", "停止播放（不带参数停止全部）")
 			// 路径穿越防护：只允许单层合法文件名
 			const safeName = sanitizeMusicName(fileName);
 			if (!safeName) {
-				this.client.tell(`§cMusic | §fError > §i非法的文件名: ${fileName}`);
+				this.client.tell(this.rawtext("music.msg.714141c923", { p0: fileName }));
 				reject(new Error("非法的文件名"));
 				return;
 			}
@@ -337,7 +337,7 @@ this.Command.create("m:stop", "停止播放（不带参数停止全部）")
 			} else {
 				fs.readFile(filePath, "utf-8", (error, file) => {
 					if (error) {
-						this.client.tell(`§cMusic | §fError > §i音乐加载失败: ${error}`);
+						this.client.tell(this.rawtext("music.msg.b24d42c6c8", { p0: error }));
 						reject(new Error("音乐加载失败"));
 						return;
 					}
@@ -357,7 +357,7 @@ this.Command.create("m:stop", "停止播放（不带参数停止全部）")
 
 	stop() {
 		if (!this.running) {
-			this.client.tell(`§cMusic | §fError > §i音乐进程不存在`);
+			this.client.tell(this.rawtext("music.msg.ba96112421"));
 			return;
 		}
 		clearTimeout(this.timeout);
@@ -367,21 +367,21 @@ this.Command.create("m:stop", "停止播放（不带参数停止全部）")
 			this.resolveRef = null;
 		}
 		this.running = false;
-		this.client.tell(`§eMusic | §fStop > §i音乐进程已取消`);
+		this.client.tell(this.rawtext("music.msg.5dfe26fee3"));
 	}
 
 	async run() {
 		if (!this.title || !this.tracks) {
-			this.client.tell(`§cMusic | §fError > §i音乐文件不存在`);
+			this.client.tell(this.rawtext("music.msg.76ceabb6ba"));
 			return;
 		}
 		if (this.running) {
-			this.client.tell(`§cMusic | §fError > §i音乐进程已存在`);
+			this.client.tell(this.rawtext("music.msg.f103429ebf"));
 			return;
 		}
 
 		this.running = true;
-		this.client.tell(`§eMusic | §fPlay > §i正在播放 ${this.title}`);
+		this.client.tell(this.rawtext("music.msg.7b430dcedf", { p0: this.title }));
 
 		const startTime = Date.now() / 1000;
 
@@ -403,16 +403,16 @@ this.Command.create("m:stop", "停止播放（不带参数停止全部）")
 					this.resolveRef = null;
 				}
 
-				if (sleepTime < -1) this.client.tell(`§cMusic | §fError > §i播放超时: ${sleepTime}`);
+				if (sleepTime < -1) this.client.tell(this.rawtext("music.msg.0d34a80f76", { p0: sleepTime }));
 				if (!this.running) return;
 
 				this.client.sendCommand(`/execute as @a[tag=!non-listener] at @s run playsound ${timbre} @s ~ ~ ~ ${volume} ${pitch}`);
 				this.progress += 1;
 			}
-			this.client.tell(`§eMusic | §fPlay > §i${this.title} 播放完成`);
+			this.client.tell(this.rawtext("music.msg.d9cc38fab2", { p0: this.title }));
 			this.progress = 0;
 		} catch (error) {
-			this.client.tell(`§cMusic | §fError > §i播放错误: ${error}`);
+			this.client.tell(this.rawtext("music.msg.49ef9817d8", { p0: error }));
 		} finally {
 			this.running = false;
 		}
@@ -429,11 +429,11 @@ this.Command.create("m:stop", "停止播放（不带参数停止全部）")
 
 	async indexrun(number = this.index) {
 		if (!this.set(number)) {
-			this.client.tell(`§cMusic | §fError > §iIndex 加载失败`);
+			this.client.tell(this.rawtext("music.msg.3ff791b7d0"));
 			return false;
 		}
 		if (!(await this.test())) {
-			this.client.tell(`§cMusic | §fError > §iIndex 非法`);
+			this.client.tell(this.rawtext("music.msg.265d0bb0af"));
 			return false;
 		}
 		await this.fastrun(this.files[this.index]);
@@ -442,7 +442,7 @@ this.Command.create("m:stop", "停止播放（不带参数停止全部）")
 
 	async next() {
 		if (!(await this.test())) {
-			this.client.tell(`§cMusic | §fError > §iIndex 非法`);
+			this.client.tell(this.rawtext("music.msg.265d0bb0af"));
 			return false;
 		}
 		// 先推进到下一首再播放（与命令描述"切换到下一首"一致）
@@ -456,7 +456,7 @@ this.Command.create("m:stop", "停止播放（不带参数停止全部）")
 	async random() {
 		await this.safeget();
 		if (this.files.length === 0) {
-			this.client.tell("§cMusic | §fError > §i音乐文件列表为空");
+			this.client.tell(this.rawtext("music.msg.be055f6b5e"));
 			return;
 		}
 		this.index = Math.floor(Math.random() * this.files.length);
@@ -471,7 +471,7 @@ this.Command.create("m:stop", "停止播放（不带参数停止全部）")
 
 	_validateLoopTime(time) {
 		if (!(typeof time == "string" && /^[-+]?\d+$/.test(time)) && typeof time != "number") {
-			this.client.tell("§cMusic | §fError > §i循环时间错误");
+			this.client.tell(this.rawtext("music.msg.550409daa1"));
 			return false;
 		}
 		return true;
@@ -479,13 +479,13 @@ this.Command.create("m:stop", "停止播放（不带参数停止全部）")
 
 	async startLoop(mode, time = 5) {
 		if (this.looping) {
-			this.client.tell(`§eMusic | §fLoop > §i循环已存在`);
+			this.client.tell(this.rawtext("music.msg.cb0c8391f0"));
 			return;
 		}
 		if (!this._validateLoopTime(time)) return;
 
 		if (mode === "single" && (!this.title || !this.tracks)) {
-			this.client.tell("§cMusic | §fError > §i请先播放一首音乐再启用单曲循环");
+			this.client.tell(this.rawtext("music.msg.2c4ed3f5f9"));
 			return;
 		}
 
@@ -493,7 +493,7 @@ this.Command.create("m:stop", "停止播放（不带参数停止全部）")
 		const modeLabels = { next: "顺序循环", random: "随机循环", single: "单曲循环" };
 		const modeLabel = modeLabels[mode];
 		const displayTitle = mode === "single" ? ` ${this.title}` : "";
-		this.client.tell(`§eMusic | §fLoop > §i${modeLabel}${displayTitle}已启用`);
+		this.client.tell(this.rawtext("music.msg.09f7b2e7a8", { p0: modeLabel, p1: displayTitle }));
 
 		this.looping = true;
 		this.loopMode = mode;
@@ -515,9 +515,9 @@ this.Command.create("m:stop", "停止播放（不带参数停止全部）")
 		if (this.looping) {
 			this.looping = false;
 			this.loopMode = null;
-			this.client.tell("§eMusic | §fLoop > §i循环已禁用");
+			this.client.tell(this.rawtext("music.msg.947214a99b"));
 		} else {
-			this.client.tell("§cMusic | §fError > §i循环不存在");
+			this.client.tell(this.rawtext("music.msg.ac2aa7c344"));
 		}
 	}
 
@@ -528,16 +528,16 @@ this.Command.create("m:stop", "停止播放（不带参数停止全部）")
 
 	status(cmder="@a") {
 		if (!this.running) {
-			this.client.tell("§cMusic | §fError > §i无音乐播放");
+			this.client.tell(this.rawtext("music.msg.919b47ca7b"));
 			return;
 		}
-		this.client.tell(`§eMusic | §fStatus > §i正在播放 ${this.title} -> ${this.progress} / ${this.tracks.length}`, cmder);
+		this.client.tell(this.rawtext("music.msg.ad7105e7fa", { p0: this.title, p1: this.progress, p2: this.tracks.length }), cmder);
 	}
 
 	async show(pageSize, pageNumber, cmder = null) {
 		await this.safeget();
 		if (this.files.length === 0) {
-			this.client.tell("§cMusic | §fError > §i音乐文件列表为空", cmder);
+			this.client.tell(this.rawtext("music.msg.be055f6b5e"), cmder);
 			return [];
 		}
 
@@ -569,7 +569,7 @@ this.Command.create("m:stop", "停止播放（不带参数停止全部）")
 	async search(keyword, pageSize = 10, pageNumber = 1, cmder = null) {
 		await this.safeget();
 		if (this.files.length === 0) {
-			this.client.tell("§cMusic | §fError > §i音乐文件列表为空", cmder);
+			this.client.tell(this.rawtext("music.msg.be055f6b5e"), cmder);
 			return;
 		}
 
@@ -577,7 +577,7 @@ this.Command.create("m:stop", "停止播放（不带参数停止全部）")
 		const matched = this.files.filter(f => f.toLowerCase().includes(lowerKeyword));
 
 		if (matched.length === 0) {
-			this.client.tell(`§cMusic | §fError > §i未找到包含 "${keyword}" 的音乐`, cmder);
+			this.client.tell(this.rawtext("music.msg.7a364198b6", { p0: keyword }), cmder);
 			return;
 		}
 

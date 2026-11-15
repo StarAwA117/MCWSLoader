@@ -5,3 +5,44 @@ error.testBlock=方块 ID 测试失败
 error.tickingarea=创建区域失败，请检查坐标
 error.save=结构保存失败
 error.load=结构加载失败
+
+# Generated user-facing messages
+position.msg.5d1e0f16dc=设置 A 点坐标：可选 X Y Z，缺省则取自身坐标
+position.msg.2248b54ab5=§cPosition | §fError > §i已有操作进行中，请等待完成或 $p:cancel 中断
+position.msg.2d4737177b=§cPosition | §fError > §i无法获取你的坐标
+position.msg.0afd89f0d2=§cPosition | §fError > §i无法获取坐标
+position.msg.4d5481faed=§ePosition | §fPosA > §i已记录坐标 {p0} {p1} {p2}
+position.msg.5401775902=设置 B 点坐标：可选 X Y Z，缺省则取自身坐标
+position.msg.da0a378d9e=§ePosition | §fPosB > §i已记录坐标 {p0} {p1} {p2}
+position.msg.fc13439580=计算 A B 两点间的距离：保留 3 位小数
+position.msg.bad253125f=§cPosition | §fError > §i请先设置 A 点和 B 点
+position.msg.31913a9c54=计算 B 点相对于 A 点的偏移量
+position.msg.b922379916=填充 A B 两点间区域：必填方块 ID，选填 replace 目标方块 ID
+position.msg.d2f11cb73a=复制 A B 两点间区域
+position.msg.81bdd49928=粘贴复制的结构：可选 X Y Z，缺省取自身坐标
+position.msg.4b63d170c9=§cPosition | §fError > §i请提供完整的 X Y Z 坐标或不提供坐标
+position.msg.83bd7f1b83=剪切 A B 两点间区域：复制后填充空气
+position.msg.19130e9fb3=中断当前操作
+position.msg.8d5f42e77c=§cPosition | §fCancel > §i正在中断操作…
+position.msg.a1a7fa0b05=§cPosition | §fError > §i没有进行中的操作
+position.msg.632d562ac5=查看当前任务进度
+position.msg.31032c2f36=显示当前 A B 点坐标
+position.msg.b00a1d3659=§cPosition | §fError > §i方块 ID 非法: {p0} -> {p1}
+position.msg.f4ab2a11ed=§cPosition | §fError > §i替换方块 ID 非法: {p0} -> {p1}
+position.msg.424bdd4c21=§ePosition | §fFill > §i填充完成 {p0}{p1} 共 {p2} 方块 {p3} 条指令
+position.msg.e6cff85613=§cPosition | §fCancel > §i填充已中断
+position.msg.5748280404=§ePosition | §fCopy > §i复制完成 共 {p0} 个结构
+position.msg.32ef53deb4=§cPosition | §fCancel > §i复制已中断
+position.msg.5564ef9ef2=§cPosition | §fError > §i没有可粘贴的复制结构，请先使用 $p:copy
+position.msg.06c0f410ad=§cPosition | §fError > §i粘贴位置 Y 超出范围: {p0} ~ {p1} ：允许 {p2} ~ {p3}
+position.msg.0ef0dfabb4=§ePosition | §fPaste > §i粘贴完成 共 {p0} 个结构
+position.msg.925ab1b8b7=§cPosition | §fError > §i粘贴完成 失败 {p0} 个结构，请重试
+position.msg.567d1841de=§cPosition | §fCancel > §i粘贴已中断
+
+# Command parameter labels
+position.param.5ab66c6f5f=替换目标方块 ID
+
+# Command parameter labels
+position.param.b3eec41852=填充方块 ID
+
+position.status.eta=§f预计剩余: {p0}s

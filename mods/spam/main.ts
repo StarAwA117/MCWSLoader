@@ -67,7 +67,7 @@ export default class Spam extends ModBase {
 					}),
 
 				this.Command.create("c:repeat", this.rawtext("command.cRepeat"))
-					.addString("刷屏内容", true)
+					.addString(this.rawtext("spam.param.eb9f14e9a0"), true)
 					.setFunc((_, text) => {
 						if (!Current.client) { console.log(`< ${this.rawtext("terminal.spam.noMain")}`); return; }
 						startSpam(Current, 50, () => {

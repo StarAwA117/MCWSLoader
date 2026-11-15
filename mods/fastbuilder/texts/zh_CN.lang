@@ -8,3 +8,16 @@ config.origin.z=原点 Z
 config.particle=粒子效果
 error.readScript=读取脚本失败，请检查文件是否存在
 error.execute=脚本执行失败，请检查脚本内容
+
+# Generated user-facing messages
+fastbuilder.msg.f5ae68e235=执行 FastBuilder 脚本
+fastbuilder.msg.b67238a2f1=以玩家当前位置为中心执行 FastBuilder 脚本
+fastbuilder.msg.4208a1c0a0=列出 FastBuilder 可用脚本
+fastbuilder.msg.6611c90182=§eFastBuilder | §fList > §i暂无脚本
+fastbuilder.msg.80dc9e8353=§eFastBuilder | §fList > §i共 {p0} 个脚本:
+fastbuilder.msg.37211a31b2=§eFastBuilder | §fRun > §i加载脚本: {p0}
+fastbuilder.msg.1484ca13f8=§eFastBuilder | §fRun > §i正在执行脚本...
+fastbuilder.msg.5bbfcda2d0=§eFastBuilder | §fRun > §i执行完成
+
+# Command parameter labels
+fastbuilder.param.b3d4e7e1d9=脚本内容或文件名

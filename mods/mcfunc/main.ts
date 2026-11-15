@@ -17,21 +17,21 @@ export default class MCFunc extends ModBase {
 		return {
 			op: [
 this.Command.create("f:function", this.rawtext("command.fFunction"))
-				.addString("文件路径", true)
+				.addString(this.rawtext("mcfunc.param.0fd3a9b4ea"), true)
 				.setFunc((_, filePath) => {
 					this.run(filePath);
 				}),
 
 this.Command.create("f:loop", this.rawtext("command.fLoop"))
-				.addString("文件路径", true)
-				.addString("循环名称", true)
-				.addFloat("间隔秒数", true)
+				.addString(this.rawtext("mcfunc.param.0fd3a9b4ea"), true)
+				.addString(this.rawtext("mcfunc.param.f330f510c5"), true)
+				.addFloat(this.rawtext("mcfunc.param.f4fdfcf6f7"), true)
 				.setFunc((_, filePath, name, interval) => {
 					this.loop(filePath, name, interval);
 				}),
 
 this.Command.create("f:stop", this.rawtext("command.fStop"))
-				.addOptionalString("循环名称")
+				.addOptionalString(this.rawtext("mcfunc.param.f330f510c5"))
 				.setFunc((_, name) => {
 					this.stop(name);
 				})

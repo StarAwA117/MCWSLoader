@@ -377,41 +377,41 @@ export default class ImageMod extends ModBase {
 	onCommand() {
 		return {
 			op: [
-this.Command.create("i:create", "将图片转换为像素画")
-					.addString("图片文件名", false)
-					.addEnum(["x", "y", "z"], "生成方向 (x=默认 y=直立 z=旋转)", true)
+this.Command.create("i:create", this.rawtext("image.msg.4f73030504"))
+					.addString(this.rawtext("image.param.021f66c909"), false)
+					.addEnum(["x", "y", "z"], this.rawtext("image.msg.0074883fc7"), true)
 					.addOptionalFloat("X")
 					.addOptionalFloat("Y")
 					.addOptionalFloat("Z")
 					.setFunc(async (sender, fileName, dir, x, y, z) => {
 						if (this.job) {
-							this.client.tell("§cImage | §fError > §i已有转换进程运行中，请等待完成或 !i:n 中断", sender);
+							this.client.tell(this.rawtext("image.msg.7527f68798"), sender);
 							return;
 						}
 						await this.create(fileName, sender, dir, x, y, z);
 					}),
 
-this.Command.create("i:raw", "将图片转换为像素画（原始尺寸，仅支持 x/z）")
-					.addString("图片文件名", false)
-					.addEnum(["x", "z"], "生成方向 (x=默认 z=旋转)", true)
+this.Command.create("i:raw", this.rawtext("image.msg.a1ae1f1d91"))
+					.addString(this.rawtext("image.param.021f66c909"), false)
+					.addEnum(["x", "z"], this.rawtext("image.msg.ed68f665a3"), true)
 					.addOptionalFloat("X")
 					.addOptionalFloat("Y")
 					.addOptionalFloat("Z")
 					.setFunc(async (sender, fileName, dir, x, y, z) => {
 						if (this.job) {
-							this.client.tell("§cImage | §fError > §i已有转换进程运行中，请等待完成或 !i:n 中断", sender);
+							this.client.tell(this.rawtext("image.msg.7527f68798"), sender);
 							return;
 						}
 						await this.createRaw(fileName, sender, dir, x, y, z);
 					}),
 
-this.Command.create("i:y", "确认转换操作")
+this.Command.create("i:y", this.rawtext("image.msg.bc4172c76e"))
 					.setFunc(async (sender) => {
 						if (!this.pending) {
-							this.client.tell("§cImage | §fError > §i没有待确认的转换任务", sender);
+							this.client.tell(this.rawtext("image.msg.7790fd0479"), sender);
 							return;
 						}
-						this.client.tell("§eImage | §fConvert > §i已确认，开始转换…", sender);
+						this.client.tell(this.rawtext("image.msg.8929a43caa"), sender);
 						try {
 							await this.run();
 						} catch (e) {
@@ -420,23 +420,23 @@ this.Command.create("i:y", "确认转换操作")
 						}
 					}),
 
-this.Command.create("i:n", "取消/中断转换")
+this.Command.create("i:n", this.rawtext("image.msg.36fb24113b"))
 					.setFunc((sender) => {
 						if (this.job) {
 							this.job.cancelled = true;
-							this.client.tell("§cImage | §fCancel > §i正在中断转换…", sender);
+							this.client.tell(this.rawtext("image.msg.65bd1bd24c"), sender);
 						} else if (this.pending) {
 							this.pending = null;
-							this.client.tell("§cImage | §fCancel > §i已取消转换", sender);
+							this.client.tell(this.rawtext("image.msg.3934fac37f"), sender);
 						} else {
-							this.client.tell("§cImage | §fError > §i没有进行中的操作", sender);
+							this.client.tell(this.rawtext("image.msg.ca7e59e426"), sender);
 						}
 					}),
 
-this.Command.create("i:status", "查看转换进度")
+this.Command.create("i:status", this.rawtext("image.msg.38790fbf1b"))
 				.setFunc((sender) => {
 					if (!this.job) {
-						this.client.tell("§cImage | §fError > §i没有进行中的转换任务", sender);
+						this.client.tell(this.rawtext("image.msg.7ac61f3d40"), sender);
 						return;
 					}
 					const { fileName, startTime, total, blockTotal, phase, areaIndex, areaTotal, phasePlaced, phaseTotal, phaseBlocksPlaced, phaseBlockTotal } = this.job;
@@ -446,10 +446,13 @@ this.Command.create("i:status", "查看转换进度")
 					const totalEta = cmdSpeed > 0 ? ((total - phasePlaced) / cmdSpeed).toFixed(1) : "∞";
 					const phasePct = phaseTotal > 0 ? (phasePlaced / phaseTotal * 100).toFixed(1) : "0.0";
 					this.client.tellAll(
-						`§eImage | §fStatus > §i正在转换 ${fileName} | 总进度 ${totalPct}% (${phasePlaced}/${total} 命令)\n` +
-						`§f阶段: ${phase} (${areaIndex}/${areaTotal} 区域)\n` +
-						`§f当前区域: ${phasePct}% | ${phasePlaced} / ${phaseTotal} 命令 | 方块 ${phaseBlocksPlaced} / ${phaseBlockTotal}\n` +
-						`§f速度: ${cmdSpeed} 命令/s | ${elapsed}s | 预计 ${totalEta}s`
+						this.rawtext("image.status.progress", {
+							p0: fileName, p1: totalPct, p2: phasePlaced, p3: total,
+							p4: phase, p5: areaIndex, p6: areaTotal,
+							p7: phasePct, p8: phasePlaced, p9: phaseTotal,
+							p10: phaseBlocksPlaced, p11: phaseBlockTotal,
+							p12: cmdSpeed, p13: elapsed, p14: totalEta
+						})
 					);
 				})
 			]
@@ -467,31 +470,31 @@ this.Command.create("i:status", "查看转换进度")
 	async _create(mode, fileName, sender, dir, x, y, z, maxDim, allowedDirs) {
 		const dirValue = dir || "x";
 		if (!allowedDirs.includes(dirValue)) {
-			this.client.tell(`§cImage | §fError > §i该模式不支持方向 ${dirValue}，支持: ${allowedDirs.join("/")}`, sender);
+			this.client.tell(this.rawtext("image.msg.63212fb473", { p0: dirValue, p1: allowedDirs.join("/") }), sender);
 			return;
 		}
 
 		const coordCount = [x, y, z].filter(v => v !== undefined && v !== null).length;
 
 		if (coordCount > 0 && coordCount < 3) {
-			this.client.tell("§cImage | §fError > §i坐标参数不完整，需要同时提供 X Y Z 或都不提供（使用自身坐标）", sender);
+			this.client.tell(this.rawtext("image.msg.61969ff933"), sender);
 			return;
 		}
 
 		// 路径穿越防护：只允许单层合法文件名
 		if (typeof fileName !== "string" || !fileName ||
 			fileName !== path.basename(fileName) || /[\\/]/.test(fileName) || fileName.startsWith(".")) {
-			this.client.tell(`§cImage | §fError > §i非法的文件名: ${fileName}`, sender);
+			this.client.tell(this.rawtext("image.msg.1c33c9aa3e", { p0: fileName }), sender);
 			return;
 		}
 
 		const filePath = path.join(this.config.basePath, fileName);
 		if (!fs.existsSync(filePath)) {
-			this.client.tell(`§cImage | §fError > §i文件不存在: ${fileName}`, sender);
+			this.client.tell(this.rawtext("image.msg.b70a2974fd", { p0: fileName }), sender);
 			return;
 		}
 
-		this.client.tell("§i正在处理图片…", sender);
+		this.client.tell(this.rawtext("image.msg.24e1c486ed"), sender);
 
 		let data;
 		try {
@@ -504,7 +507,7 @@ this.Command.create("i:status", "查看转换进度")
 		if (mode === "raw") {
 			const maxSide = Math.max(data.width, data.height);
 			if (maxSide > 2048) {
-				this.client.tell(`§cImage | §fError > §i图片太大: ${data.width}×${data.height} (raw 模式最大 2048px)`, sender);
+				this.client.tell(this.rawtext("image.msg.64cd1dea9c", { p0: data.width, p1: data.height }), sender);
 				return;
 			}
 		}
@@ -516,18 +519,18 @@ this.Command.create("i:status", "查看转换进度")
 			try {
 				const pos = await this.client.getPosition("@s");
 				if (!pos) {
-					this.client.tell("§cImage | §fError > §i无法获取你的坐标", sender);
+					this.client.tell(this.rawtext("image.msg.456801787b"), sender);
 					return;
 				}
 				origin = { x: Math.floor(pos.x), y: Math.floor(pos.y), z: Math.floor(pos.z) };
 			} catch {
-				this.client.tell("§cImage | §fError > §i无法获取你的坐标", sender);
+				this.client.tell(this.rawtext("image.msg.456801787b"), sender);
 				return;
 			}
 		}
 
 		if (origin.y < -64 || origin.y > 320) {
-			this.client.tell(`§cImage | §fError > §iY 轴超出限制: ${origin.y} (允许 -64 ~ 320)`, sender);
+			this.client.tell(this.rawtext("image.msg.3ce0fe48ea", { p0: origin.y }), sender);
 			return;
 		}
 
@@ -537,7 +540,7 @@ this.Command.create("i:status", "查看转换进度")
 		if (dirValue === "y") {
 			const maxY = origin.y + height - 1;
 			if (maxY > 320) {
-				this.client.tell(`§cImage | §fError > §iY 轴超出限制: ${origin.y} + ${height - 1} = ${maxY} (允许最大 320)`, sender);
+				this.client.tell(this.rawtext("image.msg.e4992b802e", { p0: origin.y, p1: height - 1, p2: maxY }), sender);
 				return;
 			}
 		}
@@ -579,12 +582,13 @@ this.Command.create("i:status", "查看转换进度")
 		this.pending = { fileName, origin, data, dir: dirValue, mode };
 
 		this.client.tellAll(
-			`§eImage | §fPreview > §i文件: ${fileName} | 尺寸: ${width}×${height} = ${width * height} 像素\n` +
-			`§f非透明像素: ${data.nonTransparent} → ${previewRects.length} 条指令\n` +
-			`§f方向: ${dirValue} | 区块: ${previewAreas.length} 个区域\n` +
-			`§f范围: (${minX}, ${minY}, ${minZ}) → (${maxX}, ${maxY}, ${maxZ})\n` +
-			`§f预计耗时: ${estTime}s\n` +
-			`§f确认请发送 §e!i:y§f，取消请发送 §c!i:n`
+			this.rawtext("image.status.preview", {
+				p0: fileName, p1: width, p2: height, p3: width * height,
+				p4: data.nonTransparent, p5: previewRects.length,
+				p6: dirValue, p7: previewAreas.length,
+				p8: minX, p9: minY, p10: minZ, p11: maxX, p12: maxY, p13: maxZ,
+				p14: estTime
+			})
 		);
 	}
 
@@ -760,10 +764,10 @@ this.Command.create("i:status", "查看转换进度")
 			const elapsed = ((Date.now() - this.job.startTime) / 1000).toFixed(1);
 			const speed = Math.round(data.nonTransparent / parseFloat(elapsed));
 			this.client.tellAll(
-				`§eImage | §fConvert > §i${fileName} 转换完成 共 ${data.nonTransparent} 方块 耗时 ${elapsed}s 速度 ${speed}方块/s`
+				this.rawtext("image.msg.c423455cd8", { p0: fileName, p1: data.nonTransparent, p2: elapsed, p3: speed })
 			);
 		} else {
-			this.client.tellAll(`§cImage | §fCancel > §i图片转换已中断 (${fileName})`);
+			this.client.tellAll(this.rawtext("image.msg.741470bf98", { p0: fileName }));
 		}
 		this.job = null;
 	}

@@ -77,13 +77,13 @@ export default class Position extends ModBase {
 	onCommand() {
 		return {
 			op: [
-this.Command.create("p:a", "设置 A 点坐标（可选 X Y Z，缺省则取自身坐标）")
+this.Command.create("p:a", this.rawtext("position.msg.5d1e0f16dc"))
 					.addOptionalInteger("X")
 					.addOptionalInteger("Y")
 					.addOptionalInteger("Z")
 					.setFunc(async (sender, x, y, z) => {
 						if (this.job) {
-							this.client.tell("§cPosition | §fError > §i已有操作进行中，请等待完成或 $p:cancel 中断", sender);
+							this.client.tell(this.rawtext("position.msg.2248b54ab5"), sender);
 							return;
 						}
 						let pos;
@@ -93,26 +93,26 @@ this.Command.create("p:a", "设置 A 点坐标（可选 X Y Z，缺省则取自�
 							try {
 								pos = await this.client.getPosition("@s");
 							} catch {
-								this.client.tell("§cPosition | §fError > §i无法获取你的坐标", sender);
+								this.client.tell(this.rawtext("position.msg.2d4737177b"), sender);
 								return;
 							}
 						}
 						if (!pos) {
-							this.client.tell("§cPosition | §fError > §i无法获取坐标", sender);
+							this.client.tell(this.rawtext("position.msg.0afd89f0d2"), sender);
 							return;
 						}
 						validateY(Math.floor(pos.y), sender);
 						this.posA = { x: Math.floor(pos.x), y: Math.floor(pos.y), z: Math.floor(pos.z) };
-						this.client.tellAll(`§ePosition | §fPosA > §i已记录坐标 ${this.posA.x} ${this.posA.y} ${this.posA.z}`);
+						this.client.tellAll(this.rawtext("position.msg.4d5481faed", { p0: this.posA.x, p1: this.posA.y, p2: this.posA.z }));
 					}),
 
-this.Command.create("p:b", "设置 B 点坐标（可选 X Y Z，缺省则取自身坐标）")
+this.Command.create("p:b", this.rawtext("position.msg.5401775902"))
 					.addOptionalInteger("X")
 					.addOptionalInteger("Y")
 					.addOptionalInteger("Z")
 					.setFunc(async (sender, x, y, z) => {
 						if (this.job) {
-							this.client.tell("§cPosition | §fError > §i已有操作进行中，请等待完成或 $p:cancel 中断", sender);
+							this.client.tell(this.rawtext("position.msg.2248b54ab5"), sender);
 							return;
 						}
 						let pos;
@@ -122,23 +122,23 @@ this.Command.create("p:b", "设置 B 点坐标（可选 X Y Z，缺省则取自�
 							try {
 								pos = await this.client.getPosition("@s");
 							} catch {
-								this.client.tell("§cPosition | §fError > §i无法获取你的坐标", sender);
+								this.client.tell(this.rawtext("position.msg.2d4737177b"), sender);
 								return;
 							}
 						}
 						if (!pos) {
-							this.client.tell("§cPosition | §fError > §i无法获取坐标", sender);
+							this.client.tell(this.rawtext("position.msg.0afd89f0d2"), sender);
 							return;
 						}
 						validateY(Math.floor(pos.y), sender);
 						this.posB = { x: Math.floor(pos.x), y: Math.floor(pos.y), z: Math.floor(pos.z) };
-						this.client.tellAll(`§ePosition | §fPosB > §i已记录坐标 ${this.posB.x} ${this.posB.y} ${this.posB.z}`);
+						this.client.tellAll(this.rawtext("position.msg.da0a378d9e", { p0: this.posB.x, p1: this.posB.y, p2: this.posB.z }));
 					}),
 
-this.Command.create("p:distance", "计算 A B 两点间的距离（保留 3 位小数）")
+this.Command.create("p:distance", this.rawtext("position.msg.fc13439580"))
 					.setFunc((sender) => {
 						if (!this.posA || !this.posB) {
-							this.client.tell("§cPosition | §fError > §i请先设置 A 点和 B 点", sender);
+							this.client.tell(this.rawtext("position.msg.bad253125f"), sender);
 							return;
 						}
 						const dx = this.posB.x - this.posA.x;
@@ -148,10 +148,10 @@ this.Command.create("p:distance", "计算 A B 两点间的距离（保留 3 位�
 						this.client.tellAll(`§ePosition | §fDistance > §i${dist}`);
 					}),
 
-this.Command.create("p:offset", "计算 B 点相对于 A 点的偏移量")
+this.Command.create("p:offset", this.rawtext("position.msg.31913a9c54"))
 					.setFunc((sender) => {
 						if (!this.posA || !this.posB) {
-							this.client.tell("§cPosition | §fError > §i请先设置 A 点和 B 点", sender);
+							this.client.tell(this.rawtext("position.msg.bad253125f"), sender);
 							return;
 						}
 						const ox = this.posB.x - this.posA.x;
@@ -160,27 +160,27 @@ this.Command.create("p:offset", "计算 B 点相对于 A 点的偏移量")
 						this.client.tellAll(`§ePosition | §fOffset > §iX ${ox}  Y ${oy}  Z ${oz}`);
 					}),
 
-this.Command.create("p:fill", "填充 A B 两点间区域（必填方块 ID，选填 replace 目标方块 ID）")
-					.addString("填充方块 ID", false)
-					.addOptionalString("替换目标方块 ID")
+this.Command.create("p:fill", this.rawtext("position.msg.b922379916"))
+					.addString(this.rawtext("position.param.b3eec41852"), false)
+					.addOptionalString(this.rawtext("position.param.5ab66c6f5f"))
 					.setFunc(async (sender, fillBlock, replaceBlock) => {
 						if (!this.posA || !this.posB) {
-							this.client.tell("§cPosition | §fError > §i请先设置 A 点和 B 点", sender);
+							this.client.tell(this.rawtext("position.msg.bad253125f"), sender);
 							return;
 						}
 						await this._withJob(sender, "fill", () => this._execFill(sender, fillBlock, replaceBlock));
 					}),
 
-this.Command.create("p:copy", "复制 A B 两点间区域")
+this.Command.create("p:copy", this.rawtext("position.msg.d2f11cb73a"))
 					.setFunc(async (sender) => {
 						if (!this.posA || !this.posB) {
-							this.client.tell("§cPosition | §fError > §i请先设置 A 点和 B 点", sender);
+							this.client.tell(this.rawtext("position.msg.bad253125f"), sender);
 							return;
 						}
 						await this._withJob(sender, "copy", () => this._execCopy(sender));
 					}),
 
-this.Command.create("p:paste", "粘贴复制的结构（可选 X Y Z，缺省取自身坐标）")
+this.Command.create("p:paste", this.rawtext("position.msg.81bdd49928"))
 					.addOptionalInteger("X")
 					.addOptionalInteger("Y")
 					.addOptionalInteger("Z")
@@ -188,7 +188,7 @@ this.Command.create("p:paste", "粘贴复制的结构（可选 X Y Z，缺省取
 						let origin;
 						if (x !== undefined || y !== undefined || z !== undefined) {
 							if (x === undefined || y === undefined || z === undefined) {
-								this.client.tell("§cPosition | §fError > §i请提供完整的 X Y Z 坐标或不提供坐标", sender);
+								this.client.tell(this.rawtext("position.msg.4b63d170c9"), sender);
 								return;
 							}
 							origin = { x, y, z };
@@ -196,22 +196,22 @@ this.Command.create("p:paste", "粘贴复制的结构（可选 X Y Z，缺省取
 							try {
 								const pos = await this.client.getPosition("@s");
 								if (!pos) {
-									this.client.tell("§cPosition | §fError > §i无法获取你的坐标", sender);
+									this.client.tell(this.rawtext("position.msg.2d4737177b"), sender);
 									return;
 								}
 								origin = { x: Math.floor(pos.x), y: Math.floor(pos.y), z: Math.floor(pos.z) };
 							} catch {
-								this.client.tell("§cPosition | §fError > §i无法获取你的坐标", sender);
+								this.client.tell(this.rawtext("position.msg.2d4737177b"), sender);
 								return;
 							}
 						}
 						await this._withJob(sender, "paste", () => this._execPaste(sender, origin));
 					}),
 
-this.Command.create("p:cut", "剪切 A B 两点间区域（复制后填充空气）")
+this.Command.create("p:cut", this.rawtext("position.msg.83bd7f1b83"))
 					.setFunc(async (sender) => {
 						if (!this.posA || !this.posB) {
-							this.client.tell("§cPosition | §fError > §i请先设置 A 点和 B 点", sender);
+							this.client.tell(this.rawtext("position.msg.bad253125f"), sender);
 							return;
 						}
 						await this._withJob(sender, "cut", async () => {
@@ -222,20 +222,20 @@ this.Command.create("p:cut", "剪切 A B 两点间区域（复制后填充空气
 						});
 					}),
 
-this.Command.create("p:cancel", "中断当前操作")
+this.Command.create("p:cancel", this.rawtext("position.msg.19130e9fb3"))
 					.setFunc((sender) => {
 						if (this.job) {
 							this.job.cancelled = true;
-							this.client.tell("§cPosition | §fCancel > §i正在中断操作…", sender);
+							this.client.tell(this.rawtext("position.msg.8d5f42e77c"), sender);
 						} else {
-							this.client.tell("§cPosition | §fError > §i没有进行中的操作", sender);
+							this.client.tell(this.rawtext("position.msg.a1a7fa0b05"), sender);
 						}
 					}),
 
-this.Command.create("p:status", "查看当前任务进度")
+this.Command.create("p:status", this.rawtext("position.msg.632d562ac5"))
 					.setFunc((sender) => {
 						if (!this.job) {
-							this.client.tell("§cPosition | §fError > §i没有进行中的操作", sender);
+							this.client.tell(this.rawtext("position.msg.a1a7fa0b05"), sender);
 							return;
 						}
 
@@ -261,12 +261,12 @@ this.Command.create("p:status", "查看当前任务进度")
 						}
 
 						msg += `\n§f耗时: ${elapsed.toFixed(1)}s | §f速度: ${cmdSpeed.toFixed(1)} 命令/s\n` +
-							`§f预计剩余: ${eta}s`;
+							this.rawtext("position.status.eta", { p0: eta });
 
 						this.client.tellAll(msg);
 					}),
 
-this.Command.create("p:show", "显示当前 A B 点坐标")
+this.Command.create("p:show", this.rawtext("position.msg.31032c2f36"))
 					.setFunc((sender) => {
 						const a = this.posA;
 						const b = this.posB;
@@ -280,7 +280,7 @@ this.Command.create("p:show", "显示当前 A B 点坐标")
 
 	async _withJob(sender, type, fn) {
 		if (this.job) {
-			this.client.tell("§cPosition | §fError > §i已有操作进行中，请等待完成或 $p:cancel 中断", sender);
+			this.client.tell(this.rawtext("position.msg.2248b54ab5"), sender);
 			return;
 		}
 		this.job = { cancelled: false, startTime: Date.now(), type };
@@ -313,7 +313,7 @@ this.Command.create("p:show", "显示当前 A B 点坐标")
 				const testFor = await this.client.runCommand(`/testforblock ${this.posA.x} ${this.posA.y} ${this.posA.z} ${fillBlock}`);
 				if (!testFor || testFor.body?.statusCode !== 0) {
 					const msg = testFor?.body?.statusMessage || "未知错误";
-					this.client.tellAll(`§cPosition | §fError > §i方块 ID 非法: ${fillBlock} -> ${msg}`);
+					this.client.tellAll(this.rawtext("position.msg.b00a1d3659", { p0: fillBlock, p1: msg }));
 					return;
 				}
 			}
@@ -324,7 +324,7 @@ this.Command.create("p:show", "显示当前 A B 点坐标")
 					const testForR = await this.client.runCommand(`/testforblock ${this.posA.x} ${this.posA.y} ${this.posA.z} ${replaceBlock}`);
 					if (!testForR || testForR.body?.statusCode !== 0) {
 						const msg = testForR?.body?.statusMessage || "未知错误";
-						this.client.tellAll(`§cPosition | §fError > §i替换方块 ID 非法: ${replaceBlock} -> ${msg}`);
+						this.client.tellAll(this.rawtext("position.msg.f4ab2a11ed", { p0: replaceBlock, p1: msg }));
 						return;
 					}
 				}
@@ -409,9 +409,9 @@ this.Command.create("p:show", "显示当前 A B 点坐标")
 		}
 
 		if (!this.job.cancelled) {
-			this.client.tellAll(`§ePosition | §fFill > §i填充完成 ${fillBlock}${replaceBlock ? ` replace ${replaceBlock}` : ""} 共 ${totalBlocks} 方块 ${totalCmds} 条指令`);
+			this.client.tellAll(this.rawtext("position.msg.424bdd4c21", { p0: fillBlock, p1: replaceBlock ? ` replace ${replaceBlock}` : "", p2: totalBlocks, p3: totalCmds }));
 		} else {
-			this.client.tellAll(`§cPosition | §fCancel > §i填充已中断`);
+			this.client.tellAll(this.rawtext("position.msg.e6cff85613"));
 		}
 	}
 
@@ -523,20 +523,20 @@ this.Command.create("p:show", "显示当前 A B 点坐标")
 				regionMaxZ: maxZ,
 				structures,
 			};
-			this.client.tellAll(`§ePosition | §fCopy > §i复制完成 共 ${structures.length} 个结构`);
+			this.client.tellAll(this.rawtext("position.msg.5748280404", { p0: structures.length }));
 		} else {
 			for (const s of structures) {
 				try {
 					await this.client.runCommand(`/structure delete ${s.name}`);
 				} catch {}
 			}
-			this.client.tellAll(`§cPosition | §fCancel > §i复制已中断`);
+			this.client.tellAll(this.rawtext("position.msg.32ef53deb4"));
 		}
 	}
 
 	async _execPaste(sender, origin) {
 		if (!this.lastCopyEntry) {
-			this.client.tell("§cPosition | §fError > §i没有可粘贴的复制结构，请先使用 $p:copy", sender);
+			this.client.tell(this.rawtext("position.msg.5564ef9ef2"), sender);
 			return;
 		}
 
@@ -546,7 +546,7 @@ this.Command.create("p:show", "显示当前 A B 点坐标")
 		const pasteMinY = origin.y + (entry.structures[0]?.offsetY || 0);
 		const pasteMaxY = pasteMinY + totalYPaste - 1;
 		if (pasteMinY < Y_MIN || pasteMaxY > Y_MAX) {
-			this.client.tell(`§cPosition | §fError > §i粘贴位置 Y 超出范围: ${pasteMinY} ~ ${pasteMaxY} (允许 ${Y_MIN} ~ ${Y_MAX})`, sender);
+			this.client.tell(this.rawtext("position.msg.06c0f410ad", { p0: pasteMinY, p1: pasteMaxY, p2: Y_MIN, p3: Y_MAX }), sender);
 			return;
 		}
 
@@ -612,11 +612,11 @@ this.Command.create("p:show", "显示当前 A B 点坐标")
 				} catch {}
 			}
 			this.lastCopyEntry = null;
-			this.client.tellAll(`§ePosition | §fPaste > §i粘贴完成 共 ${total} 个结构`);
+			this.client.tellAll(this.rawtext("position.msg.0ef0dfabb4", { p0: total }));
 		} else if (!this.job.cancelled) {
-			this.client.tellAll(`§cPosition | §fError > §i粘贴完成 失败 ${errorCount} 个结构，请重试`);
+			this.client.tellAll(this.rawtext("position.msg.925ab1b8b7", { p0: errorCount }));
 		} else {
-			this.client.tellAll(`§cPosition | §fCancel > §i粘贴已中断`);
+			this.client.tellAll(this.rawtext("position.msg.567d1841de"));
 		}
 	}
 

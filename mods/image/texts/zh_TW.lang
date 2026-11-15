@@ -3,3 +3,37 @@
 config.basePath=圖片目錄
 error.convert=圖片轉換失敗，請檢查圖片格式
 error.process=圖片處理失敗，請檢查圖片格式
+
+# Generated user-facing messages
+image.msg.0074883fc7=生成方向 ：x=預設 y=直立 z=旋轉
+image.msg.4f73030504=將圖片轉換為畫素畫
+image.msg.7527f68798=§cImage | §fError > §i已有轉換程序執行中，請等待完成或 !i:n 中斷
+image.msg.ed68f665a3=生成方向 ：x=預設 z=旋轉
+image.msg.a1ae1f1d91=將圖片轉換為畫素畫：原始尺寸，僅支援 x/z
+image.msg.bc4172c76e=確認轉換操作
+image.msg.7790fd0479=§cImage | §fError > §i沒有待確認的轉換任務
+image.msg.8929a43caa=§eImage | §fConvert > §i已確認，開始轉換…
+image.msg.36fb24113b=取消/中斷轉換
+image.msg.65bd1bd24c=§cImage | §fCancel > §i正在中斷轉換…
+image.msg.3934fac37f=§cImage | §fCancel > §i已取消轉換
+image.msg.ca7e59e426=§cImage | §fError > §i沒有進行中的操作
+image.msg.38790fbf1b=檢視轉換進度
+image.msg.7ac61f3d40=§cImage | §fError > §i沒有進行中的轉換任務
+image.msg.63212fb473=§cImage | §fError > §i該模式不支援方向 {p0}，支援: {p1}
+image.msg.61969ff933=§cImage | §fError > §i座標引數不完整，需要同時提供 X Y Z 或都不提供：使用自身座標
+image.msg.1c33c9aa3e=§cImage | §fError > §i非法的檔名: {p0}
+image.msg.b70a2974fd=§cImage | §fError > §i檔案不存在: {p0}
+image.msg.24e1c486ed=§i正在處理圖片…
+image.msg.64cd1dea9c=§cImage | §fError > §i圖片太大: {p0}×{p1} ：raw 模式最大 2048px
+image.msg.456801787b=§cImage | §fError > §i無法獲取你的座標
+image.msg.3ce0fe48ea=§cImage | §fError > §iY 軸超出限制: {p0} ：允許 -64 ~ 320
+image.msg.e4992b802e=§cImage | §fError > §iY 軸超出限制: {p0} + {p1} = {p2} ：允許最大 320
+image.msg.c423455cd8=§eImage | §fConvert > §i{p0} 轉換完成 共 {p1} 方塊 耗時 {p2}s 速度 {p3}方塊/s
+image.msg.741470bf98=§cImage | §fCancel > §i圖片轉換已中斷 ：{p0}
+
+# Command parameter labels
+image.param.021f66c909=圖片檔名
+
+image.status.progress=§eImage | §fStatus > §i正在轉換 {p0} | 總進度 {p1}% | 命令 {p2}/{p3}\n§f階段: {p4} | 區域 {p5}/{p6}\n§f當前區域: {p7}% | {p8} / {p9} 命令 | 方塊 {p10} / {p11}\n§f速度: {p12} 命令/s | {p13}s | 預計 {p14}s
+
+image.status.preview=§eImage | §fPreview > §i檔案: {p0} | 尺寸: {p1}×{p2} = {p3} 畫素\n§f非透明畫素: {p4} → {p5} 條指令\n§f方向: {p6} | 區塊: {p7} 個區域\n§f範圍: {p8}, {p9}, {p10} → {p11}, {p12}, {p13}\n§f預計耗時: {p14}s\n§f確認請傳送 §e!i:y§f，取消請傳送 §c!i:n

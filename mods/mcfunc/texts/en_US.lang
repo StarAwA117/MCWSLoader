@@ -17,3 +17,12 @@ mcfunc.loopStarted=Loop {name} started
 mcfunc.allStopped=All loops stopped
 mcfunc.loopStopped=Loop {name} stopped
 mcfunc.loopMissing=Loop {name} does not exist
+
+# Command parameter labels
+mcfunc.param.0fd3a9b4ea=File path
+
+# Command parameter labels
+mcfunc.param.f4fdfcf6f7=Interval seconds
+
+# Command parameter labels
+mcfunc.param.f330f510c5=Loop name

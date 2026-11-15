@@ -8,3 +8,16 @@ config.origin.z=Origin Z
 config.particle=Particle
 error.readScript=Could not read the script. Check that the file exists.
 error.execute=Script execution failed. Check the script contents.
+
+# Generated user-facing messages
+fastbuilder.msg.f5ae68e235=Run a FastBuilder script
+fastbuilder.msg.b67238a2f1=Run a FastBuilder script centered on the player
+fastbuilder.msg.4208a1c0a0=List available FastBuilder scripts
+fastbuilder.msg.6611c90182=§eFastBuilder | §fList > §iNo scripts available
+fastbuilder.msg.80dc9e8353=§eFastBuilder | §fList > §i{p0} scripts:
+fastbuilder.msg.37211a31b2=§eFastBuilder | §fRun > §iLoading script: {p0}
+fastbuilder.msg.1484ca13f8=§eFastBuilder | §fRun > §iRunning script...
+fastbuilder.msg.5bbfcda2d0=§eFastBuilder | §fRun > §iFinished
+
+# Command parameter labels
+fastbuilder.param.b3d4e7e1d9=Script content or file name

@@ -361,3 +361,80 @@ terminal.mod.serverLoaded=伺服器 Mod 已載入：{name}
 terminal.mod.clientReloaded=客戶端 Mod 已重新載入：{name}
 terminal.mod.serverReloaded=伺服器 Mod 已重新載入：{name}
 terminal.mod.npmInstalled=已為 Mod {mod} 安裝 npm 套件 {packageName}
+
+# Generated user-facing messages
+core.msg.cc9eeb2606=檢視命令幫助
+core.msg.934897b462=搜尋命令
+core.msg.7a84ff9b79=§cTool | §fSearch > §i沒有找到與 "{p0}" 相關的命令
+core.msg.c08869f963=查詢許可權等級：不帶引數查詢自身
+core.msg.3c6602ee2f=§ePermission | §fQuery > §i{p0} 許可權: {p1}
+core.msg.fde335fd21=向外部傳送訊息
+core.msg.13a04ca765=檢視/切換本客戶端 tellAll 轉發模式
+core.msg.807e153fc1=§cTool | §fError > §i當前客戶端不支援此設定
+core.msg.aae32ad469=§eTool | §fTellAll > §i當前 {p0}
+core.msg.b1f1bb08d1=§eTool | §fTellAll > §i已{p0}
+core.msg.9d34ca936d=執行基岩版命令
+core.msg.14461c82f5=新增指定賬號許可權
+core.msg.05850b4973=刪除指定賬號許可權
+core.msg.8afb414481=檢測與伺服器的延遲
+core.msg.0f4edba4c2=§cTool | §fError > §i命令執行失敗
+core.msg.152b57845f=檢視當前時間：北京時間
+core.msg.4aae5f9c09=重新開始 SAPI 輪詢
+core.msg.35849702b4=§eTool | §fSAPI > §i已重新開始 {p0} 個 SAPI 輪詢器
+core.msg.3b07d9a276=將當前客戶端設為主客戶端
+core.msg.04e2677e9d=§cTool | §fError > §i當前沒有主客戶端
+core.msg.bdd0f159a5=§cTool | §fError > §i你已經是主客戶端
+core.msg.ac46e35c76=§eTool | §fMove > §i主客戶端已切換至 {p0}
+core.msg.914a62f6e2=過載客戶端 Mod：帶名稱過載單個，不帶過載全部客戶端
+core.msg.26ad246d3b=§cTool | §fError > §i無法過載：客戶端 Mod 管理器不可用
+core.msg.c5e76d2abe=§eTool | §fReload > §i客戶端 Mod 全量過載完成 成功: {p0} 失敗: {p1}
+core.msg.a2a7f123ee=顯示所有客戶端 Mod
+core.msg.06b9b3aee2=§eTool | §fMods > §i共 {p0} 個
+core.msg.b624002cd2=§i無
+core.msg.ae4b234e0d=在伺服器終端執行命令
+core.msg.0892755781=§cTool | §fError > §it:exec 已被禁用：config.command.allowShellExec = false
+core.msg.3fb2f425f4=§eTool | §fexec > §i共 {p0} 行
+core.msg.56b4d8de5f=§i：無輸出
+
+# Command parameter labels
+core.param.7b0930e205=頁碼
+
+# Command parameter labels
+core.param.cc1b21e800=關鍵詞
+
+# Command parameter labels
+core.param.9013849179=賬號
+
+# Command parameter labels
+core.param.acbc5a5d36=訊息內容
+
+# Command parameter labels
+core.param.136f673d03=模式 ：true=轉發為 tell false=原樣
+
+# Command parameter labels
+core.param.a95e895a9b=命令內容
+
+# Command parameter labels
+core.param.56ee7d07b1=許可權型別
+
+# Command parameter labels
+core.param.72b49265ed=Mod 名稱
+
+# Core errors
+core.error.command=命令執行失敗，請稍後重試
+core.error.permission=權限操作失敗，請稍後重試
+core.error.configReload=設定重新整理失敗，請稍後重試
+
+# Help output
+core.help.title=命令說明
+core.help.searchTitle=搜尋結果
+core.help.nextPage=§7輸入 {p0}{p1} {p2} 查看下一頁
+core.help.noDescription=§7無說明
+core.help.params=  §i參數
+
+# Command errors
+core.error.rateLimit=操作過於頻繁，請稍後再試
+core.error.permission=命令權限檢查失敗
+core.error.unknownCommand=未知命令：{command}
+core.error.permissionDenied=沒有執行該命令的權限
+core.error.command=命令執行失敗，請稍後重試

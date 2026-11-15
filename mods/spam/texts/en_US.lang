@@ -21,3 +21,6 @@ terminal.spam.stopped=Client repeat stopped
 # Manifest display
 pack.name=Spam
 pack.description=Provides spam, advertisement and attack services
+
+# Command parameter labels
+spam.param.eb9f14e9a0=Spam content

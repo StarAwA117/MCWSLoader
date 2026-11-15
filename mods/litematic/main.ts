@@ -504,106 +504,103 @@ export default class Litematic extends ModBase {
 		return {
 			op: [
 				// l:help [命令名] — 列出所有命令，或查看指定命令的用法
-this.Command.create("l:help", "查看命令用法")
-					.addOptionalString("命令名")
+this.Command.create("l:help", this.rawtext("litematic.msg.55d0a93ffa"))
+					.addOptionalString(this.rawtext("litematic.param.0a77b99236"))
 					.setFunc((sender, name) => {
 						const all = this.onCommand().op;
 						if (name) {
 							const cm = all.find(x => x.name === name);
 							if (!cm) {
-								this.client.tell(`§cLitematic | §fError > §i没有找到命令: ${name}（输入 !l:help 查看全部命令）`, sender);
+								this.client.tell(this.rawtext("litematic.msg.2eef424bb4", { p0: name }), sender);
 								return;
 							}
 							const params = cm.parameters.length
 								? cm.parameters.map((p, i) => {
 									const [type, desc, opt] = p;
-									return ` §f参数${i + 1}: §7<${type}> §f(${opt ? "可选" : "必选"})${desc ? ` - ${desc}` : ""}`;
+									return this.rawtext("litematic.help.param", { p0: i + 1, p1: type, p2: opt ? this.rawtext("litematic.help.optional") : this.rawtext("litematic.help.required"), p3: desc ? ` - ${desc}` : "" });
 								}).join("\n")
-								: " §7无参数";
+								: this.rawtext("litematic.help.noParams");
 							this.client.tell(
-								`§eLitematic | §fHelp > §b${cm.name} §7用法:\n` +
-								`§f说明: §7${cm.description}\n` +
-								`§f参数:\n${params}`, sender
+								this.rawtext("litematic.help.details", { p0: cm.name, p1: cm.description, p2: params }), sender
 							);
 						} else {
 							const lines = all.map(cm => `§a$l:${cm.name.replace(/^l:/, "")} §7- §f${cm.description}`).join("\n");
 							this.client.tell(
-								`§eLitematic | §fHelp > §7可用命令\n${lines}\n` +
-								`§7输入 §a!l:help <命令名> §7查看详细用法`, sender
+								this.rawtext("litematic.help.list", { p0: lines }), sender
 							);
 						}
 					}),
 
 				// l:create <文件> [X] [Y] [Z] [trim|raw] — 导入建筑投影
-this.Command.create("l:create", "导入 Litematic 建筑投影")
-					.addString("文件名", false)
+this.Command.create("l:create", this.rawtext("litematic.msg.64bdede940"))
+					.addString(this.rawtext("litematic.param.1275f6feb7"), false)
 					.addOptionalString("X")
 					.addOptionalString("Y")
 					.addOptionalString("Z")
-					.addOptionalString("模式")
+					.addOptionalString(this.rawtext("litematic.param.ed0eea8f20"))
 					.setFunc(async (sender, fileName, x, y, z, mode) => {
 						if (this.job) {
-							this.client.tell("§cLitematic | §fError > §i已有导入进程运行中，请等待完成或 !l:n 中断", sender);
+							this.client.tell(this.rawtext("litematic.msg.1c6c253c2c"), sender);
 							return;
 						}
 						await this.create(fileName, sender, x, y, z, mode);
 					}),
 
 				// l:preview <文件> [X] [Y] [Z] [trim|raw] — 粒子+实体边框预览
-this.Command.create("l:preview", "粒子边框 + 实体标记预览建筑位置")
-					.addString("文件名", false)
+this.Command.create("l:preview", this.rawtext("litematic.msg.a4a9f8b1de"))
+					.addString(this.rawtext("litematic.param.1275f6feb7"), false)
 					.addOptionalString("X")
 					.addOptionalString("Y")
 					.addOptionalString("Z")
-					.addOptionalString("模式")
+					.addOptionalString(this.rawtext("litematic.param.ed0eea8f20"))
 					.setFunc(async (sender, fileName, x, y, z, mode) => {
 						await this.preview(fileName, sender, x, y, z, mode);
 					}),
 
 				// l:unpreview — 清除预览
-this.Command.create("l:unpreview", "清除建筑预览")
+this.Command.create("l:unpreview", this.rawtext("litematic.msg.dd9f92e16a"))
 					.setFunc((sender) => {
 						this.clearPreview(sender);
 					}),
 
 				// l:export <文件> [导出名] [trim|raw] — 导出 .mcstructure 结构文件
-this.Command.create("l:export", "导出为 MCBE 结构方块文件 (.mcstructure)")
-					.addString("文件名", false)
-					.addOptionalString("导出名")
-					.addOptionalString("模式")
+this.Command.create("l:export", this.rawtext("litematic.msg.afd9598d3e"))
+					.addString(this.rawtext("litematic.param.1275f6feb7"), false)
+					.addOptionalString(this.rawtext("litematic.param.e2179ba860"))
+					.addOptionalString(this.rawtext("litematic.param.ed0eea8f20"))
 					.setFunc(async (sender, fileName, exportName, mode) => {
 						await this.exportStructure(fileName, sender, exportName, mode);
 					}),
 
 				// l:list [页码] — 浏览建筑文件
-this.Command.create("l:list", "查看建筑文件列表")
-					.addOptionalString("页码")
+this.Command.create("l:list", this.rawtext("litematic.msg.4ef4895c37"))
+					.addOptionalString(this.rawtext("litematic.param.7b0930e205"))
 					.setFunc((sender, page) => {
 						this.listFiles(page, sender);
 					}),
 
 				// l:id — 查看所有任务 ID（$create 返回，供 $verify / $fix 使用）
-this.Command.create("l:id", "查看所有任务 ID")
+this.Command.create("l:id", this.rawtext("litematic.msg.20931c277d"))
 					.setFunc((sender) => {
 						this.listTasks(sender);
 					}),
 
 				// l:search <关键词> [页码] — 搜索建筑文件
-this.Command.create("l:search", "搜索建筑文件")
-					.addString("关键词", false)
-					.addOptionalString("页码")
+this.Command.create("l:search", this.rawtext("litematic.msg.3af148c315"))
+					.addString(this.rawtext("litematic.param.cc1b21e800"), false)
+					.addOptionalString(this.rawtext("litematic.param.7b0930e205"))
 					.setFunc((sender, keyword, page) => {
 						this.searchFiles(keyword, page, sender);
 					}),
 
 				// l:y — 确认待执行的导入
-this.Command.create("l:y", "确认导入操作")
+this.Command.create("l:y", this.rawtext("litematic.msg.345501eb59"))
 					.setFunc(async (sender) => {
 						if (!this.pending) {
-							this.client.tell("§cLitematic | §fError > §i没有待确认的导入任务", sender);
+							this.client.tell(this.rawtext("litematic.msg.b85e5af369"), sender);
 							return;
 						}
-						this.client.tell("§eLitematic | §fImport > §i已确认，开始导入…", sender);
+						this.client.tell(this.rawtext("litematic.msg.761c183d93"), sender);
 						try {
 							await this.run();
 						} catch (e) {
@@ -613,33 +610,33 @@ this.Command.create("l:y", "确认导入操作")
 					}),
 
 				// l:n — 取消待确认任务或中断正在进行的导入/检查/修复
-this.Command.create("l:n", "取消/中断操作")
+this.Command.create("l:n", this.rawtext("litematic.msg.e7c0c52559"))
 					.setFunc((sender) => {
 						if (this.job) {
 							this.job.cancelled = true;
-							this.client.tell("§cLitematic | §fCancel > §i正在中断导入…", sender);
+							this.client.tell(this.rawtext("litematic.msg.b027d38cdc"), sender);
 						} else if (this.verifyJob) {
 							this.verifyJob.cancelled = true;
-							this.client.tell("§cLitematic | §fCancel > §i正在中断世界检查…", sender);
+							this.client.tell(this.rawtext("litematic.msg.4ec50ec45c"), sender);
 						} else if (this.fixJob) {
 							this.fixJob.cancelled = true;
-							this.client.tell("§cLitematic | §fCancel > §i正在中断修复…", sender);
+							this.client.tell(this.rawtext("litematic.msg.78071de9e4"), sender);
 						} else if (this.pending) {
 							this.pending = null;
-							this.client.tell("§cLitematic | §fCancel > §i已取消导入", sender);
+							this.client.tell(this.rawtext("litematic.msg.c2f550d90a"), sender);
 						} else {
-							this.client.tell("§cLitematic | §fError > §i没有进行中的操作", sender);
+							this.client.tell(this.rawtext("litematic.msg.5975493e92"), sender);
 						}
 					}),
 
 				// l:author — 作者信息
-this.Command.create("l:author", "查看作者信息")
+this.Command.create("l:author", this.rawtext("litematic.msg.09df761536"))
 					.setFunc((sender) => {
 						this.client.tell("§eLitematic | §fAuthor > §iStarAwA117 & Hydrooxygen", sender);
 					}),
 
 				// l:status — 查看所有进行中任务进度（导入 / 世界检查 / 修复）
-this.Command.create("l:status", "查看导入/检查/修复进度")
+this.Command.create("l:status", this.rawtext("litematic.msg.c4b9fd3506"))
 					.setFunc((sender) => {
 						const lines = [];
 						if (this.job) {
@@ -649,11 +646,14 @@ this.Command.create("l:status", "查看导入/检查/修复进度")
 							const totalPct = j.total > 0 ? (j.phasePlaced / j.total * 100).toFixed(1) : "0.0";
 							const phasePct = j.phaseTotal > 0 ? (j.phasePlaced / j.phaseTotal * 100).toFixed(1) : "0.0";
 							lines.push(
-								`§eLitematic | §fStatus > §i导入 §f${j.fileName}\n` +
-								`§f总进度 ${totalPct}% | 预计 ${cmdSpeed > 0 ? ((j.total - j.phasePlaced) / cmdSpeed).toFixed(1) : "?"}s\n` +
-								`§f阶段: ${j.phase} (${j.areaIndex}/${j.areaTotal} 区域)\n` +
-								`§f进度: ${phasePct}% | ${j.phasePlaced} / ${j.phaseTotal} 命令 | 方块 ${j.phaseBlocksPlaced} / ${j.phaseBlockTotal}\n` +
-								`§f速度: ${cmdSpeed} 命令/s | ${elapsed}s`
+								this.rawtext("litematic.status.progress", {
+									p0: j.fileName, p1: totalPct,
+									p2: cmdSpeed > 0 ? ((j.total - j.phasePlaced) / cmdSpeed).toFixed(1) : "?",
+									p3: j.phase, p4: j.areaIndex, p5: j.areaTotal,
+									p6: phasePct, p7: j.phasePlaced, p8: j.phaseTotal,
+									p9: j.phaseBlocksPlaced, p10: j.phaseBlockTotal,
+									p11: cmdSpeed, p12: elapsed
+								})
 							);
 						}
 						if (this.verifyJob) {
@@ -673,42 +673,42 @@ this.Command.create("l:status", "查看导入/检查/修复进度")
 							);
 						}
 						if (!lines.length) {
-							this.client.tell("§cLitematic | §fError > §i当前没有进行中的任务", sender);
+							this.client.tell(this.rawtext("litematic.msg.a2ddc2c46e"), sender);
 							return;
 						}
 						this.client.tellAll(lines.join("\n\n"));
 					}),
 
 				// l:verify <ID> [map|world] — 默认检查游戏世界一致性；map 检查方块映射错误
-this.Command.create("l:verify", "检查投影与世界的差异 / 方块映射错误")
+this.Command.create("l:verify", this.rawtext("litematic.msg.f19dc8e959"))
 					.addString("ID", false)
-					.addOptionalString("模式")
+					.addOptionalString(this.rawtext("litematic.param.ed0eea8f20"))
 					.setFunc(async (sender, id, mode) => {
 						const tid = Number(id);
 						if (!Litematic.tasks.has(tid)) {
-							this.client.tell("§cLitematic | §fError > §i没有找到任务 ID，请先 !l:create 获取任务 ID", sender);
+							this.client.tell(this.rawtext("litematic.msg.f797f736c0"), sender);
 							return;
 						}
 						if (mode === "map") return this.verify(tid, sender);
 						if (mode !== undefined && mode !== "world") {
-							this.client.tell("§cLitematic | §fError > §i模式参数无效：应为 map（检查方块映射）或留空（检查世界一致性）", sender);
+							this.client.tell(this.rawtext("litematic.msg.41543e2d1b"), sender);
 							return;
 						}
 						this.verifyWorld(tid, sender);
 					}),
 
 				// l:fix <ID> [替代方块] — 修复错误方块
-this.Command.create("l:fix", "修复被挖掉的方块 / 替换无法映射的方块")
+this.Command.create("l:fix", this.rawtext("litematic.msg.721476b0d7"))
 					.addString("ID", false)
-					.addOptionalString("替代方块")
+					.addOptionalString(this.rawtext("litematic.param.9f4a6f3a72"))
 					.setFunc((sender, id, fb) => {
 						const tid = Number(id);
 						if (!Litematic.tasks.has(tid)) {
-							this.client.tell("§cLitematic | §fError > §i没有找到任务 ID，请先 !l:create 获取任务 ID", sender);
+							this.client.tell(this.rawtext("litematic.msg.f797f736c0"), sender);
 							return;
 						}
 						if (this.fixJob) {
-							this.client.tell("§cLitematic | §fError > §i已有修复任务进行中，请等待完成或 !l:n 中断", sender);
+							this.client.tell(this.rawtext("litematic.msg.292dfab147"), sender);
 							return;
 						}
 						this.fix(tid, sender, fb);
@@ -721,11 +721,11 @@ this.Command.create("l:fix", "修复被挖掉的方块 / 替换无法映射的�
 	pageList(sender, files, header) {
 		const dir = this.config.basePath;
 		if (!fs.existsSync(dir)) {
-			this.client.tell("§cLitematic | §fError > §i建筑目录不存在", sender);
+			this.client.tell(this.rawtext("litematic.msg.7fcea5727c"), sender);
 			return;
 		}
 		if (!files.length) {
-			this.client.tell("§cLitematic | §fError > §i没有找到 .litematic 文件", sender);
+			this.client.tell(this.rawtext("litematic.msg.585561adf8"), sender);
 			return;
 		}
 
@@ -747,7 +747,7 @@ this.Command.create("l:fix", "修复被挖掉的方块 / 替换无法映射的�
 			return `${num}. ${name} §f${size}`;
 		}).join("\n");
 
-		this.client.tell(`${header} §f(${pn}/${totalPages}页) §i共 ${files.length} 个\n${items}`, sender);
+		this.client.tell(this.rawtext("litematic.msg.e481cdb991", { p0: header, p1: pn, p2: totalPages, p3: files.length, p4: items }), sender);
 	}
 
 	listFiles(page, sender) {
@@ -772,23 +772,26 @@ this.Command.create("l:fix", "修复被挖掉的方块 / 替换无法映射的�
 	listTasks(sender) {
 		const tasks = [...Litematic.tasks.entries()].sort((a, b) => b[0] - a[0]);
 		if (!tasks.length) {
-			this.client.tell("§cLitematic | §fError > §i当前没有任务，先 !l:create 创建", sender);
+			this.client.tell(this.rawtext("litematic.msg.9ed8daf320"), sender);
 			return;
 		}
 		const now = Date.now();
 		const lines = tasks.map(([id, t]) => {
 			const blocks = t.data?.blocks?.length ?? 0;
 			const age = now - t.time;
-			const ago = age < 60000 ? "刚刚" : age < 3600000 ? `${Math.floor(age / 60000)}分钟前` : age < 86400000 ? `${Math.floor(age / 3600000)}小时前` : `${Math.floor(age / 86400000)}天前`;
+			const ago = age < 60000 ? this.rawtext("litematic.time.justNow")
+				: age < 3600000 ? this.rawtext("litematic.time.minutes", { p0: Math.floor(age / 60000) })
+				: age < 86400000 ? this.rawtext("litematic.time.hours", { p0: Math.floor(age / 3600000) })
+				: this.rawtext("litematic.time.days", { p0: Math.floor(age / 86400000) });
 			const tags = [];
-			if ((t.mismatches || []).length) tags.push(`§c差异 §e${t.mismatches.length}§c 个`);
-			if ((t.data?.unmappedBlocks || []).length) tags.push(`§e未映射 ${t.data.unmappedBlocks.length} 个`);
-			return `§b${String(id).padStart(3, " ")}. §f${t.file} §7| §f${blocks}§7 方块 §7| §7${ago}${tags.length ? " §7| " + tags.join(" ") : ""}`;
+			if ((t.mismatches || []).length) tags.push(this.rawtext("litematic.tasks.mismatch", { p0: t.mismatches.length }));
+			if ((t.data?.unmappedBlocks || []).length) tags.push(this.rawtext("litematic.tasks.unmapped", { p0: t.data.unmappedBlocks.length }));
+			return this.rawtext("litematic.tasks.item", {
+				p0: String(id).padStart(3, " "), p1: t.file, p2: blocks, p3: ago,
+				p4: tags.length ? " §7| " + tags.join(" ") : ""
+			});
 		}).join("\n");
-		this.client.tell(
-			`§eLitematic | §fID > §i任务列表 (${tasks.length} 个)\n${lines}\n` +
-			`§7使用 §a!l:verify <ID>§7 检查世界差异 / §a!l:fix <ID>§7 修复`, sender
-		);
+		this.client.tell(this.rawtext("litematic.tasks.title", { p0: tasks.length, p1: lines }), sender);
 	}
 
 	formatSize(bytes) {
@@ -811,28 +814,28 @@ this.Command.create("l:fix", "修复被挖掉的方块 / 替换无法映射的�
 	async create(fileName, sender, x, y, z, mode) {
 		const { raw, coords } = this.parsePlacement(x, y, z, mode);
 		if (raw === null) {
-			this.client.tell("§cLitematic | §fError > §i模式参数无效：应为 raw（保留原始高度）或 trim（裁剪底部空气，默认）", sender);
+			this.client.tell(this.rawtext("litematic.msg.8d44701b2a"), sender);
 			return;
 		}
 		if (coords.length > 0 && coords.length < 3) {
-			this.client.tell("§cLitematic | §fError > §i坐标参数不完整，需要同时提供 X Y Z 或都不提供（使用自身坐标）", sender);
+			this.client.tell(this.rawtext("litematic.msg.60fce4dc33"), sender);
 			return;
 		}
 
 		// 路径穿越防护：只允许单层合法文件名
 		if (typeof fileName !== "string" || !fileName ||
 			fileName !== path.basename(fileName) || /[\\/]/.test(fileName) || fileName.startsWith(".")) {
-			this.client.tell(`§cLitematic | §fError > §i非法的文件名: ${fileName}`, sender);
+			this.client.tell(this.rawtext("litematic.msg.6343575e0b", { p0: fileName }), sender);
 			return;
 		}
 
 		const filePath = path.join(this.config.basePath, fileName.endsWith(".litematic") ? fileName : fileName + ".litematic");
 		if (!fs.existsSync(filePath)) {
-			this.client.tell(`§cLitematic | §fError > §i文件不存在: ${fileName}`, sender);
+			this.client.tell(this.rawtext("litematic.msg.4b2a0817b2", { p0: fileName }), sender);
 			return;
 		}
 
-		this.client.tell("§i正在解析 Litematic 文件…", sender);
+		this.client.tell(this.rawtext("litematic.msg.4bfbdbb632"), sender);
 
 		let data;
 		try {
@@ -850,19 +853,19 @@ this.Command.create("l:fix", "修复被挖掉的方块 / 替换无法映射的�
 			try {
 				const pos = await this.client.getPosition("@s");
 				if (!pos) {
-					this.client.tell("§cLitematic | §fError > §i无法获取你的坐标", sender);
+					this.client.tell(this.rawtext("litematic.msg.484ff1f550"), sender);
 					return;
 				}
 				// 玩家脚底的 Y 是其脚下方块的上表面，减 1 使建筑底部对齐到脚下那层方块
 				origin = { x: Math.floor(pos.x), y: Math.floor(pos.y) - 1, z: Math.floor(pos.z) };
 			} catch {
-				this.client.tell("§cLitematic | §fError > §i无法获取你的坐标", sender);
+				this.client.tell(this.rawtext("litematic.msg.484ff1f550"), sender);
 				return;
 			}
 		}
 
 		if (origin.y < -64 || origin.y + data.sy - 1 > 320) {
-			this.client.tell(`§cLitematic | §fError > §iY 轴超出限制: ${origin.y} ~ ${origin.y + data.sy - 1} (允许 -64 ~ 320)`, sender);
+			this.client.tell(this.rawtext("litematic.msg.6e5483a31a", { p0: origin.y, p1: origin.y + data.sy - 1 }), sender);
 			return;
 		}
 
@@ -905,19 +908,18 @@ this.Command.create("l:fix", "修复被挖掉的方块 / 替换无法映射的�
 		const estTime = ((areaCount + cmdCount) * 0.001 + 1).toFixed(1);
 
 		this.client.tellAll(
-			`§eLitematic | §fImport > §i${fileName}\n` +
-			`§f任务ID: §b${taskId} §7(用于 !l:verify / !l:fix)\n` +
-			`§f尺寸: ${data.sx} × ${data.sy} × ${data.sz} = ${data.totalCoords} 坐标\n` +
-			`§f方块: ${blockCount} → ${cmdCount} 条指令\n` +
-			`§f底部空气: ${data.trimmedAir} 层 §7(${raw ? "raw: 保留高度偏移" : "trim: 已裁剪对齐地面"})\n` +
-			`§f区块: ${totalChunks} 个 (${totalChunksX}×${totalChunksZ}) → ${areaCount} 个区域\n` +
-			`§f范围: (${minX}, ${minY}, ${minZ}) → (${maxX}, ${maxY}, ${maxZ})\n` +
-			`§f预计耗时: ${estTime}s`
+			this.rawtext("litematic.import.info", {
+				p0: fileName, p1: taskId, p2: data.sx, p3: data.sy, p4: data.sz, p5: data.totalCoords,
+				p6: blockCount, p7: cmdCount, p8: data.trimmedAir,
+				p9: raw ? this.rawtext("litematic.import.raw") : this.rawtext("litematic.import.trim"),
+				p10: totalChunks, p11: totalChunksX, p12: totalChunksZ, p13: areaCount,
+				p14: minX, p15: minY, p16: minZ, p17: maxX, p18: maxY, p19: maxZ, p20: estTime
+			})
 		);
 		if (unmappedCount) {
-			this.client.tellAll(`§cLitematic | §fWarn > §i无法映射方块: ${unmappedCount} 个 （可用 !l:verify ${taskId} map 检查，!l:fix ${taskId} 修复）`);
+			this.client.tellAll(this.rawtext("litematic.msg.4d1afbdd03", { p0: unmappedCount, p1: taskId, p2: taskId }));
 		}
-		this.client.tellAll(`§f确认请发送 §e!l:y，取消请发送 §c!l:n`);
+		this.client.tellAll(this.rawtext("litematic.msg.ecd8d87d2d"));
 	}
 
 	async run() {
@@ -1106,9 +1108,9 @@ this.Command.create("l:fix", "修复被挖掉的方块 / 替换无法映射的�
 		if (!this.job.cancelled) {
 			const elapsed = ((Date.now() - this.job.startTime) / 1000).toFixed(1);
 			const speed = Math.round(total / parseFloat(elapsed));
-			this.client.tellAll(`§eLitematic | §fImport > §i${file} 导入完成 共 ${total} 方块 ${totalCmds} 指令 耗时 ${elapsed}s 速度 ${speed}方块/s`);
+			this.client.tellAll(this.rawtext("litematic.msg.1e401015e2", { p0: file, p1: total, p2: totalCmds, p3: elapsed, p4: speed }));
 		} else {
-			this.client.tellAll(`§cLitematic | §fCancel > §i导入已中断 (${file})`);
+			this.client.tellAll(this.rawtext("litematic.msg.456abddfe1", { p0: file }));
 		}
 		this.job = null;
 	}
@@ -1120,19 +1122,14 @@ this.Command.create("l:fix", "修复被挖掉的方块 / 替换无法映射的�
 		const unmapped = data.unmappedBlocks || [];
 		if (!unmapped.length) {
 			this.client.tell(
-				`§aLitematic | §fVerify > §i任务 #${id} (${task.file}) 方块映射检查通过，无 mod 方块错误\n` +
-				`§f提示: 要检查游戏世界里方块是否被挖掉/替换，请用 !l:verify ${id}`, sender
+				this.rawtext("litematic.verify.pass", { p0: id, p1: task.file }), sender
 			);
 			return;
 		}
 		const lines = Object.entries(data.unmappedSummary || {})
 			.map(([name, cnt]) => `§f${name} §7× §e${cnt}`).join("\n");
 		this.client.tell(
-			`§eLitematic | §fVerify > §i方块检查报告 (任务 #${id})\n` +
-			`§f文件: ${task.file}\n` +
-			`§c无法映射方块: ${unmapped.length} 个 （导入时会被跳过）\n` +
-			`${lines}\n` +
-			`§7发送 !l:fix ${id} §7将用 stone 替换（可指定替代方块）`, sender
+			this.rawtext("litematic.verify.report", { p0: id, p1: task.file, p2: unmapped.length, p3: lines }), sender
 		);
 	}
 
@@ -1145,12 +1142,12 @@ this.Command.create("l:fix", "修复被挖掉的方块 / 替换无法映射的�
 		const { origin } = task;
 		const blocks = data.blocks;
 		if (!blocks.length) {
-			this.client.tell(`§aLitematic | §fVerify > §i任务 #${id} 没有可检查的方块`, sender);
+			this.client.tell(this.rawtext("litematic.msg.76219c3773", { p0: id }), sender);
 			return;
 		}
 		const t0 = Date.now();
 		const est = Math.ceil(blocks.length / 8);
-		this.client.tell(`§i开始世界检查… ${blocks.length} 个方块 （预计 ${est}s 左右，!l:n 可中断）`, sender);
+		this.client.tell(this.rawtext("litematic.msg.4e5ceda6de", { p0: blocks.length, p1: est }), sender);
 		const CONC = 4;
 		const mismatches = [];
 		let checked = 0;
@@ -1181,7 +1178,7 @@ this.Command.create("l:fix", "修复被挖掉的方块 / 替换无法映射的�
 			for (let i = 0; i < blocks.length && !this.verifyJob.cancelled; i += CONC) {
 				await Promise.all(blocks.slice(i, i + CONC).map(checkOne));
 				if (checked >= 500 && checked % 500 === 0) {
-					this.client.tellAll(`§7Litematic | §fVerify >  §i世界检查进度: ${checked}/${blocks.length} | 不匹配: ${mismatches.length} 个`);
+					this.client.tellAll(this.rawtext("litematic.msg.893b86842e", { p0: checked, p1: blocks.length, p2: mismatches.length }));
 				}
 				await delay(1);
 			}
@@ -1189,14 +1186,14 @@ this.Command.create("l:fix", "修复被挖掉的方块 / 替换无法映射的�
 			this.verifyJob = null;
 		}
 		if (checked === 0) {
-			this.client.tell("§cLitematic | §fVerify > §i世界检查已中断", sender);
+			this.client.tell(this.rawtext("litematic.msg.64cbada0a7"), sender);
 			return;
 		}
 		const elapsed = ((Date.now() - t0) / 1000).toFixed(1);
 		// 差异列表存档到任务，供 $fix 修复（重新放置期望方块）
 		task.mismatches = mismatches;
 		if (!mismatches.length) {
-			this.client.tell(`§aLitematic | §fVerify > §i世界检查完成 (任务 #${id}) 已逐块 testforblock 比对 ${checked} 个方块，全部与投影一致 耗时 ${elapsed}s`, sender);
+			this.client.tell(this.rawtext("litematic.msg.dfacbd8ea0", { p0: id, p1: checked, p2: elapsed }), sender);
 			return;
 		}
 		const list = mismatches.slice(0, 20).map(m => {
@@ -1204,12 +1201,7 @@ this.Command.create("l:fix", "修复被挖掉的方块 / 替换无法映射的�
 			return `§7(${m.x},${m.y},${m.z}) §f期望 §e${m.expect.replace(/^minecraft:/, "")}§f${sp}`;
 		}).join("\n");
 		this.client.tell(
-			`§eLitematic | §fVerify > §i世界检查报告 (任务 #${id})\n` +
-			`§f文件: ${task.file}\n` +
-			`§f检查: ${checked} 个方块 | 不匹配: ${mismatches.length} 个 耗时 ${elapsed}s\n` +
-			`${list}${mismatches.length > 20 ? `\n§7…共 ${mismatches.length} 处差异` : ""}\n` +
-			`§7差异可能是方块被挖掉或替换（本检查不检测额外新增的方块）\n` +
-			`§7发送 !l:fix ${id} §7可重新放置这些方块，恢复与投影一致`, sender
+			this.rawtext("litematic.verify.worldReport", { p0: id, p1: task.file, p2: checked, p3: mismatches.length, p4: elapsed, p5: list }), sender
 		);
 	}
 
@@ -1269,36 +1261,36 @@ this.Command.create("l:fix", "修复被挖掉的方块 / 替换无法映射的�
 			data.unmappedSummary = {};
 		}
 		if (!n1 && !n2) {
-			this.client.tell(`§aLitematic | §fFix > §i任务 #${id} 没有需要修复的方块`, sender);
+			this.client.tell(this.rawtext("litematic.msg.d4954caaef", { p0: id }), sender);
 			return;
 		}
 		const lines = [];
 		if (n1) {
-			lines.push(`§a已重新放置 ${fixed.length} / ${n1} 个方块 （恢复与投影一致）`);
-			if (failed.length) lines.push(`§c未成功 ${failed.length} 个 （命令被服务器限流，可再次 !l:verify ${id} 检查并 !l:fix ${id} 重试）`);
+			lines.push(this.rawtext("litematic.fix.repaired", { p0: fixed.length, p1: n1 }));
+			if (failed.length) lines.push(this.rawtext("litematic.fix.failed", { p0: failed.length, p1: id }));
 		}
-		if (n2) lines.push(`§a已将 ${n2} 个无法映射方块替换为 ${fb || "minecraft:stone"}，任务存档已更新，直接发送 !l:y 即可用修复后的数据导入`);
+		if (n2) lines.push(this.rawtext("litematic.fix.unmapped", { p0: n2, p1: fb || "minecraft:stone" }));
 		if (fixed.length) lines.push(fixed.slice(0, 20).join("\n"));
-		this.client.tell(`§aLitematic | §fFix > §i已修复 (任务 #${id})\n${lines.join("\n")}`, sender);
+		this.client.tell(this.rawtext("litematic.msg.e80b25706c", { p0: id, p1: lines.join("\n") }), sender);
 	}
 
 	// ---- 预览 ----
 	async preview(fileName, sender, x, y, z, mode) {
 		const { raw, coords } = this.parsePlacement(x, y, z, mode);
 		if (raw === null) {
-			this.client.tell("§cLitematic | §fError > §i模式参数无效：应为 raw（保留原始高度）或 trim（裁剪底部空气，默认）", sender);
+			this.client.tell(this.rawtext("litematic.msg.8d44701b2a"), sender);
 			return;
 		}
 		if (coords.length > 0 && coords.length < 3) {
-			this.client.tell("§cLitematic | §fError > §i坐标参数不完整，需要同时提供 X Y Z 或都不提供（使用自身坐标）", sender);
+			this.client.tell(this.rawtext("litematic.msg.60fce4dc33"), sender);
 			return;
 		}
 		const filePath = path.join(this.config.basePath, fileName.endsWith(".litematic") ? fileName : fileName + ".litematic");
 		if (!fs.existsSync(filePath)) {
-			this.client.tell(`§cLitematic | §fError > §i文件不存在: ${fileName}`, sender);
+			this.client.tell(this.rawtext("litematic.msg.4b2a0817b2", { p0: fileName }), sender);
 			return;
 		}
-		this.client.tell("§i正在解析 Litematic 文件…", sender);
+		this.client.tell(this.rawtext("litematic.msg.4bfbdbb632"), sender);
 		let data;
 		try {
 			data = await parseLitematic(filePath);
@@ -1314,17 +1306,17 @@ this.Command.create("l:fix", "修复被挖掉的方块 / 替换无法映射的�
 			try {
 				const pos = await this.client.getPosition("@s");
 				if (!pos) {
-					this.client.tell("§cLitematic | §fError > §i无法获取你的坐标", sender);
+					this.client.tell(this.rawtext("litematic.msg.484ff1f550"), sender);
 					return;
 				}
 				origin = { x: Math.floor(pos.x), y: Math.floor(pos.y) - 1, z: Math.floor(pos.z) };
 			} catch {
-				this.client.tell("§cLitematic | §fError > §i无法获取你的坐标", sender);
+				this.client.tell(this.rawtext("litematic.msg.484ff1f550"), sender);
 				return;
 			}
 		}
 		if (origin.y < -64 || origin.y + data.sy - 1 > 320) {
-			this.client.tell(`§cLitematic | §fError > §iY 轴超出限制: ${origin.y} ~ ${origin.y + data.sy - 1} (允许 -64 ~ 320)`, sender);
+			this.client.tell(this.rawtext("litematic.msg.6e5483a31a", { p0: origin.y, p1: origin.y + data.sy - 1 }), sender);
 			return;
 		}
 		this.clearPreview();
@@ -1333,10 +1325,12 @@ this.Command.create("l:fix", "修复被挖掉的方块 / 替换无法映射的�
 		this.spawnPreviewParticles();
 		this.previewTimer = setInterval(() => this.spawnPreviewParticles(), 1500);
 		this.client.tell(
-			`§eLitematic | §fPreview > §i已生成预览: ${fileName} 尺寸 ${data.sx}×${data.sy}×${data.sz}\n` +
-			`§f范围: (${origin.x}, ${origin.y}, ${origin.z}) → (${origin.x + data.sx - 1}, ${origin.y + data.sy - 1}, ${origin.z + data.sz - 1})\n` +
-			`§f底部空气: ${data.trimmedAir} 层 §7(${raw ? "保留原始高度" : "已裁剪，建筑底部对齐放置点"})\n` +
-			`§f§o实体标记持续显示，输入 !l:unpreview 清除`, sender
+			this.rawtext("litematic.preview.info", {
+				p0: fileName, p1: data.sx, p2: data.sy, p3: data.sz,
+				p4: origin.x, p5: origin.y, p6: origin.z,
+				p7: origin.x + data.sx - 1, p8: origin.y + data.sy - 1, p9: origin.z + data.sz - 1,
+				p10: data.trimmedAir, p11: raw ? this.rawtext("litematic.preview.raw") : this.rawtext("litematic.preview.trim")
+			}), sender
 		);
 	}
 
@@ -1346,7 +1340,7 @@ this.Command.create("l:fix", "修复被挖掉的方块 / 替换无法映射的�
 		this.client.sendCommand(`/kill @e[name="§a[LIT]▪"]`);
 		this.client.sendCommand(`/kill @e[name="§e[LIT]✦"]`);
 		this.client.sendCommand(`/kill @e[name="§b[LIT]INFO"]`);
-		if (sender) this.client.tell("§7Litematic | §fPreview > §i已清除建筑预览", sender);
+		if (sender) this.client.tell(this.rawtext("litematic.msg.f0872cf8d1"), sender);
 	}
 
 	// 12 条边框边（角点对）
@@ -1404,16 +1398,16 @@ this.Command.create("l:fix", "修复被挖掉的方块 / 替换无法映射的�
 		if (mode === "raw") raw = true;
 		else if (mode === "trim") raw = false;
 		else if (mode !== undefined) {
-			this.client.tell("§cLitematic | §fError > §i模式参数无效：应为 raw 或 trim", sender);
+			this.client.tell(this.rawtext("litematic.msg.2e53e138da"), sender);
 			return;
 		}
 		if (mode === undefined && exportName === "raw") { raw = true; exportName = undefined; }
 		const filePath = path.join(this.config.basePath, fileName.endsWith(".litematic") ? fileName : fileName + ".litematic");
 		if (!fs.existsSync(filePath)) {
-			this.client.tell(`§cLitematic | §fError > §i文件不存在: ${fileName}`, sender);
+			this.client.tell(this.rawtext("litematic.msg.4b2a0817b2", { p0: fileName }), sender);
 			return;
 		}
-		this.client.tell("§i正在解析 Litematic 文件…", sender);
+		this.client.tell(this.rawtext("litematic.msg.4bfbdbb632"), sender);
 		let data;
 		try {
 			data = await parseLitematic(filePath);
@@ -1433,9 +1427,7 @@ this.Command.create("l:fix", "修复被挖掉的方块 / 替换无法映射的�
 			return;
 		}
 		this.client.tell(
-			`§aLitematic | §fExport > §i已导出结构文件: ${outPath}\n` +
-			`§f尺寸: ${data.sx} × ${data.sy} × ${data.sz} | 方块: ${data.blocks.length} | 底部空气: ${data.trimmedAir} 层\n` +
-			`§7用法: 将文件放入行为包 structures 文件夹（如 BP/structures/mystructure/）或单机存档的 structures 文件夹，游戏内用结构方块预览放置，或执行 /structure load <名称>`, sender
+			this.rawtext("litematic.export.info", { p0: outPath, p1: data.sx, p2: data.sy, p3: data.sz, p4: data.blocks.length, p5: data.trimmedAir }), sender
 		);
 	}
 

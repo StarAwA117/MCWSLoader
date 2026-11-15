@@ -4,3 +4,58 @@ config.playPercussion=播放打击乐
 config.basePath=音乐目录
 error.midi=MIDI 文件解析失败
 error.json=音乐 JSON 解析失败
+
+# Generated user-facing messages
+music.msg.f4778c2d3f=加入音乐收听
+music.msg.031bf5fec2=§eMusic | §fJoin > §i已加入收听音乐~
+music.msg.25fe0410be=退出音乐收听
+music.msg.58fa1dc7c7=§eMusic | §fExit > §i已退出收听音乐~
+music.msg.14005e91b7=查看当前播放进度
+music.msg.90b1716840=查看音乐列表
+music.msg.16f6387e73=搜索音乐文件
+music.msg.59106563f8=开关状态 ：on=开启 off=关闭
+music.msg.8572b677ca=开启/关闭打击乐器
+music.msg.c5e9b6b66d=§eMusic | §fPercussion > §i已{p0}
+music.msg.3ab9be074c=快速播放指定音乐
+music.msg.9c717e3b82=切换到下一首音乐
+music.msg.80b8afeadd=随机播放音乐
+music.msg.2be9eb9243=播放模式 ：next=顺序 random=随机 single=单曲
+music.msg.ca2222eac7=设置循环播放模式
+music.msg.50aaf42acf=§cMusic | §fError > §i非 single 模式不支持指定歌名
+music.msg.8fa8b57743=停止范围 ：music=仅音乐 loop=仅循环 all=全部，默认 all
+music.msg.a0b1c82732=停止播放：不带参数停止全部
+music.msg.f8d464677d=§cMusic | §fError > §i获取目录失败: {p0}
+music.msg.714141c923=§cMusic | §fError > §i非法的文件名: {p0}
+music.msg.b24d42c6c8=§cMusic | §fError > §i音乐加载失败: {p0}
+music.msg.ba96112421=§cMusic | §fError > §i音乐进程不存在
+music.msg.5dfe26fee3=§eMusic | §fStop > §i音乐进程已取消
+music.msg.76ceabb6ba=§cMusic | §fError > §i音乐文件不存在
+music.msg.f103429ebf=§cMusic | §fError > §i音乐进程已存在
+music.msg.7b430dcedf=§eMusic | §fPlay > §i正在播放 {p0}
+music.msg.0d34a80f76=§cMusic | §fError > §i播放超时: {p0}
+music.msg.d9cc38fab2=§eMusic | §fPlay > §i{p0} 播放完成
+music.msg.49ef9817d8=§cMusic | §fError > §i播放错误: {p0}
+music.msg.3ff791b7d0=§cMusic | §fError > §iIndex 加载失败
+music.msg.265d0bb0af=§cMusic | §fError > §iIndex 非法
+music.msg.be055f6b5e=§cMusic | §fError > §i音乐文件列表为空
+music.msg.550409daa1=§cMusic | §fError > §i循环时间错误
+music.msg.cb0c8391f0=§eMusic | §fLoop > §i循环已存在
+music.msg.2c4ed3f5f9=§cMusic | §fError > §i请先播放一首音乐再启用单曲循环
+music.msg.09f7b2e7a8=§eMusic | §fLoop > §i{p0}{p1}已启用
+music.msg.947214a99b=§eMusic | §fLoop > §i循环已禁用
+music.msg.ac2aa7c344=§cMusic | §fError > §i循环不存在
+music.msg.919b47ca7b=§cMusic | §fError > §i无音乐播放
+music.msg.ad7105e7fa=§eMusic | §fStatus > §i正在播放 {p0} -> {p1} / {p2}
+music.msg.7a364198b6=§cMusic | §fError > §i未找到包含 "{p0}" 的音乐
+
+# Command parameter labels
+music.param.7b0930e205=页码
+
+# Command parameter labels
+music.param.cc1b21e800=关键词
+
+# Command parameter labels
+music.param.983770e129=音乐文件名
+
+# Command parameter labels
+music.param.5012ab48b2=歌名 ：仅 single 模式有效

@@ -361,3 +361,80 @@ terminal.mod.serverLoaded=服务端 Mod 已加载：{name}
 terminal.mod.clientReloaded=客户端 Mod 已重新加载：{name}
 terminal.mod.serverReloaded=服务端 Mod 已重新加载：{name}
 terminal.mod.npmInstalled=已为 Mod {mod} 安装 npm 包 {packageName}
+
+# Generated user-facing messages
+core.msg.cc9eeb2606=查看命令帮助
+core.msg.934897b462=搜索命令
+core.msg.7a84ff9b79=§cTool | §fSearch > §i没有找到与 "{p0}" 相关的命令
+core.msg.c08869f963=查询权限等级：不带参数查询自身
+core.msg.3c6602ee2f=§ePermission | §fQuery > §i{p0} 权限: {p1}
+core.msg.fde335fd21=向外部发送消息
+core.msg.13a04ca765=查看/切换本客户端 tellAll 转发模式
+core.msg.807e153fc1=§cTool | §fError > §i当前客户端不支持此设置
+core.msg.aae32ad469=§eTool | §fTellAll > §i当前 {p0}
+core.msg.b1f1bb08d1=§eTool | §fTellAll > §i已{p0}
+core.msg.9d34ca936d=执行基岩版命令
+core.msg.14461c82f5=添加指定账号权限
+core.msg.05850b4973=删除指定账号权限
+core.msg.8afb414481=检测与服务器的延迟
+core.msg.0f4edba4c2=§cTool | §fError > §i命令执行失败
+core.msg.152b57845f=查看当前时间：北京时间
+core.msg.4aae5f9c09=重新开始 SAPI 轮询
+core.msg.35849702b4=§eTool | §fSAPI > §i已重新开始 {p0} 个 SAPI 轮询器
+core.msg.3b07d9a276=将当前客户端设为主客户端
+core.msg.04e2677e9d=§cTool | §fError > §i当前没有主客户端
+core.msg.bdd0f159a5=§cTool | §fError > §i你已经是主客户端
+core.msg.ac46e35c76=§eTool | §fMove > §i主客户端已切换至 {p0}
+core.msg.914a62f6e2=重载客户端 Mod：带名称重载单个，不带重载全部客户端
+core.msg.26ad246d3b=§cTool | §fError > §i无法重载：客户端 Mod 管理器不可用
+core.msg.c5e76d2abe=§eTool | §fReload > §i客户端 Mod 全量重载完成 成功: {p0} 失败: {p1}
+core.msg.a2a7f123ee=显示所有客户端 Mod
+core.msg.06b9b3aee2=§eTool | §fMods > §i共 {p0} 个
+core.msg.b624002cd2=§i无
+core.msg.ae4b234e0d=在服务器终端执行命令
+core.msg.0892755781=§cTool | §fError > §it:exec 已被禁用：config.command.allowShellExec = false
+core.msg.3fb2f425f4=§eTool | §fexec > §i共 {p0} 行
+core.msg.56b4d8de5f=§i：无输出
+
+# Command parameter labels
+core.param.7b0930e205=页码
+
+# Command parameter labels
+core.param.cc1b21e800=关键词
+
+# Command parameter labels
+core.param.9013849179=账号
+
+# Command parameter labels
+core.param.acbc5a5d36=消息内容
+
+# Command parameter labels
+core.param.136f673d03=模式 ：true=转发为 tell false=原样
+
+# Command parameter labels
+core.param.a95e895a9b=命令内容
+
+# Command parameter labels
+core.param.56ee7d07b1=权限类型
+
+# Command parameter labels
+core.param.72b49265ed=Mod 名称
+
+# Core errors
+core.error.command=命令执行失败，请稍后重试
+core.error.permission=权限操作失败，请稍后重试
+core.error.configReload=配置刷新失败，请稍后重试
+
+# Help output
+core.help.title=命令帮助
+core.help.searchTitle=搜索结果
+core.help.nextPage=§7输入 {p0}{p1} {p2} 查看下一页
+core.help.noDescription=§7无描述
+core.help.params=  §i参数
+
+# Command errors
+core.error.rateLimit=操作过于频繁，请稍后再试
+core.error.permission=命令权限检查失败
+core.error.unknownCommand=未知命令：{command}
+core.error.permissionDenied=没有执行该命令的权限
+core.error.command=命令执行失败，请稍后重试

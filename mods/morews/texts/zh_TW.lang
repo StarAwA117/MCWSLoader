@@ -1,3 +1,12 @@
 # morews texts (zh_TW)
 
 error.connection=WebSocket 連線失敗，請檢查位址
+
+# Generated user-facing messages
+morews.msg.cb538f864e=連線到 WebSocket 服務端
+morews.msg.439db6c908=§eMoreWS | §fConnect > §i已連線
+morews.msg.95a2b7b053=§cMoreWS | §fDisconnect > §i已關閉 -> {p0}
+morews.msg.60f4721620=§cMoreWS | §fError > §i連線失敗 {p0}
+
+# Command parameter labels
+morews.param.0d32d8793d=WebSocket 地址

@@ -17,6 +17,7 @@ type ClientModManagerClass = typeof import("./mods.js").ClientModManager;
  * 依赖（Command/PermissionManager/...）由 mods.ts 在实例化后注入。
  */
 export default class Tool {
+	declare rawtext: (key: string, params?: Record<string, unknown>) => string;
 	client: Client;
 
 	declare Command: CommandConstructor;
@@ -42,7 +43,8 @@ export default class Tool {
 		perPage = 5,
 		navCommand = "t:help",
 		title = "命令帮助",
-		prefix = "$"
+		prefix = "$",
+		tr: (key: string, params?: Record<string, unknown>) => string = (key) => key
 	): string[] {
 		const sorted = [...commands].sort((a, b) => {
 			if (a.name === "t:help") return -1;
@@ -60,7 +62,7 @@ export default class Tool {
 		lines.push(`§d─── ${prefix}${title} §f[${p}/${totalPages}] §d───`);
 
 		for (const cmd of pageItems) {
-			const desc = cmd.description || "§7无描述";
+			const desc = cmd.description || tr("core.help.noDescription");
 			lines.push(`§c${prefix}${cmd.name} §f- §b${desc}`);
 			if (cmd.parameters.length > 0) {
 				const paramStr = cmd.parameters
@@ -73,12 +75,12 @@ export default class Tool {
 							: `§b${typeName}${descPart}`;
 					})
 					.join(" ");
-				lines.push(`  §iParams: ${paramStr}`);
+				lines.push(tr("core.help.params") + ": " + paramStr);
 			}
 		}
 
 		if (p < totalPages) {
-			lines.push(`§7输入 ${prefix}${navCommand} ${p + 1} 查看下一页`);
+			lines.push(tr("core.help.nextPage", { p0: prefix, p1: navCommand, p2: p + 1 }));
 		}
 		return lines;
 	}
@@ -94,8 +96,8 @@ export default class Tool {
 	} {
 		return {
 			normal: [
-				this.Command.create("t:help", "查看命令帮助")
-					.addOptionalInteger("页码")
+				this.Command.create("t:help", this.rawtext("core.msg.cc9eeb2606"))
+					.addOptionalInteger(this.rawtext("core.param.7b0930e205"))
 					.setFunc(async (sender: string, page: number) => {
 						const prefix = this.Command.commandPrefix;
 						const perm = this.PermissionManager.query(sender);
@@ -108,13 +110,13 @@ export default class Tool {
 						if (perm >= 2) cmds.push(...cmdMap.op);
 						if (perm >= 3) cmds.push(...cmdMap.owner);
 
-						const lines = Tool.formatHelp(cmds, page || 1, 5, "t:help", "命令帮助", prefix);
+						const lines = Tool.formatHelp(cmds, page || 1, 5, "t:help", this.rawtext("core.help.title"), prefix, (key, params) => this.rawtext(key, params));
 						lines.forEach((line) => this.client.tell(line, sender));
 					}),
 
-				this.Command.create("t:search", "搜索命令")
-					.addString("关键词", true)
-					.addOptionalInteger("页码")
+				this.Command.create("t:search", this.rawtext("core.msg.934897b462"))
+					.addString(this.rawtext("core.param.cc1b21e800"), true)
+					.addOptionalInteger(this.rawtext("core.param.7b0930e205"))
 					.setFunc(async (sender: string, keyword: string, page: number) => {
 						const prefix = this.Command.commandPrefix;
 						const perm = this.PermissionManager.query(sender);
@@ -136,7 +138,7 @@ export default class Tool {
 
 						if (!matched.length) {
 							this.client.tell(
-								`§cTool | §fSearch > §i没有找到与 "${keyword}" 相关的命令`,
+								this.rawtext("core.msg.7a84ff9b79", { p0: keyword }),
 								sender
 							);
 							return;
@@ -153,42 +155,42 @@ export default class Tool {
 						lines.forEach((line) => this.client.tell(line, sender));
 					}),
 
-				this.Command.create("p:query", "查询权限等级（不带参数查询自身）")
-					.addOptionalString("账号")
+				this.Command.create("p:query", this.rawtext("core.msg.c08869f963"))
+					.addOptionalString(this.rawtext("core.param.9013849179"))
 					.setFunc(async (commander: string, queried: string) => {
 						const target = queried || commander;
 						const permission = this.PermissionManager.query(target);
-						this.client.tell(`§ePermission | §fQuery > §i${target} 权限: ${permission}`, commander);
+						this.client.tell(this.rawtext("core.msg.3c6602ee2f", { p0: target, p1: permission }), commander);
 					})
 			],
 
 			op: [
-				this.Command.create("t:send", "向外部发送消息")
-					.addString("消息内容", true)
+				this.Command.create("t:send", this.rawtext("core.msg.fde335fd21"))
+					.addString(this.rawtext("core.param.acbc5a5d36"), true)
 					.setFunc((_: string, text: string) => {
 						this.client.tellAll(text);
 					}),
 
-				this.Command.create("t:tellall", "查看/切换本客户端 tellAll 转发模式")
-					.addBoolean("模式 (true=转发为 tell false=原样)", true)
+				this.Command.create("t:tellall", this.rawtext("core.msg.13a04ca765"))
+					.addBoolean(this.rawtext("core.param.136f673d03"), true)
 					.setFunc((sender: string, mode: boolean) => {
 						const utils = this.client.utils;
 						if (!utils || typeof utils.setTellAllMode !== "function") {
-							this.client.tell("§cTool | §fError > §i当前客户端不支持此设置", sender);
+							this.client.tell(this.rawtext("core.msg.807e153fc1"), sender);
 							return;
 						}
 						// 未提供参数：显示当前模式
 						if (mode === undefined) {
 							const cur = utils.getTellAllMode();
-							this.client.tell(`§eTool | §fTellAll > §i当前 ${cur ? "转发为 tell" : "按原样广播"}`, sender);
+							this.client.tell(this.rawtext("core.msg.aae32ad469", { p0: cur ? "转发为 tell" : "按原样广播" }), sender);
 							return;
 						}
 						utils.setTellAllMode(mode);
-						this.client.tell(`§eTool | §fTellAll > §i已${mode ? "开启转发" : "恢复原样"}`, sender);
+						this.client.tell(this.rawtext("core.msg.b1f1bb08d1", { p0: mode ? "开启转发" : "恢复原样" }), sender);
 					}),
 
-				this.Command.create("t:cmd", "执行基岩版命令")
-					.addString("命令内容", true)
+				this.Command.create("t:cmd", this.rawtext("core.msg.9d34ca936d"))
+					.addString(this.rawtext("core.param.a95e895a9b"), true)
 					.setFunc(async (_: string, command: string) => {
 						try {
 							const data = await this.client.runCommand(command);
@@ -197,37 +199,37 @@ export default class Tool {
 							this.client.tellAll(`§eTool | §fCommand > §i[${status}] ${msg}`);
 						} catch (e) {
 							console.error(`t:cmd failed: ${errorDetail(e)}`);
-							this.client.tellAll(`§cTool | §fError > §i${toUserError(e, "命令执行失败，请稍后重试")}`);
+							this.client.tellAll(`§cTool | §fError > §i${toUserError(e, this.rawtext("core.error.command"))}`);
 						}
 					})
 			],
 
 			owner: [
-				this.Command.create("p:add", "添加指定账号权限")
-					.addString("权限类型", true)
-					.addString("账号", true)
+				this.Command.create("p:add", this.rawtext("core.msg.14461c82f5"))
+					.addString(this.rawtext("core.param.56ee7d07b1"), true)
+					.addString(this.rawtext("core.param.9013849179"), true)
 					.setFunc(async (_: string, object: string, value: string) => {
 						const result = await this.PermissionManager.add(object, value);
 						if (result instanceof Error) {
-							this.client.tellAll(`§cPermission | §fError > §i${toUserError(result, "权限操作失败，请稍后重试")}`);
+							this.client.tellAll(`§cPermission | §fError > §i${toUserError(result, this.rawtext("core.error.permission"))}`);
 							return;
 						}
 						this.client.tellAll(`§ePermission | §fAdd > §i${value} -> ${object}`);
 					}),
 
-				this.Command.create("p:remove", "删除指定账号权限")
-					.addString("权限类型", true)
-					.addString("账号", true)
+				this.Command.create("p:remove", this.rawtext("core.msg.05850b4973"))
+					.addString(this.rawtext("core.param.56ee7d07b1"), true)
+					.addString(this.rawtext("core.param.9013849179"), true)
 					.setFunc(async (_: string, object: string, value: string) => {
 						const result = await this.PermissionManager.remove(object, value);
 						if (result instanceof Error) {
-							this.client.tellAll(`§cPermission | §fError > §i${toUserError(result, "权限操作失败，请稍后重试")}`);
+							this.client.tellAll(`§cPermission | §fError > §i${toUserError(result, this.rawtext("core.error.permission"))}`);
 							return;
 						}
 						this.client.tellAll(`§ePermission | §fRemove > §i${value} <- ${object}`);
 					}),
 
-				this.Command.create("t:ping", "检测与服务器的延迟").setFunc(() => {
+				this.Command.create("t:ping", this.rawtext("core.msg.8afb414481")).setFunc(() => {
 					const start = Date.now();
 					this.client
 						.runCommand("list")
@@ -236,11 +238,11 @@ export default class Tool {
 							this.client.tellAll(`§eTool | §fPing > §i${ms}ms`);
 						})
 						.catch(() => {
-							this.client.tellAll("§cTool | §fError > §i命令执行失败");
+							this.client.tellAll(this.rawtext("core.msg.0f4edba4c2"));
 						});
 				}),
 
-				this.Command.create("t:time", "查看当前时间（北京时间）").setFunc((sender: string) => {
+				this.Command.create("t:time", this.rawtext("core.msg.152b57845f")).setFunc((sender: string) => {
 					const bj = new Date(Date.now() + 8 * 3600 * 1000);
 					const pad = (n: number): string => String(n).padStart(2, "0");
 					const date = `${bj.getUTCFullYear()}-${pad(bj.getUTCMonth() + 1)}-${pad(bj.getUTCDate())}`;
@@ -248,7 +250,7 @@ export default class Tool {
 					this.client.tell(`§eTool | §fTime > §i${date} ${time}`, sender);
 				}),
 
-				this.Command.create("t:start", "重新开始 SAPI 轮询").setFunc(async (sender: string) => {
+				this.Command.create("t:start", this.rawtext("core.msg.4aae5f9c09")).setFunc(async (sender: string) => {
 					// 重置当前客户端与主客户端的统一 SAPI 轮询器
 					const hubs = new Set<import("./sapi.js").SAPIMessageHandler>();
 					const localHub = this.client.clientMod?.sapi;
@@ -261,17 +263,17 @@ export default class Tool {
 						hub.start();
 					}
 
-					this.client.tell(`§eTool | §fSAPI > §i已重新开始 ${hubs.size} 个 SAPI 轮询器`, sender);
+					this.client.tell(this.rawtext("core.msg.35849702b4", { p0: hubs.size }), sender);
 				}),
 
-				this.Command.create("t:move", "将当前客户端设为主客户端").setFunc((sender: string) => {
+				this.Command.create("t:move", this.rawtext("core.msg.3b07d9a276")).setFunc((sender: string) => {
 					const oldClient = this.Current.client;
 					if (!oldClient) {
-						this.client.tell("§cTool | §fError > §i当前没有主客户端", sender);
+						this.client.tell(this.rawtext("core.msg.04e2677e9d"), sender);
 						return;
 					}
 					if (oldClient === this.client) {
-						this.client.tell("§cTool | §fError > §i你已经是主客户端", sender);
+						this.client.tell(this.rawtext("core.msg.bdd0f159a5"), sender);
 						return;
 					}
 
@@ -292,24 +294,24 @@ export default class Tool {
 					this.Current.client = this.client;
 					this.ServerModManager.attachMainClient(this.client);
 
-					this.client.tellAll(`§eTool | §fMove > §i主客户端已切换至 ${sender}`);
+					this.client.tellAll(this.rawtext("core.msg.ac46e35c76", { p0: sender }));
 				}),
 
-				this.Command.create("t:reload", "重载客户端 Mod（带名称重载单个，不带重载全部客户端）")
-					.addOptionalString("Mod 名称")
+				this.Command.create("t:reload", this.rawtext("core.msg.914a62f6e2"))
+					.addOptionalString(this.rawtext("core.param.72b49265ed"))
 					.setFunc(async (sender: string, modName: string) => {
 						const client = this.client;
 						// 先按磁盘最新 config.json 刷新内存配置（支持运行中改文件后热更新）
 						try {
 							this.reloadConfig();
 						} catch (e) {
-							client.tell(`§cTool | §fError > §i${toUserError(e, "配置刷新失败，请稍后重试")}`, sender);
+							client.tell(`§cTool | §fError > §i${toUserError(e, this.rawtext("core.error.configReload"))}`, sender);
 							return;
 						}
 						if (modName) {
 							const manager = client.clientMod;
 							if (!manager) {
-								client.tell("§cTool | §fError > §i无法重载：客户端 Mod 管理器不可用", sender);
+								client.tell(this.rawtext("core.msg.26ad246d3b"), sender);
 								return;
 							}
 							const result = await manager.reload(modName);
@@ -317,7 +319,7 @@ export default class Tool {
 						} else {
 							const result = await this.ClientModManager.reloadAllClients();
 							client.tellAll(
-								`§eTool | §fReload > §i客户端 Mod 全量重载完成 成功: ${result.success.length || 0} 失败: ${result.failed.length || 0}`
+								this.rawtext("core.msg.c5e76d2abe", { p0: result.success.length || 0, p1: result.failed.length || 0 })
 							);
 							if (result.failed.length > 0) {
 								result.failed.forEach((f) => client.tellAll(`§cTool | §fError > §i${f}`));
@@ -325,35 +327,35 @@ export default class Tool {
 						}
 					}),
 
-				this.Command.create("t:mod", "显示所有客户端 Mod").setFunc((sender: string) => {
+				this.Command.create("t:mod", this.rawtext("core.msg.a2a7f123ee")).setFunc((sender: string) => {
 					const client = this.client;
 					const modNames = Object.keys(this.ClientModManager.loadedMod || {});
-					client.tell(`§eTool | §fMods > §i共 ${modNames.length} 个`, sender);
+					client.tell(this.rawtext("core.msg.06b9b3aee2", { p0: modNames.length }), sender);
 					if (modNames.length === 0) {
-						client.tell("§i无", sender);
+						client.tell(this.rawtext("core.msg.b624002cd2"), sender);
 					} else {
 						modNames.forEach((name) => client.tell(`§f${name}`, sender));
 					}
 				}),
 
-				this.Command.create("t:exec", "在服务器终端执行命令")
-					.addString("命令内容", true)
+				this.Command.create("t:exec", this.rawtext("core.msg.ae4b234e0d"))
+					.addString(this.rawtext("core.param.a95e895a9b"), true)
 					.setFunc((_: string, command: string) => {
 						if (this.config?.command?.allowShellExec !== true) {
-							this.client.tellAll("§cTool | §fError > §it:exec 已被禁用（config.command.allowShellExec = false）");
+							this.client.tellAll(this.rawtext("core.msg.0892755781"));
 							return;
 						}
 						this.exec(command, { timeout: 30000 }, (error, stdout, stderr) => {
 							if (error) {
 								console.error(`t:exec failed: ${errorDetail(error)}`);
-								this.client.tellAll(`§cTool | §fexec > §i${toUserError(error, "命令执行失败，请稍后重试")}`);
+								this.client.tellAll(`§cTool | §fexec > §i${toUserError(error, this.rawtext("core.error.command"))}`);
 							}
 							const output = stdout || stderr || "";
 							const lines = output.split("\n").filter((l) => l.length > 0);
 
-							this.client.tellAll(`§eTool | §fexec > §i共 ${lines.length} 行`);
+							this.client.tellAll(this.rawtext("core.msg.3fb2f425f4", { p0: lines.length }));
 							if (lines.length === 0) {
-								this.client.tellAll("§i(无输出)");
+								this.client.tellAll(this.rawtext("core.msg.56b4d8de5f"));
 								return;
 							}
 

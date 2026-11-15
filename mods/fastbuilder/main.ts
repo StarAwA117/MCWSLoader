@@ -97,31 +97,31 @@ export default class FastBuilder extends ModBase {
 	bindCommands() {
 		this.onCommand = () => ({
 			op: [
-				this.Command.create("fb:run", "执行 FastBuilder 脚本")
-					.addString("脚本内容或文件名", true)
+				this.Command.create("fb:run", this.rawtext("fastbuilder.msg.f5ae68e235"))
+					.addString(this.rawtext("fastbuilder.param.b3d4e7e1d9"), true)
 					.setFunc(async (sender, input) => {
 						await this.runScript(sender, input);
 					}),
 
-				this.Command.create("fb:runthis", "以玩家当前位置为中心执行 FastBuilder 脚本")
-					.addString("脚本内容或文件名", true)
+				this.Command.create("fb:runthis", this.rawtext("fastbuilder.msg.b67238a2f1"))
+					.addString(this.rawtext("fastbuilder.param.b3d4e7e1d9"), true)
 					.setFunc(async (sender, input) => {
 						const pos = await this.getPlayerPosition(sender);
 						await this.runScript(sender, input, pos);
 					}),
 
-				this.Command.create("fb:list", "列出 FastBuilder 可用脚本")
+				this.Command.create("fb:list", this.rawtext("fastbuilder.msg.4208a1c0a0"))
 					.setFunc(async (sender) => {
 						if (!fs.existsSync(SCRIPTS_DIR)) {
-							this.client.tell("§eFastBuilder | §fList > §i暂无脚本", sender);
+							this.client.tell(this.rawtext("fastbuilder.msg.6611c90182"), sender);
 							return;
 						}
 						const files = fs.readdirSync(SCRIPTS_DIR).filter(f => f.endsWith(".js"));
 						if (files.length === 0) {
-							this.client.tell("§eFastBuilder | §fList > §i暂无脚本", sender);
+							this.client.tell(this.rawtext("fastbuilder.msg.6611c90182"), sender);
 							return;
 						}
-						this.client.tell(`§eFastBuilder | §fList > §i共 ${files.length} 个脚本:`, sender);
+						this.client.tell(this.rawtext("fastbuilder.msg.80dc9e8353", { p0: files.length }), sender);
 						for (const file of files) {
 							this.client.tell(`§f  - ${file}`, sender);
 						}
@@ -147,7 +147,7 @@ export default class FastBuilder extends ModBase {
 		if (fs.existsSync(scriptPath)) {
 			try {
 				code = fs.readFileSync(scriptPath, "utf-8");
-				this.client.tell(`§eFastBuilder | §fRun > §i加载脚本: ${input}`, sender);
+				this.client.tell(this.rawtext("fastbuilder.msg.37211a31b2", { p0: input }), sender);
 			} catch (e) {
 				this.client.tell(`§cFastBuilder | §fError > §i${this.rawtext("error.readScript")}`, sender);
 				return;
@@ -180,14 +180,14 @@ export default class FastBuilder extends ModBase {
 		};
 
 		try {
-			this.client.tell("§eFastBuilder | §fRun > §i正在执行脚本...", sender);
+			this.client.tell(this.rawtext("fastbuilder.msg.1484ca13f8"), sender);
 			const body = `with(inside) { ${code} }`;
 			const fn = new Function("inside", body);
 			const result = fn(sandbox);
 			if (result instanceof Promise) {
 				await result;
 			}
-			this.client.tell("§eFastBuilder | §fRun > §i执行完成", sender);
+			this.client.tell(this.rawtext("fastbuilder.msg.5bbfcda2d0"), sender);
 		} catch (e) {
 			this.client.tell(`§cFastBuilder | §fError > §i${this.rawtext("error.execute")}`, sender);
 		}

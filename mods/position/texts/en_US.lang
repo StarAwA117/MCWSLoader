@@ -5,3 +5,44 @@ error.testBlock=Block ID test failed
 error.tickingarea=Could not create the working area. Check the coordinates.
 error.save=Structure save failed
 error.load=Structure load failed
+
+# Generated user-facing messages
+position.msg.5d1e0f16dc=Set point A. Optional X Y Z; defaults to your position.
+position.msg.2248b54ab5=§cPosition | §fError > §iAn operation is already running. Wait or use $p:cancel to interrupt.
+position.msg.2d4737177b=§cPosition | §fError > §iCould not get your position.
+position.msg.0afd89f0d2=§cPosition | §fError > §iCould not get the position.
+position.msg.4d5481faed=§ePosition | §fPosA > §iRecorded position {p0} {p1} {p2}
+position.msg.5401775902=Set point B. Optional X Y Z; defaults to your position.
+position.msg.da0a378d9e=§ePosition | §fPosB > §iRecorded position {p0} {p1} {p2}
+position.msg.fc13439580=Calculate distance between A and B, rounded to 3 decimals.
+position.msg.bad253125f=§cPosition | §fError > §iSet points A and B first.
+position.msg.31913a9c54=Calculate the offset of B from A.
+position.msg.b922379916=Fill the region between A and B. Block ID is required; replace target is optional.
+position.msg.d2f11cb73a=Copy the region between A and B.
+position.msg.81bdd49928=Paste the copied structure. Optional X Y Z; defaults to your position.
+position.msg.4b63d170c9=§cPosition | §fError > §iProvide all X Y Z coordinates or omit all.
+position.msg.83bd7f1b83=Cut the region between A and B. Copies then fills with air.
+position.msg.19130e9fb3=Interrupt the current operation.
+position.msg.8d5f42e77c=§cPosition | §fCancel > §iInterrupting operation...
+position.msg.a1a7fa0b05=§cPosition | §fError > §iNo operation is running.
+position.msg.632d562ac5=View current task progress.
+position.msg.31032c2f36=Show current A and B coordinates.
+position.msg.b00a1d3659=§cPosition | §fError > §iInvalid block ID: {p0} -> {p1}
+position.msg.f4ab2a11ed=§cPosition | §fError > §iInvalid replace block ID: {p0} -> {p1}
+position.msg.424bdd4c21=§ePosition | §fFill > §iFill complete {p0}{p1}. {p2} blocks, {p3} commands.
+position.msg.e6cff85613=§cPosition | §fCancel > §iFill interrupted.
+position.msg.5748280404=§ePosition | §fCopy > §iCopied {p0} structures.
+position.msg.32ef53deb4=§cPosition | §fCancel > §iCopy interrupted.
+position.msg.5564ef9ef2=§cPosition | §fError > §iNothing to paste. Use $p:copy first.
+position.msg.06c0f410ad=§cPosition | §fError > §iPaste Y range out of bounds: {p0} to {p1}. Allowed {p2} to {p3}.
+position.msg.0ef0dfabb4=§ePosition | §fPaste > §iPasted {p0} structures.
+position.msg.925ab1b8b7=§cPosition | §fError > §iPaste finished with {p0} failures. Try again.
+position.msg.567d1841de=§cPosition | §fCancel > §iPaste interrupted.
+
+# Command parameter labels
+position.param.5ab66c6f5f=Replace target block ID
+
+# Command parameter labels
+position.param.b3eec41852=Fill block ID
+
+position.status.eta=§fETA: {p0}s

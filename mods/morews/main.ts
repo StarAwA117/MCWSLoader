@@ -17,8 +17,8 @@ export default class MoreWS extends ModBase {
 	onCommand() {
 		return {
 			op: [
-this.Command.create("c:connect", "连接到 WebSocket 服务端")
-				.addString("WebSocket 地址", true)
+this.Command.create("c:connect", this.rawtext("morews.msg.cb538f864e"))
+				.addString(this.rawtext("morews.param.0d32d8793d"), true)
 				.setFunc((_, ip) => {
 					this.connect(ip);
 				})
@@ -40,7 +40,7 @@ this.Command.create("c:connect", "连接到 WebSocket 服务端")
 			// 检测 ws 连接
 			ws.on("open", () => {
 				// 发送消息
-				this.client.tellAll("§eMoreWS | §fConnect > §i已连接");
+				this.client.tellAll(this.rawtext("morews.msg.439db6c908"));
 				// 添加 ws
 				this.wss.add(ws);
 			});
@@ -54,7 +54,7 @@ this.Command.create("c:connect", "连接到 WebSocket 服务端")
 			// 检测 ws 是否关闭
 			ws.on("close", (code, reason) => {
 				// 提示
-				this.client.tellAll(`§cMoreWS | §fDisconnect > §i已关闭 -> ${url}`);
+				this.client.tellAll(this.rawtext("morews.msg.95a2b7b053", { p0: url }));
 				// 删除 ws
 				if (this.wss.has(ws)) this.wss.delete(ws);
 			});
@@ -68,7 +68,7 @@ this.Command.create("c:connect", "连接到 WebSocket 服务端")
 			});
 		} catch (e) {
 			// 提示连接失败
-			this.client.tellAll(`§cMoreWS | §fError > §i连接失败 ${e}`);
+			this.client.tellAll(this.rawtext("morews.msg.60f4721620", { p0: e }));
 		}
 	}
 

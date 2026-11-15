@@ -3,3 +3,37 @@
 config.basePath=图片目录
 error.convert=图片转换失败，请检查图片格式
 error.process=图片处理失败，请检查图片格式
+
+# Generated user-facing messages
+image.msg.0074883fc7=生成方向 ：x=默认 y=直立 z=旋转
+image.msg.4f73030504=将图片转换为像素画
+image.msg.7527f68798=§cImage | §fError > §i已有转换进程运行中，请等待完成或 !i:n 中断
+image.msg.ed68f665a3=生成方向 ：x=默认 z=旋转
+image.msg.a1ae1f1d91=将图片转换为像素画：原始尺寸，仅支持 x/z
+image.msg.bc4172c76e=确认转换操作
+image.msg.7790fd0479=§cImage | §fError > §i没有待确认的转换任务
+image.msg.8929a43caa=§eImage | §fConvert > §i已确认，开始转换…
+image.msg.36fb24113b=取消/中断转换
+image.msg.65bd1bd24c=§cImage | §fCancel > §i正在中断转换…
+image.msg.3934fac37f=§cImage | §fCancel > §i已取消转换
+image.msg.ca7e59e426=§cImage | §fError > §i没有进行中的操作
+image.msg.38790fbf1b=查看转换进度
+image.msg.7ac61f3d40=§cImage | §fError > §i没有进行中的转换任务
+image.msg.63212fb473=§cImage | §fError > §i该模式不支持方向 {p0}，支持: {p1}
+image.msg.61969ff933=§cImage | §fError > §i坐标参数不完整，需要同时提供 X Y Z 或都不提供：使用自身坐标
+image.msg.1c33c9aa3e=§cImage | §fError > §i非法的文件名: {p0}
+image.msg.b70a2974fd=§cImage | §fError > §i文件不存在: {p0}
+image.msg.24e1c486ed=§i正在处理图片…
+image.msg.64cd1dea9c=§cImage | §fError > §i图片太大: {p0}×{p1} ：raw 模式最大 2048px
+image.msg.456801787b=§cImage | §fError > §i无法获取你的坐标
+image.msg.3ce0fe48ea=§cImage | §fError > §iY 轴超出限制: {p0} ：允许 -64 ~ 320
+image.msg.e4992b802e=§cImage | §fError > §iY 轴超出限制: {p0} + {p1} = {p2} ：允许最大 320
+image.msg.c423455cd8=§eImage | §fConvert > §i{p0} 转换完成 共 {p1} 方块 耗时 {p2}s 速度 {p3}方块/s
+image.msg.741470bf98=§cImage | §fCancel > §i图片转换已中断 ：{p0}
+
+# Command parameter labels
+image.param.021f66c909=图片文件名
+
+image.status.progress=§eImage | §fStatus > §i正在转换 {p0} | 总进度 {p1}% | 命令 {p2}/{p3}\n§f阶段: {p4} | 区域 {p5}/{p6}\n§f当前区域: {p7}% | {p8} / {p9} 命令 | 方块 {p10} / {p11}\n§f速度: {p12} 命令/s | {p13}s | 预计 {p14}s
+
+image.status.preview=§eImage | §fPreview > §i文件: {p0} | 尺寸: {p1}×{p2} = {p3} 像素\n§f非透明像素: {p4} → {p5} 条指令\n§f方向: {p6} | 区块: {p7} 个区域\n§f范围: {p8}, {p9}, {p10} → {p11}, {p12}, {p13}\n§f预计耗时: {p14}s\n§f确认请发送 §e!i:y§f，取消请发送 §c!i:n

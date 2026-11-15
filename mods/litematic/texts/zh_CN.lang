@@ -5,3 +5,124 @@ error.import=建筑导入失败，请检查文件
 error.parse=建筑文件解析失败
 error.tickingarea=创建区域失败，请检查坐标
 error.export=建筑导出失败
+
+# Generated user-facing messages
+litematic.msg.55d0a93ffa=查看命令用法
+litematic.msg.2eef424bb4=§cLitematic | §fError > §i没有找到命令: {p0}：输入 !l:help 查看全部命令
+litematic.msg.64bdede940=导入 Litematic 建筑投影
+litematic.msg.1c6c253c2c=§cLitematic | §fError > §i已有导入进程运行中，请等待完成或 !l:n 中断
+litematic.msg.a4a9f8b1de=粒子边框 + 实体标记预览建筑位置
+litematic.msg.dd9f92e16a=清除建筑预览
+litematic.msg.afd9598d3e=导出为 MCBE 结构方块文件 ：.mcstructure
+litematic.msg.4ef4895c37=查看建筑文件列表
+litematic.msg.20931c277d=查看所有任务 ID
+litematic.msg.3af148c315=搜索建筑文件
+litematic.msg.345501eb59=确认导入操作
+litematic.msg.b85e5af369=§cLitematic | §fError > §i没有待确认的导入任务
+litematic.msg.761c183d93=§eLitematic | §fImport > §i已确认，开始导入…
+litematic.msg.e7c0c52559=取消/中断操作
+litematic.msg.b027d38cdc=§cLitematic | §fCancel > §i正在中断导入…
+litematic.msg.4ec50ec45c=§cLitematic | §fCancel > §i正在中断世界检查…
+litematic.msg.78071de9e4=§cLitematic | §fCancel > §i正在中断修复…
+litematic.msg.c2f550d90a=§cLitematic | §fCancel > §i已取消导入
+litematic.msg.5975493e92=§cLitematic | §fError > §i没有进行中的操作
+litematic.msg.09df761536=查看作者信息
+litematic.msg.c4b9fd3506=查看导入/检查/修复进度
+litematic.msg.a2ddc2c46e=§cLitematic | §fError > §i当前没有进行中的任务
+litematic.msg.f19dc8e959=检查投影与世界的差异 / 方块映射错误
+litematic.msg.f797f736c0=§cLitematic | §fError > §i没有找到任务 ID，请先 !l:create 获取任务 ID
+litematic.msg.41543e2d1b=§cLitematic | §fError > §i模式参数无效：应为 map：检查方块映射或留空：检查世界一致性
+litematic.msg.721476b0d7=修复被挖掉的方块 / 替换无法映射的方块
+litematic.msg.292dfab147=§cLitematic | §fError > §i已有修复任务进行中，请等待完成或 !l:n 中断
+litematic.msg.7fcea5727c=§cLitematic | §fError > §i建筑目录不存在
+litematic.msg.585561adf8=§cLitematic | §fError > §i没有找到 .litematic 文件
+litematic.msg.e481cdb991={p0} §f：{p1}/{p2}页 §i共 {p3} 个\n{p4}
+litematic.msg.9ed8daf320=§cLitematic | §fError > §i当前没有任务，先 !l:create 创建
+litematic.msg.8d44701b2a=§cLitematic | §fError > §i模式参数无效：应为 raw：保留原始高度或 trim：裁剪底部空气，默认
+litematic.msg.60fce4dc33=§cLitematic | §fError > §i坐标参数不完整，需要同时提供 X Y Z 或都不提供：使用自身坐标
+litematic.msg.6343575e0b=§cLitematic | §fError > §i非法的文件名: {p0}
+litematic.msg.4b2a0817b2=§cLitematic | §fError > §i文件不存在: {p0}
+litematic.msg.4bfbdbb632=§i正在解析 Litematic 文件…
+litematic.msg.484ff1f550=§cLitematic | §fError > §i无法获取你的坐标
+litematic.msg.6e5483a31a=§cLitematic | §fError > §iY 轴超出限制: {p0} ~ {p1} ：允许 -64 ~ 320
+litematic.msg.4d1afbdd03=§cLitematic | §fWarn > §i无法映射方块: {p0} 个 ：可用 !l:verify {p1} map 检查，!l:fix {p2} 修复
+litematic.msg.ecd8d87d2d=§f确认请发送 §e!l:y，取消请发送 §c!l:n
+litematic.msg.1e401015e2=§eLitematic | §fImport > §i{p0} 导入完成 共 {p1} 方块 {p2} 指令 耗时 {p3}s 速度 {p4}方块/s
+litematic.msg.456abddfe1=§cLitematic | §fCancel > §i导入已中断 ：{p0}
+litematic.msg.76219c3773=§aLitematic | §fVerify > §i任务 #{p0} 没有可检查的方块
+litematic.msg.4e5ceda6de=§i开始世界检查… {p0} 个方块 ：预计 {p1}s 左右，!l:n 可中断
+litematic.msg.893b86842e=§7Litematic | §fVerify >  §i世界检查进度: {p0}/{p1} | 不匹配: {p2} 个
+litematic.msg.64cbada0a7=§cLitematic | §fVerify > §i世界检查已中断
+litematic.msg.dfacbd8ea0=§aLitematic | §fVerify > §i世界检查完成 ：任务 #{p0} 已逐块 testforblock 比对 {p1} 个方块，全部与投影一致 耗时 {p2}s
+litematic.msg.d4954caaef=§aLitematic | §fFix > §i任务 #{p0} 没有需要修复的方块
+litematic.msg.e80b25706c=§aLitematic | §fFix > §i已修复 ：任务 #{p0}\n{p1}
+litematic.msg.f0872cf8d1=§7Litematic | §fPreview > §i已清除建筑预览
+litematic.msg.2e53e138da=§cLitematic | §fError > §i模式参数无效：应为 raw 或 trim
+
+# Command parameter labels
+litematic.param.0a77b99236=命令名
+
+# Command parameter labels
+litematic.param.ed0eea8f20=模式
+
+# Command parameter labels
+litematic.param.1275f6feb7=文件名
+
+# Command parameter labels
+litematic.param.e2179ba860=导出名
+
+# Command parameter labels
+litematic.param.7b0930e205=页码
+
+# Command parameter labels
+litematic.param.cc1b21e800=关键词
+
+# Command parameter labels
+litematic.param.9f4a6f3a72=替代方块
+
+litematic.help.param= §f参数{p0}: §7<{p1}> §f{p2}{p3}
+
+litematic.help.optional=可选
+
+litematic.help.required=必选
+
+litematic.help.noParams= §7无参数
+
+litematic.help.details=§eLitematic | §fHelp > §b{p0} §7用法:\n§f说明: §7{p1}\n§f参数:\n{p2}
+
+litematic.help.list=§eLitematic | §fHelp > §7可用命令\n{p0}\n§7输入 §a!l:help <命令名> §7查看详细用法
+
+litematic.status.progress=§eLitematic | §fStatus > §i导入 §f{p0}\n§f总进度 {p1}% | 预计 {p2}s\n§f阶段: {p3} | 区域 {p4}/{p5}\n§f进度: {p6}% | {p7} / {p8} 命令 | 方块 {p9} / {p10}\n§f速度: {p11} 命令/s | {p12}s
+
+litematic.verify.pass=§aLitematic | §fVerify > §i任务 #{p0} {p1} 方块映射检查通过，无 mod 方块错误\n§f提示: 要检查游戏世界里方块是否被挖掉或替换，请用 !l:verify {p0}
+
+litematic.verify.report=§eLitematic | §fVerify > §i方块检查报告，任务 #{p0}\n§f文件: {p1}\n§c无法映射方块: {p2} 个，导入时会被跳过\n{p3}\n§7发送 !l:fix {p0} §7将用 stone 替换，可指定替代方块
+
+litematic.verify.worldReport=§eLitematic | §fVerify > §i世界检查报告，任务 #{p0}\n§f文件: {p1}\n§f检查: {p2} 个方块 | 不匹配: {p3} 个 | 耗时 {p4}s\n{p5}\n§7差异可能是方块被挖掉或替换\n§7发送 !l:fix {p0} 可重新放置这些方块
+
+litematic.fix.repaired=§a已重新放置 {p0} / {p1} 个方块，恢复与投影一致
+
+litematic.fix.failed=§c未成功 {p0} 个，命令被服务器限流，可再次 !l:verify {p1} 检查并 !l:fix {p1} 重试
+
+litematic.fix.unmapped=§a已将 {p0} 个无法映射方块替换为 {p1}，任务存档已更新，直接发送 !l:y 即可用修复后的数据导入
+
+litematic.preview.info=§eLitematic | §fPreview > §i已生成预览: {p0} 尺寸 {p1}×{p2}×{p3}\n§f范围: {p4}, {p5}, {p6} → {p7}, {p8}, {p9}\n§f底部空气: {p10} 层 §7{p11}\n§f§o实体标记持续显示，输入 !l:unpreview 清除
+
+litematic.preview.raw=保留原始高度
+
+litematic.preview.trim=已裁剪，建筑底部对齐放置点
+
+litematic.export.info=§aLitematic | §fExport > §i已导出结构文件: {p0}\n§f尺寸: {p1} × {p2} × {p3} | 方块: {p4} | 底部空气: {p5} 层\n§7用法: 将文件放入行为包的 structures 文件夹或存档的 structures 文件夹，游戏内用结构方块预览放置
+
+# Task list and import info
+litematic.time.justNow=刚刚
+litematic.time.minutes={p0} 分钟前
+litematic.time.hours={p0} 小时前
+litematic.time.days={p0} 天前
+litematic.tasks.mismatch=§c差异 §e{p0}§c 个
+litematic.tasks.unmapped=§e未映射 {p0} 个
+litematic.tasks.item=§b{p0}. §f{p1} §7| §f{p2}§7 方块 §7| §7{p3}{p4}
+litematic.tasks.title=§eLitematic | §fID > §i任务列表 {p0} 个\n{p1}\n§7使用 §a!l:verify <ID>§7 检查世界差异 / §a!l:fix <ID>§7 修复
+litematic.import.info=§eLitematic | §fImport > §i{p0}\n§f任务ID: §b{p1} §7用于 !l:verify / !l:fix\n§f尺寸: {p2} × {p3} × {p4} = {p5} 坐标\n§f方块: {p6} → {p7} 条指令\n§f底部空气: {p8} 层 §7{p9}\n§f区块: {p10} 个 {p11}×{p12} → {p13} 个区域\n§f范围: {p14}, {p15}, {p16} → {p17}, {p18}, {p19}\n§f预计耗时: {p20}s
+litematic.import.raw=raw: 保留高度偏移
+litematic.import.trim=trim: 已裁剪对齐地面

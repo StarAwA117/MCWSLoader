@@ -3,3 +3,37 @@
 config.basePath=Image directory
 error.convert=Image conversion failed. Check the image format.
 error.process=Image processing failed. Check the image format.
+
+# Generated user-facing messages
+image.msg.0074883fc7=Generation direction: x=default y=upright z=rotated
+image.msg.4f73030504=Convert an image to pixel art
+image.msg.7527f68798=§cImage | §fError > §iA conversion is already running. Wait for it to finish or use !i:n to cancel.
+image.msg.ed68f665a3=Generation direction: x=default z=rotated
+image.msg.a1ae1f1d91=Convert an image to pixel art at original size. Only x and z are supported.
+image.msg.bc4172c76e=Confirm conversion
+image.msg.7790fd0479=§cImage | §fError > §iNo conversion is waiting for confirmation.
+image.msg.8929a43caa=§eImage | §fConvert > §iConfirmed. Starting conversion...
+image.msg.36fb24113b=Cancel or interrupt conversion
+image.msg.65bd1bd24c=§cImage | §fCancel > §iInterrupting conversion...
+image.msg.3934fac37f=§cImage | §fCancel > §iConversion cancelled.
+image.msg.ca7e59e426=§cImage | §fError > §iNo operation is running.
+image.msg.38790fbf1b=View conversion progress
+image.msg.7ac61f3d40=§cImage | §fError > §iNo conversion is running.
+image.msg.63212fb473=§cImage | §fError > §iDirection {p0} is not supported. Supported: {p1}
+image.msg.61969ff933=§cImage | §fError > §iCoordinates are incomplete. Provide X Y Z together or omit all to use your position.
+image.msg.1c33c9aa3e=§cImage | §fError > §iInvalid file name: {p0}
+image.msg.b70a2974fd=§cImage | §fError > §iFile not found: {p0}
+image.msg.24e1c486ed=§iProcessing image...
+image.msg.64cd1dea9c=§cImage | §fError > §iImage too large: {p0}x{p1}. Raw mode allows up to 2048px.
+image.msg.456801787b=§cImage | §fError > §iCould not get your position.
+image.msg.3ce0fe48ea=§cImage | §fError > §iY axis out of range: {p0}. Allowed -64 to 320.
+image.msg.e4992b802e=§cImage | §fError > §iY axis out of range: {p0} + {p1} = {p2}. Maximum is 320.
+image.msg.c423455cd8=§eImage | §fConvert > §i{p0} converted. {p1} blocks, {p2}s, {p3} blocks/s.
+image.msg.741470bf98=§cImage | §fCancel > §iImage conversion interrupted. {p0}
+
+# Command parameter labels
+image.param.021f66c909=Image file name
+
+image.status.progress=§eImage | §fStatus > §iConverting {p0} | Total {p1}% | Commands {p2}/{p3}\n§fPhase: {p4} | Areas {p5}/{p6}\n§fCurrent area: {p7}% | {p8} / {p9} commands | Blocks {p10} / {p11}\n§fSpeed: {p12} commands/s | {p13}s | ETA {p14}s
+
+image.status.preview=§eImage | §fPreview > §iFile: {p0} | Size: {p1}x{p2} = {p3} pixels\n§fNon-transparent: {p4} → {p5} commands\n§fDirection: {p6} | Areas: {p7}\n§fRange: {p8}, {p9}, {p10} → {p11}, {p12}, {p13}\n§fEstimated time: {p14}s\n§fSend §e!i:y§f to confirm, §c!i:n to cancel

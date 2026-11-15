@@ -17,3 +17,12 @@ mcfunc.loopStarted=循环 {name} 已开启
 mcfunc.allStopped=已停止所有循环
 mcfunc.loopStopped=循环 {name} 已关闭
 mcfunc.loopMissing=循环 {name} 不存在
+
+# Command parameter labels
+mcfunc.param.0fd3a9b4ea=文件路径
+
+# Command parameter labels
+mcfunc.param.f4fdfcf6f7=间隔秒数
+
+# Command parameter labels
+mcfunc.param.f330f510c5=循环名称
