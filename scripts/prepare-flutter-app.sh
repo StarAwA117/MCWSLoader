@@ -78,6 +78,8 @@ kotlin_dir = Path(sys.argv[2]) / namespace.replace(".", "/")
 kotlin_dir.mkdir(parents=True, exist_ok=True)
 template = Path("scripts/templates/BootReceiver.kt").read_text()
 (kotlin_dir / "BootReceiver.kt").write_text(template.replace("__PACKAGE__", namespace))
+activity = Path("scripts/templates/MainActivity.kt").read_text()
+(kotlin_dir / "MainActivity.kt").write_text(activity.replace("__PACKAGE__", namespace))
 PY
 
   if [[ -f "$APP/android/app/build.gradle.kts" ]]; then

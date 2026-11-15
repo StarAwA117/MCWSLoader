@@ -6,7 +6,6 @@ import 'package:archive/archive.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:node_flutter/node_flutter.dart';
-import 'package:permission_handler/permission_handler.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
@@ -21,11 +20,11 @@ class LocalServer {
   Future<void> start() async {
     if (_started) return;
     if (isAndroid) {
-      // Ask for notification and battery exemption before starting the
-      // foreground Node service. The future resolves when Node exits, so do
-      // not await it here; poll the API instead.
-      await Permission.notification.request();
-      await Permission.ignoreBatteryOptimizations.request();
+      // Ask the Android shell for notification and battery exemption prompts.
+      try {
+        await MethodChannel('mcws/standalone').invokeMethod('requestBackgroundPermissions');
+      } catch (_) {}
+      // The future resolves when Node exits, so do not await it here; poll the API instead.
       unawaited(Nodejs.startService(
         'main.js',
         title: 'MCWSLoader',
