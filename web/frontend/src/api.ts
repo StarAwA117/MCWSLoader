@@ -119,6 +119,7 @@ export const api = {
 	getProcess: () => request("/system/process"),
 	killProcess: () => request("/system/kill", { method: "POST" }),
 	restartServer: () => request("/system/restart", { method: "POST" }),
+	startWebSocket: () => request("/system/start-websocket", { method: "POST" }),
 	checkUpdate: () => request("/update/check"),
 	getTags: () => request("/update/tags"),
 	doUpdate: () => request("/update/do", { method: "POST" }),

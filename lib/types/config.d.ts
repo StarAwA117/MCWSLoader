@@ -75,8 +75,11 @@ export interface UpdateConfig {
 }
 
 
+export type ServerMode = "both" | "webui" | "websocket";
+
 export interface AppConfig {
 	ws: WsConfig;
+	mode?: ServerMode;
 	command?: CommandConfig;
 	web?: WebConfig;
 	sapi: SapiConfig;

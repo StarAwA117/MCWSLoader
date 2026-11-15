@@ -142,11 +142,40 @@ function createServer(): WebSocketServer {
 
 	wsServer.on("error", (error: Error) => {
 		logger.error(tr("terminal.ws.serverError"));
-			logger.debug(errorDetail(error));
-		logger.debug(error.stack ?? error.message);
+		logger.debug(errorDetail(error));
+	});
+	wsServer.on("close", () => {
+		if (server === wsServer) server = null;
 	});
 
 	return wsServer;
+}
+
+const MODE = config.mode ?? "both";
+
+async function startWebSocketServer(): Promise<void> {
+	if (server) return;
+	const wsServer = createServer();
+	wsServer.on("connection", handleConnection);
+	await new Promise<void>((resolve, reject) => {
+		const onError = (error: Error): void => {
+			wsServer.off("listening", onListening);
+			try { wsServer.close(); } catch { /* ignore */ }
+			reject(error);
+		};
+		const onListening = (): void => {
+			wsServer.off("error", onError);
+			server = wsServer;
+			logger.info(tr("terminal.ws.started", { port: config.ws.port }));
+			resolve();
+		};
+		wsServer.once("error", onError);
+		wsServer.once("listening", onListening);
+	});
+}
+
+function isWebSocketRunning(): boolean {
+	return server !== null;
 }
 
 // Scan first so dependency checks only apply to enabled mods
@@ -155,18 +184,19 @@ await checkModDependencies();
 await ServerModManager.load();
 await ClientModManager.load();
 
-// Create WebSocket server
-server = createServer();
-logger.info(tr("terminal.ws.started", { port: config.ws.port }));
+if (MODE !== "webui") {
+	await startWebSocketServer();
+}
 
-// Start WebUI server (传入关闭钩子，供 WebUI 的重启接口复用)
-startWebServer(destroy).catch((e: Error) => {
-	logger.error(tr("terminal.ws.webuiFailed"));
-	logger.debug(errorDetail(e));
-});
+if (MODE !== "websocket") {
+	startWebServer(destroy, { startWebSocket: startWebSocketServer, isWebSocketRunning }).catch((e: Error) => {
+		logger.error(tr("terminal.ws.webuiFailed"));
+		logger.debug(errorDetail(e));
+	});
+}
 
 // Handle client connections
-server.on("connection", (socket: WebSocket) => {
+function handleConnection(socket: WebSocket): void {
 	const ws = socket as unknown as Client & WebSocket;
 	const clientIP = normalizeIP(ws._socket?.remoteAddress ?? "unknown");
 
@@ -272,7 +302,7 @@ server.on("connection", (socket: WebSocket) => {
 			logger.debug(errorDetail(error));
 		}
 	});
-});
+}
 
 // Shutdown function
 let destroying = false;
@@ -308,6 +338,7 @@ async function destroy(): Promise<void> {
 	const close = new Promise<void>((resolve) => {
 		if (server) {
 			server.close(() => {
+				server = null;
 				logger.info(tr("terminal.ws.closed"));
 				resolve();
 			});

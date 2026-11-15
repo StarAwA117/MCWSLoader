@@ -30,7 +30,7 @@ export interface PermissionData {
 }
 
 export interface ServerStatus {
-	server: { uptime: number; wsPort: number; name: string; webPort: number };
+	server: { uptime: number; wsPort: number; name: string; webPort: number; mode?: "both" | "webui" | "websocket"; websocketRunning?: boolean };
 	connections: { count: number; mainClient: string | null; clients: ClientInfo[] };
 	mods: { server: string[]; client: string[] };
 	sapi: { commandExists: boolean | null; polling: boolean };

@@ -68,6 +68,11 @@ const logLevels = computed(() => ["debug", "info", "warning", "error"].map((valu
 	label: t(`settings.${value}`)
 })));
 
+const modeOptions = computed(() => ["both", "webui", "websocket"].map((value) => ({
+	value,
+	label: t(`settings.mode${value.charAt(0).toUpperCase()}${value.slice(1)}`)
+})));
+
 function selectTheme(theme: string): void {
 	if (!config.value) return;
 	// Apply only after the settings are saved; previewing on click caused
@@ -384,6 +389,10 @@ onMounted(refresh);
 				</SettingsCard>
 
 
+				<SettingsCard :title="t('settings.mode')">
+					<SelectMenu id="serverMode" v-model="config.mode" :options="modeOptions" />
+					<p class="field-hint">{{ t('settings.modeHint') }}</p>
+				</SettingsCard>
 
 				<SettingsCard :title="t('settings.dependencySettings')">
 					<div class="switch-row">

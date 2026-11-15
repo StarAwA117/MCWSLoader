@@ -3,17 +3,20 @@ import { ref, onMounted } from "vue";
 import { api } from "../api";
 import { useI18n } from "../composables/useI18n";
 import LogOutput from "../components/LogOutput.vue";
+import ServerOffNotice from "../components/ServerOffNotice.vue";
+import { useServerStatus } from "../composables/useServerStatus";
 import type { CommandOutputLine } from "../types";
 import { userErrorText } from "../utils/errors";
 
 const { t } = useI18n();
+const { running: serverRunning } = useServerStatus();
 
 const input = ref("");
 const output = ref<CommandOutputLine[]>([]);
 const loading = ref(false);
 
 async function exec() {
-	if (!input.value.trim()) return;
+	if (!serverRunning.value || !input.value.trim()) return;
 	loading.value = true;
 	const cmd = input.value.trim();
 	output.value.push({ type: "input", text: cmd });
@@ -39,6 +42,7 @@ onMounted(() => { output.value = []; });
 		<div class="card-header">
 			<h2>{{ t('commands.title') }}</h2>
 		</div>
+		<ServerOffNotice :running="serverRunning" />
 
 		<div style="display: flex; gap: 8px; margin-bottom: 16px;">
 			<input
@@ -47,8 +51,9 @@ onMounted(() => { output.value = []; });
 				:placeholder="t('commands.executePlaceholder')"
 				@keydown.enter="exec"
 				style="flex: 1; min-width: 0;"
+				:disabled="!serverRunning"
 			/>
-			<button class="btn btn-primary btn-sm" @click="exec" :disabled="loading">
+			<button class="btn btn-primary btn-sm" @click="exec" :disabled="loading || !serverRunning">
 				{{ loading ? t('commands.processing') : t('commands.execute') }}
 			</button>
 		</div>

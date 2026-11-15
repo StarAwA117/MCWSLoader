@@ -5,10 +5,13 @@ import { useModal } from "../composables/useModal";
 import { useI18n } from "../composables/useI18n";
 import { usePolling } from "../composables/usePolling";
 import ModalShell from "../components/ModalShell.vue";
+import ServerOffNotice from "../components/ServerOffNotice.vue";
+import { useServerStatus } from "../composables/useServerStatus";
 import type { ClientInfo } from "../types";
 
 const { notify, ask } = useModal();
 const { t } = useI18n();
+const { running: serverRunning } = useServerStatus();
 
 const clients = ref<ClientInfo[]>([]);
 const selected = ref<ClientInfo | null>(null);
@@ -67,6 +70,7 @@ usePolling(refresh, 3000);
 			<h2>{{ t('clients.title') }}</h2>
 			<span class="badge">{{ clients.length }} {{ t('clients.count') }}</span>
 		</div>
+		<ServerOffNotice :running="serverRunning" />
 
 		<div v-if="clients.length === 0" class="empty-state">
 			<p>{{ t('clients.none') }}</p>

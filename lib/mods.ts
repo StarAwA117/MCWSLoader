@@ -140,6 +140,8 @@ function normalizeConfig(cfg: AnyRecord): AnyRecord {
 	if (cfg.update.autoCheck === undefined) cfg.update.autoCheck = false;
 	if (cfg.update.allowPrerelease === undefined) cfg.update.allowPrerelease = false;
 
+	if (cfg.mode !== "webui" && cfg.mode !== "websocket") cfg.mode = "both";
+
 	if (!cfg.web || typeof cfg.web !== "object") cfg.web = {};
 	if (!cfg.sapi || typeof cfg.sapi !== "object" || Array.isArray(cfg.sapi)) cfg.sapi = {};
 	if (!cfg.sapi.gmsg) cfg.sapi.gmsg = "gmsg";

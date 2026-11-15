@@ -10,6 +10,7 @@ Most values are reloaded when saved from the WebUI. Listener settings
 
 ```json
 {
+	"mode": "both",
 	"ws": {
 		"name": "MCWSLoader",
 		"port": 8080,
@@ -52,6 +53,19 @@ Most values are reloaded when saved from the WebUI. Listener settings
 	}
 }
 ```
+
+## Server mode
+
+| Value | Description |
+|-------|-------------|
+| `both` | Start both WebUI and WebSocket, the default |
+| `webui` | Start WebUI only. The dashboard can start WebSocket later; commands, clients and chat are disabled until it starts |
+| `websocket` | Start WebSocket only, without the WebUI |
+
+The mode is read at startup. Changing it in **Settings → System** requires a
+restart. In `webui` mode the dashboard shows a **Service off** card. Clicking it
+starts the WebSocket service. Mods, logs and settings remain available while the
+service is off.
 
 ## WebSocket
 

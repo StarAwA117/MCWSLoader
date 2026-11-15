@@ -56,5 +56,6 @@
 	"update": {
 		"autoCheck": false,
 		"allowPrerelease": false
-	}
+	},
+	"mode": "both"
 }

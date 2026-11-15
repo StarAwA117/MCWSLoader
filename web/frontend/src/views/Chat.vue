@@ -4,8 +4,11 @@ import { api } from "../api";
 import { useI18n } from "../composables/useI18n";
 import { usePolling } from "../composables/usePolling";
 import LogOutput from "../components/LogOutput.vue";
+import ServerOffNotice from "../components/ServerOffNotice.vue";
+import { useServerStatus } from "../composables/useServerStatus";
 
 const { t } = useI18n();
+const { running: serverRunning } = useServerStatus();
 
 const messages = ref<string[]>([]);
 const input = ref("");
@@ -19,7 +22,7 @@ async function refresh() {
 }
 
 async function send() {
-	if (!input.value.trim()) return;
+	if (!serverRunning.value || !input.value.trim()) return;
 	const msg = input.value.trim();
 	input.value = "";
 	const res = await api.sendChat(msg);
@@ -35,6 +38,7 @@ usePolling(refresh, 2000);
 		<div class="card-header">
 			<h2>{{ t('chat.title') }}</h2>
 		</div>
+		<ServerOffNotice :running="serverRunning" />
 		<LogOutput
 			ref="chatRef"
 			:lines="messages"
@@ -50,8 +54,9 @@ usePolling(refresh, 2000);
 				:placeholder="t('chat.placeholder')"
 				@keydown.enter="send"
 				style="flex: 1; min-width: 0;"
+				:disabled="!serverRunning"
 			/>
-			<button class="btn btn-primary btn-sm" @click="send">{{ t('chat.send') }}</button>
+			<button class="btn btn-primary btn-sm" @click="send" :disabled="!serverRunning">{{ t('chat.send') }}</button>
 		</div>
 	</div>
 </template>

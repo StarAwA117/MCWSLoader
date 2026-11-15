@@ -438,3 +438,26 @@ core.error.permission=命令權限檢查失敗
 core.error.unknownCommand=未知命令：{command}
 core.error.permissionDenied=沒有執行該命令的權限
 core.error.command=命令執行失敗，請稍後重試
+
+# Server mode
+settings.mode=模式設定
+settings.modeHint=儲存後需要重新啟動服務才會生效
+settings.modeBoth=WebUI 與 WebSocket
+settings.modeWebui=僅 WebUI
+settings.modeWebsocket=僅 WebSocket
+
+# WebUI-only mode
+dashboard.serverStopped=服務未開啟
+dashboard.serverStarting=正在啟動...
+dashboard.serverStartHint=點擊啟動 WebSocket 服務
+dashboard.serverOffTitle=WebSocket 服務未開啟
+dashboard.serverOffDesc=目前為僅 WebUI 模式。可以管理 Mod、查看日誌和修改設定；啟動服務後即可連線遊戲客戶端。
+dashboard.serverOffNote=WebUI 仍在獨立運行，下面的處理程序資訊和 Mod 管理不受影響。
+dashboard.serverOffNoClients=WebSocket 服務未啟動，暫無客戶端。
+dashboard.serverStarted=WebSocket 服務已啟動
+dashboard.serverStartFailed=啟動 WebSocket 服務失敗
+webui.websocketOff=WebSocket 服務未啟動，請先在儀表板點擊「服務未開啟」啟動服務
+webui.websocketUnavailable=目前模式不支援啟動 WebSocket 服務
+webui.websocketStartFailed=啟動 WebSocket 服務失敗，請檢查連接埠占用或查看日誌
+webui.offNotice=WebSocket 服務未啟動，此功能暫時不可用。請先在儀表板啟動服務。
+webui.goDashboard=前往儀表板

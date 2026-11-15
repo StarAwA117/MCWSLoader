@@ -438,3 +438,26 @@ core.error.permission=Command permission check failed.
 core.error.unknownCommand=Unknown command: {command}
 core.error.permissionDenied=You do not have permission to run this command.
 core.error.command=Command failed. Try again later.
+
+# Server mode
+settings.mode=Server mode
+settings.modeHint=Takes effect after the service is restarted
+settings.modeBoth=WebUI and WebSocket
+settings.modeWebui=WebUI only
+settings.modeWebsocket=WebSocket only
+
+# WebUI-only mode
+dashboard.serverStopped=Service off
+dashboard.serverStarting=Starting...
+dashboard.serverStartHint=Click to start the WebSocket service
+dashboard.serverOffTitle=WebSocket service is off
+dashboard.serverOffDesc=Running in WebUI-only mode. You can manage Mods, read logs and change settings. Start the service to connect game clients.
+dashboard.serverOffNote=The WebUI keeps running independently. Process info and Mod management below are unaffected.
+dashboard.serverOffNoClients=WebSocket service is off, no clients.
+dashboard.serverStarted=WebSocket service started
+dashboard.serverStartFailed=Failed to start the WebSocket service
+webui.websocketOff=The WebSocket service is off. Click Service off on the dashboard to start it.
+webui.websocketUnavailable=The current mode does not support starting the WebSocket service
+webui.websocketStartFailed=Failed to start the WebSocket service. Check the port or logs.
+webui.offNotice=The WebSocket service is off, so this feature is unavailable. Start it from the dashboard.
+webui.goDashboard=Open dashboard

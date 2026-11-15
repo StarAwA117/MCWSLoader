@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { ref } from "vue";
+import { computed, ref } from "vue";
 import { api } from "../api";
 import { formatBytes, formatDuration } from "../utils/format";
 import { useModal } from "../composables/useModal";
 import { usePolling } from "../composables/usePolling";
 import { useI18n } from "../composables/useI18n";
+import { userErrorText } from "../utils/errors";
 import type { ProcessInfo, ServerStatus } from "../types";
 
 const { ask, notify } = useModal();
@@ -12,6 +13,9 @@ const { t } = useI18n();
 
 const status = ref<ServerStatus | null>(null);
 const process = ref<ProcessInfo | null>(null);
+const startingWebSocket = ref(false);
+
+const wsRunning = computed(() => status.value?.server.websocketRunning !== false);
 
 const formatUptime = (ms: number): string => formatDuration(ms, t);
 
@@ -21,6 +25,23 @@ async function refresh() {
 		if (s && typeof s === "object" && "server" in s) status.value = s as unknown as ServerStatus;
 		if (p && typeof p === "object" && "pid" in p) process.value = p as unknown as ProcessInfo;
 	} catch {}
+}
+
+async function startWebSocket(): Promise<void> {
+	if (startingWebSocket.value || wsRunning.value) return;
+	startingWebSocket.value = true;
+	try {
+		const res = await api.startWebSocket();
+		if (res.ok) {
+			await refresh();
+			await notify(t("dashboard.serverStarted"));
+		} else {
+			await notify(res.message || t("dashboard.serverStartFailed"));
+		}
+	} catch (e) {
+		await notify(userErrorText(e));
+	}
+	startingWebSocket.value = false;
 }
 
 async function killProcess() {
@@ -43,9 +64,10 @@ usePolling(refresh, 3000);
 <template>
 	<div v-if="status">
 		<div class="stats-grid">
-			<div class="stat-card">
+			<div class="stat-card" :class="{ clickable: !wsRunning, off: !wsRunning }" @click="!wsRunning && startWebSocket()">
 				<div class="label">{{ t('dashboard.serverStatus') }}</div>
-				<div class="value blue">{{ t('dashboard.running') }}</div>
+				<div class="value" :class="wsRunning ? 'blue' : 'off'">{{ wsRunning ? t('dashboard.running') : startingWebSocket ? t('dashboard.serverStarting') : t('dashboard.serverStopped') }}</div>
+				<div v-if="!wsRunning" class="stat-hint">{{ t('dashboard.serverStartHint') }}</div>
 			</div>
 			<div class="stat-card">
 				<div class="label">{{ t('dashboard.uptime') }}</div>
@@ -61,13 +83,19 @@ usePolling(refresh, 3000);
 			</div>
 		</div>
 
+		<div v-if="!wsRunning" class="server-off-note">
+			<strong>{{ t('dashboard.serverOffTitle') }}</strong>
+			<p>{{ t('dashboard.serverOffDesc') }}</p>
+			<p>{{ t('dashboard.serverOffNote') }}</p>
+		</div>
+
 		<div class="card">
 			<div class="card-header">
 				<h2>{{ t('dashboard.connectedClientsTitle') }}</h2>
 				<span class="badge">{{ status.connections.count }} {{ t('dashboard.count') }}</span>
 			</div>
 			<div v-if="status.connections.clients.length === 0" class="empty-state">
-				<p>{{ t('dashboard.noClients') }}</p>
+				<p>{{ wsRunning ? t('dashboard.noClients') : t('dashboard.serverOffNoClients') }}</p>
 			</div>
 			<div v-else class="table-wrap">
 				<table>
@@ -154,3 +182,47 @@ usePolling(refresh, 3000);
 		<p>{{ t('dashboard.loading') }}</p>
 	</div>
 </template>
+
+<style scoped>
+.stat-card.clickable {
+	cursor: pointer;
+	border-color: var(--primary);
+}
+
+.stat-card.clickable:hover {
+	transform: translateY(-2px);
+	box-shadow: 0 8px 22px rgba(0, 0, 0, 0.06);
+}
+
+.stat-card .value.off {
+	color: var(--danger);
+}
+
+.stat-hint {
+	margin-top: 4px;
+	font-size: 12px;
+	color: var(--primary);
+}
+
+.server-off-note {
+	background: var(--primary-glow);
+	border: 1px solid var(--primary-dim);
+	border-radius: var(--radius);
+	padding: 16px 18px;
+	margin-bottom: 16px;
+}
+
+.server-off-note strong {
+	display: block;
+	font-size: 14px;
+	color: var(--text);
+	margin-bottom: 4px;
+}
+
+.server-off-note p {
+	font-size: 13px;
+	color: var(--text-secondary);
+	line-height: 1.6;
+	margin-top: 4px;
+}
+</style>

@@ -45,10 +45,22 @@ const REPO_ROOT = path.resolve(__dirname, "..");
 let temporaryPassword: string | null = null;
 // 由 ws.ts 注入的进程关闭钩子（/api/system/restart 使用）
 let shutdownHandler: (() => Promise<void>) | null = null;
+let startWebSocketHandler: (() => Promise<void>) | null = null;
+let webSocketRunningHandler: (() => boolean) | null = null;
 // 请求体上限：防止异常客户端一次占满内存（Mod 导入单独限制）
 const MAX_BODY_BYTES = 2 * 1024 * 1024;
 const MAX_UPLOAD_BYTES = 64 * 1024 * 1024;
 const tr = (key: string, params?: Record<string, unknown>): string => tForMod(null, config.language, key, params);
+
+function isWebSocketRunning(): boolean {
+	return webSocketRunningHandler ? webSocketRunningHandler() : true;
+}
+
+function requireWebSocket(res: ServerResponse): boolean {
+	if (isWebSocketRunning()) return true;
+	json(res, { ok: false, code: "WEBSOCKET_OFF", message: tr("webui.websocketOff") }, 409);
+	return false;
+}
 function applyCors(req: IncomingMessage, res: ServerResponse): void {
 	const origin = req.headers.origin;
 	// 每次读取配置，WebUI 修改 allowedOrigins 后无需重启 API
@@ -492,7 +504,14 @@ async function handleAPI(req: IncomingMessage, res: ServerResponse, url: URL): P
 		if (pathname === "/api/status" && method === "GET") {
 			const clients = listClients();
 			return json(res, {
-				server: { uptime: Date.now() - startTime, wsPort: config.ws.port, name: config.ws.name, webPort: WEB_PORT },
+				server: {
+					uptime: Date.now() - startTime,
+					wsPort: config.ws.port,
+					name: config.ws.name,
+					webPort: WEB_PORT,
+					mode: config.mode ?? "both",
+					websocketRunning: isWebSocketRunning()
+				},
 				connections: { count: Current.clientMods.size, mainClient: Current.client?.id || null, clients },
 				mods: { server: Object.keys(ServerModManager.loadedMod || {}), client: Object.keys(ClientModManager.loadedMod || {}) },
 				sapi: { commandExists: Current.client?.clientMod?.sapi?.commandExists ?? null, polling: Current.client?.clientMod?.sapi?.polling ?? false },
@@ -915,6 +934,7 @@ async function handleAPI(req: IncomingMessage, res: ServerResponse, url: URL): P
 			return json(res, cmds);
 		}
 		if (pathname === "/api/command" && method === "POST") {
+			if (!requireWebSocket(res)) return;
 			const payload = await readJson(req, res);
 			if (!payload) return;
 			const { command } = payload;
@@ -928,6 +948,7 @@ async function handleAPI(req: IncomingMessage, res: ServerResponse, url: URL): P
 		if (pathname === "/api/clients" && method === "GET") {
 			return json(res, listClients());
 		}
+		if (pathname.startsWith("/api/clients/") && method !== "GET" && !requireWebSocket(res)) return;
 		const clientTellMatch = pathname.match(/^\/api\/clients\/(.+)\/tell$/);
 		if (clientTellMatch && method === "POST") {
 			const clientId = decodeURIComponent(clientTellMatch[1]);
@@ -1043,6 +1064,7 @@ async function handleAPI(req: IncomingMessage, res: ServerResponse, url: URL): P
 			return json(res, { lines: readLogTail(logPath, 100) });
 		}
 		if (pathname === "/api/chat" && method === "POST") {
+			if (!requireWebSocket(res)) return;
 			const payload = await readJson(req, res);
 			if (!payload) return;
 			const { message } = payload;
@@ -1053,6 +1075,17 @@ async function handleAPI(req: IncomingMessage, res: ServerResponse, url: URL): P
 		}
 
 		// System
+		if (pathname === "/api/system/start-websocket" && method === "POST") {
+			if (isWebSocketRunning()) return json(res, { ok: true, running: true });
+			if (!startWebSocketHandler) return json(res, { ok: false, message: tr("webui.websocketUnavailable") }, 503);
+			try {
+				await startWebSocketHandler();
+				return json(res, { ok: true, running: isWebSocketRunning() });
+			} catch (e) {
+				logger.error(`WebSocket start failed: ${errorDetail(e)}`);
+				return json(res, { ok: false, message: tr("webui.websocketStartFailed") }, 500);
+			}
+		}
 		if (pathname === "/api/system/process" && method === "GET") {
 			const mem = process.memoryUsage();
 			return json(res, { pid: process.pid, uptime: process.uptime(), memory: { rss: mem.rss, heapUsed: mem.heapUsed, heapTotal: mem.heapTotal }, nodeVersion: process.version, platform: process.platform, version: CURRENT_VERSION });
@@ -1148,8 +1181,18 @@ const server = http.createServer((req, res) => {
 	serveStatic(res, filePath);
 });
 
-export function startWebServer(onShutdown: (() => Promise<void>) | null = null): Promise<void> {
+export interface WebServerRuntime {
+	startWebSocket?: () => Promise<void>;
+	isWebSocketRunning?: () => boolean;
+}
+
+export function startWebServer(
+	onShutdown: (() => Promise<void>) | null = null,
+	runtime: WebServerRuntime = {}
+): Promise<void> {
 	if (typeof onShutdown === "function") shutdownHandler = onShutdown;
+	startWebSocketHandler = runtime.startWebSocket ?? null;
+	webSocketRunningHandler = runtime.isWebSocketRunning ?? null;
 	return new Promise<void>((resolve, reject) => {
 		const onError = (err: Error): void => {
 			server.off("listening", onListening);
