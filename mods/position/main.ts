@@ -287,7 +287,7 @@ this.Command.create("p:show", "显示当前 A B 点坐标")
 		try {
 			await fn();
 		} catch (e) {
-			this.client.tellAll(`§cPosition | §fError > §i${this.t("error.execute")}`);
+			this.client.tellAll(`§cPosition | §fError > §i${this.rawtext("error.execute")}`);
 		} finally {
 			this.job = null;
 		}
@@ -330,7 +330,7 @@ this.Command.create("p:show", "显示当前 A B 点坐标")
 				}
 			}
 		} catch (e) {
-			this.client.tellAll(`§cPosition | §fError > §i${this.t("error.testBlock")}`);
+			this.client.tellAll(`§cPosition | §fError > §i${this.rawtext("error.testBlock")}`);
 			return;
 		} finally {
 			try {
@@ -390,7 +390,7 @@ this.Command.create("p:show", "显示当前 A B 点坐标")
 				try {
 					await this.client.runCommand(`/tickingarea add ${fx1} ${absY1} ${fz1} ${fx2} ${absY2} ${fz2} ${tickName}`);
 				} catch (e) {
-					this.client.tellAll(`§cPosition | §fError > §i[tickingarea add] ${this.t("error.tickingarea")}`);
+					this.client.tellAll(`§cPosition | §fError > §i[tickingarea add] ${this.rawtext("error.tickingarea")}`);
 				}
 
 				this.client.sendCommand(`/fill ${fx1} ${absY1} ${fz1} ${fx2} ${absY2} ${fz2} ${fillBlock}${replaceBlock ? ` replace ${replaceBlock}` : ""}`);
@@ -471,7 +471,7 @@ this.Command.create("p:show", "显示当前 A B 点坐标")
 				try {
 					await this.client.runCommand(`/tickingarea add ${fx1} ${ys} ${fz1} ${fx2} ${ye} ${fz2} ${tickName}`);
 				} catch (e) {
-					this.client.tellAll(`§cPosition | §fError > §i[tickingarea add] ${this.t("error.tickingarea")}`);
+					this.client.tellAll(`§cPosition | §fError > §i[tickingarea add] ${this.rawtext("error.tickingarea")}`);
 				}
 
 				const structName = `Copy_${i}_${seg}`;
@@ -484,7 +484,7 @@ this.Command.create("p:show", "显示当前 A B 点坐标")
 						saveOk = true;
 					}
 				} catch (e) {
-					this.client.tellAll(`§cPosition | §fError > §i[structure save] ${structName}: ${this.t("error.save")}`);
+					this.client.tellAll(`§cPosition | §fError > §i[structure save] ${structName}: ${this.rawtext("error.save")}`);
 				}
 
 				try {
@@ -579,7 +579,7 @@ this.Command.create("p:show", "显示当前 A B 点坐标")
 				try {
 					await this.client.runCommand(`/tickingarea add ${tickX1} ${tickY1} ${tickZ1} ${tickX2} ${tickY2} ${tickZ2} ${tickName}`);
 				} catch (e) {
-					this.client.tellAll(`§cPosition | §fError > §i[tickingarea add] ${this.t("error.tickingarea")}`);
+					this.client.tellAll(`§cPosition | §fError > §i[tickingarea add] ${this.rawtext("error.tickingarea")}`);
 				}
 			}
 
@@ -590,7 +590,7 @@ this.Command.create("p:show", "显示当前 A B 点坐标")
 					errorCount++;
 				}
 			} catch (e) {
-				this.client.tellAll(`§cPosition | §fError > §i[structure load] ${s.name}: ${this.t("error.load")}`);
+				this.client.tellAll(`§cPosition | §fError > §i[structure load] ${s.name}: ${this.rawtext("error.load")}`);
 				errorCount++;
 			}
 

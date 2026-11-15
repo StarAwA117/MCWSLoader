@@ -415,7 +415,7 @@ this.Command.create("i:y", "确认转换操作")
 						try {
 							await this.run();
 						} catch (e) {
-							this.client.tell(`§cImage | §fError > §i${this.t("error.convert")}`, sender);
+							this.client.tell(`§cImage | §fError > §i${this.rawtext("error.convert")}`, sender);
 							this.job = null;
 						}
 					}),
@@ -497,7 +497,7 @@ this.Command.create("i:status", "查看转换进度")
 		try {
 			data = processImage(filePath, maxDim);
 		} catch (e) {
-			this.client.tell(`§cImage | §fError > §i${this.t("error.process")}`, sender);
+			this.client.tell(`§cImage | §fError > §i${this.rawtext("error.process")}`, sender);
 			return;
 		}
 

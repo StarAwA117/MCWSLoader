@@ -16,13 +16,13 @@ export default class MCFunc extends ModBase {
 	onCommand() {
 		return {
 			op: [
-this.Command.create("f:function", this.t("command.fFunction"))
+this.Command.create("f:function", this.rawtext("command.fFunction"))
 				.addString("文件路径", true)
 				.setFunc((_, filePath) => {
 					this.run(filePath);
 				}),
 
-this.Command.create("f:loop", this.t("command.fLoop"))
+this.Command.create("f:loop", this.rawtext("command.fLoop"))
 				.addString("文件路径", true)
 				.addString("循环名称", true)
 				.addFloat("间隔秒数", true)
@@ -30,7 +30,7 @@ this.Command.create("f:loop", this.t("command.fLoop"))
 					this.loop(filePath, name, interval);
 				}),
 
-this.Command.create("f:stop", this.t("command.fStop"))
+this.Command.create("f:stop", this.rawtext("command.fStop"))
 				.addOptionalString("循环名称")
 				.setFunc((_, name) => {
 					this.stop(name);
@@ -59,12 +59,12 @@ this.Command.create("f:stop", this.t("command.fStop"))
 			commands = await this.load(fileName);
 
 			if (!commands) {
-				this.client.tellAll(`§cMCFunc | §fError > §i${this.t("mcfunc.loadFailed", { name: fileName })}`);
+				this.client.tellAll(`§cMCFunc | §fError > §i${this.rawtext("mcfunc.loadFailed", { name: fileName })}`);
 				return;
 			}
 
 			if (deep === 0) {
-				this.client.tellAll(`§eMCFunc | §fRun > §i${this.t("mcfunc.running", { name: fileName })}`);
+				this.client.tellAll(`§eMCFunc | §fRun > §i${this.rawtext("mcfunc.running", { name: fileName })}`);
 			}
 		}
 		
@@ -97,13 +97,13 @@ this.Command.create("f:stop", this.t("command.fStop"))
 		const commands = await this.load(fileName);
 
 		if (!commands) {
-			this.client.tellAll(`§cMCFunc | §fError > §i${this.t("mcfunc.loadFailed", { name: fileName })}`);
+			this.client.tellAll(`§cMCFunc | §fError > §i${this.rawtext("mcfunc.loadFailed", { name: fileName })}`);
 			return;
 		}
 
 		// 检查循环名是否已存在
 		if (this.loops.has(loopName)) {
-			this.client.tellAll(`§cMCFunc | §fError > §i${this.t("mcfunc.loopExists", { name: loopName })}`);
+			this.client.tellAll(`§cMCFunc | §fError > §i${this.rawtext("mcfunc.loopExists", { name: loopName })}`);
 			return;
 		}
 
@@ -114,7 +114,7 @@ this.Command.create("f:stop", this.t("command.fStop"))
 			loopInterval *= 1000;
 		}
 
-		this.client.tellAll(`§eMCFunc | §fLoop > §i${this.t("mcfunc.loopStarted", { name: loopName })}`);
+		this.client.tellAll(`§eMCFunc | §fLoop > §i${this.rawtext("mcfunc.loopStarted", { name: loopName })}`);
 
 		// 创建定时器循环执行
 		this.loops.set(loopName, setInterval(async () => {
@@ -132,7 +132,7 @@ this.Command.create("f:stop", this.t("command.fStop"))
 			}
 
 			this.loops.clear();
-			this.client.tellAll(`§eMCFunc | §fLoop > §i${this.t("mcfunc.allStopped")}`);
+			this.client.tellAll(`§eMCFunc | §fLoop > §i${this.rawtext("mcfunc.allStopped")}`);
 			return;
 		}
 
@@ -141,9 +141,9 @@ this.Command.create("f:stop", this.t("command.fStop"))
 			clearInterval(loop);
 			this.loops.delete(loopName);
 
-			this.client.tellAll(`§eMCFunc | §fLoop > §i${this.t("mcfunc.loopStopped", { name: loopName })}`);
+			this.client.tellAll(`§eMCFunc | §fLoop > §i${this.rawtext("mcfunc.loopStopped", { name: loopName })}`);
 		} else {
-			this.client.tellAll(`§cMCFunc | §fError > §i${this.t("mcfunc.loopMissing", { name: loopName })}`);
+			this.client.tellAll(`§cMCFunc | §fError > §i${this.rawtext("mcfunc.loopMissing", { name: loopName })}`);
 		}
 	}
 

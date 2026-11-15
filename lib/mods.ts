@@ -615,7 +615,7 @@ class ModManagerBase {
 		instance.logger = new ModLogger(loggerName);
 		injectModDependencies(instance, ModClass);
 		const entry = modRegistry.getByName(name);
-		instance.t = (key: string, params?: Record<string, unknown>) => tForMod(entry?.path ?? null, config.language, key, params);
+		instance.rawtext = (key: string, params?: Record<string, unknown>) => tForMod(entry?.path ?? null, config.language, key, params);
 	}
 
 	_storageKey(name: string): string { return `mod_${name}`; }

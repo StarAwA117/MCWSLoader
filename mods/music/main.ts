@@ -331,7 +331,7 @@ this.Command.create("m:stop", "停止播放（不带参数停止全部）")
 					this.tracks = data.tracks;
 					resolve("音乐加载成功");
 				} catch (error) {
-					this.client.tell(`§cMusic | §fError > §i${this.t("error.midi")}`);
+					this.client.tell(`§cMusic | §fError > §i${this.rawtext("error.midi")}`);
 					reject(new Error("MIDI 加载失败"));
 				}
 			} else {
@@ -347,7 +347,7 @@ this.Command.create("m:stop", "停止播放（不带参数停止全部）")
 						this.tracks = data?.tracks;
 						resolve("音乐加载成功");
 					} catch (parseError) {
-						this.client.tell(`§cMusic | §fError > §i${this.t("error.json")}`);
+						this.client.tell(`§cMusic | §fError > §i${this.rawtext("error.json")}`);
 						reject(new Error("JSON 解析失败"));
 					}
 				});

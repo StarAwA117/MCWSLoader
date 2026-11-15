@@ -351,21 +351,21 @@ export default class AIHelper extends ModBase {
 	onCommand() {
 		return {
 			normal: [
-				this.Command.create("ai", this.t("command.ai"))
+				this.Command.create("ai", this.rawtext("command.ai"))
 					.addString("对话内容", true)
 					.setFunc(async (commander: string, text: string) => {
 						await this.chat(text, commander);
 					}),
 
-				this.Command.create("ai:reset", this.t("command.aiReset"))
+				this.Command.create("ai:reset", this.rawtext("command.aiReset"))
 					.setFunc((commander: string) => {
 						this.reset(commander);
-						this.client?.tellAll(`§eAI | §fSystem > §i${this.t("ai.contextReset")}`);
+						this.client?.tellAll(`§eAI | §fSystem > §i${this.rawtext("ai.contextReset")}`);
 					})
 			],
 
 			op: [
-				this.Command.create("ai:c", this.t("command.aiCommand"))
+				this.Command.create("ai:c", this.rawtext("command.aiCommand"))
 					.addString("对话内容", true)
 					.setFunc(async (commander: string, text: string) => {
 						await this.command(text, commander);
@@ -383,7 +383,7 @@ export default class AIHelper extends ModBase {
 
 		// 发言过快检测（先判定，通过后再更新时间，避免冷却被每次失败发言后移）
 		if (now - lastTime < cooldown) {
-			this.client?.tellAll(`§cAI | §fCooldown > §i${this.t("ai.cooldown")}`);
+			this.client?.tellAll(`§cAI | §fCooldown > §i${this.rawtext("ai.cooldown")}`);
 			return false;
 		}
 
@@ -403,7 +403,7 @@ export default class AIHelper extends ModBase {
 			this.client?.tellAll(`§bAI | §f${name} > §i${result}`);
 		} catch (e) {
 			this.logger.error(`AI chat failed: ${errorDetail(e)}`);
-			this.client?.tellAll(`§cAI | §fError > §i${e instanceof AIError ? this.t(e.key) : this.t("ai.error.request")}`);
+			this.client?.tellAll(`§cAI | §fError > §i${e instanceof AIError ? this.rawtext(e.key) : this.rawtext("ai.error.request")}`);
 		}
 	}
 
@@ -424,7 +424,7 @@ export default class AIHelper extends ModBase {
 				raw = await AIHelper.chat(input, "command", contents);
 			} catch (e) {
 				this.logger.error(`AI command request failed: ${errorDetail(e)}`);
-				this.client?.tellAll(`§cAI | §fError > §i${e instanceof AIError ? this.t(e.key) : this.t("ai.error.request")}`);
+				this.client?.tellAll(`§cAI | §fError > §i${e instanceof AIError ? this.rawtext(e.key) : this.rawtext("ai.error.request")}`);
 				return;
 			}
 
@@ -433,12 +433,12 @@ export default class AIHelper extends ModBase {
 				response = parseCommandResponse(raw);
 			} catch (e) {
 				this.logger.error(`AI command response invalid: ${errorDetail(e)}`);
-				this.client?.tellAll(`§cAI | §fError > §i${e instanceof AIError ? this.t(e.key) : this.t("ai.error.invalidJson")}`);
+				this.client?.tellAll(`§cAI | §fError > §i${e instanceof AIError ? this.rawtext(e.key) : this.rawtext("ai.error.invalidJson")}`);
 				return;
 			}
 
 			for (const warning of response.warnings) {
-				this.client?.tellAll(`§eAI | §fWarn > §i${this.t(warning)}`);
+				this.client?.tellAll(`§eAI | §fWarn > §i${this.rawtext(warning)}`);
 			}
 			if (response.message) this.client?.tellAll(`§bAI | §f${name} > §i${response.message}`);
 
@@ -460,7 +460,7 @@ export default class AIHelper extends ModBase {
 			if (!response.continue || results.length === 0) return;
 
 			if (round >= maxRounds) {
-				this.client?.tellAll(`§eAI | §fSystem > §i${this.t("ai.maxRounds", { max: maxRounds })}`);
+				this.client?.tellAll(`§eAI | §fSystem > §i${this.rawtext("ai.maxRounds", { max: maxRounds })}`);
 				return;
 			}
 

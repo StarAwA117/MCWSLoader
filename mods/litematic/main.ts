@@ -607,7 +607,7 @@ this.Command.create("l:y", "确认导入操作")
 						try {
 							await this.run();
 						} catch (e) {
-							this.client.tell(`§cLitematic | §fError > §i${this.t("error.import")}`, sender);
+							this.client.tell(`§cLitematic | §fError > §i${this.rawtext("error.import")}`, sender);
 							this.job = null;
 						}
 					}),
@@ -838,7 +838,7 @@ this.Command.create("l:fix", "修复被挖掉的方块 / 替换无法映射的�
 		try {
 			data = await parseLitematic(filePath);
 		} catch (e) {
-			this.client.tell(`§cLitematic | §fError > §i${this.t("error.parse")}`, sender);
+			this.client.tell(`§cLitematic | §fError > §i${this.rawtext("error.parse")}`, sender);
 			return;
 		}
 		if (!raw) trimAir(data);
@@ -1006,7 +1006,7 @@ this.Command.create("l:fix", "修复被挖掉的方块 / 替换无法映射的�
 			try {
 				await this.client.runCommand(`/tickingarea add ${absX1} ${origin.y} ${absZ1} ${absX2} ${origin.y + sy - 1} ${absZ2} litematic_${i}`);
 			} catch (e) {
-				this.client.tellAll(`§cLitematic | §fError > §i[tickingarea add] ${this.t("error.tickingarea")}`);
+				this.client.tellAll(`§cLitematic | §fError > §i[tickingarea add] ${this.rawtext("error.tickingarea")}`);
 			}
 			const fillX1 = Math.max(absX1, origin.x);
 			const fillZ1 = Math.max(absZ1, origin.z);
@@ -1303,7 +1303,7 @@ this.Command.create("l:fix", "修复被挖掉的方块 / 替换无法映射的�
 		try {
 			data = await parseLitematic(filePath);
 		} catch (e) {
-			this.client.tell(`§cLitematic | §fError > §i${this.t("error.parse")}`, sender);
+			this.client.tell(`§cLitematic | §fError > §i${this.rawtext("error.parse")}`, sender);
 			return;
 		}
 		if (!raw) trimAir(data);
@@ -1418,7 +1418,7 @@ this.Command.create("l:fix", "修复被挖掉的方块 / 替换无法映射的�
 		try {
 			data = await parseLitematic(filePath);
 		} catch (e) {
-			this.client.tell(`§cLitematic | §fError > §i${this.t("error.parse")}`, sender);
+			this.client.tell(`§cLitematic | §fError > §i${this.rawtext("error.parse")}`, sender);
 			return;
 		}
 		if (!raw) trimAir(data);
@@ -1429,7 +1429,7 @@ this.Command.create("l:fix", "修复被挖掉的方块 / 替换无法映射的�
 		try {
 			fs.writeFileSync(outPath, buildMcStructure(data));
 		} catch (e) {
-			this.client.tell(`§cLitematic | §fError > §i${this.t("error.export")}`, sender);
+			this.client.tell(`§cLitematic | §fError > §i${this.rawtext("error.export")}`, sender);
 			return;
 		}
 		this.client.tell(

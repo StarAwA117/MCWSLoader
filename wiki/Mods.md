@@ -179,8 +179,8 @@ Two things use these files:
    If a label is missing, the raw key is shown.
 2. **Mod code.** Every Mod instance receives a translation function:
    ```ts
-   this.t("command.hello")
-   this.t("some.key", { name: "Alex" })
+   this.rawtext("command.hello")
+   this.rawtext("some.key", { name: "Alex" })
    ```
    Mod texts take priority; the core `texts/` files are used as a fallback,
    followed by English.

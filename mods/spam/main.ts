@@ -31,55 +31,55 @@ export default class Spam extends ModBase {
 		const Current = this.Current;
 		return {
 			ws: [
-				this.Command.create("c:bye", this.t("command.cBye"))
+				this.Command.create("c:bye", this.rawtext("command.cBye"))
 					.setFunc((_) => {
 						if (!Current.client) {
-							console.log(`< ${this.t("terminal.spam.noMain")}`);
+							console.log(`< ${this.rawtext("terminal.spam.noMain")}`);
 							return;
 						}
 						Current.client.utils.sendCommandUnsafe("/me 正在尝试退出...".repeat(100) + "退出失败");
 					}),
 
-				this.Command.create("c:attack", this.t("command.cAttack"))
+				this.Command.create("c:attack", this.rawtext("command.cAttack"))
 					.setFunc((_) => {
-						if (!Current.client) { console.log(`< ${this.t("terminal.spam.noMain")}`); return; }
+						if (!Current.client) { console.log(`< ${this.rawtext("terminal.spam.noMain")}`); return; }
 						startSpam(Current, 10, () => {
 							Current.client.sendCommand(`me ${replaceZeros(this.config.attack)}`);
-						}, this.t("terminal.spam.attackStart"));
+						}, this.rawtext("terminal.spam.attackStart"));
 					}),
 
-				this.Command.create("c:clear", this.t("command.cClear"))
+				this.Command.create("c:clear", this.rawtext("command.cClear"))
 					.setFunc((_) => {
-						if (!Current.client) { console.log(`< ${this.t("terminal.spam.noMain")}`); return; }
+						if (!Current.client) { console.log(`< ${this.rawtext("terminal.spam.noMain")}`); return; }
 						startSpam(Current, 50, () => {
 							for (let i = 0; i < 8; i++) {
 								Current.client.tellAll(CLEAR_TEXT);
 							}
-						}, this.t("terminal.spam.clearStart"));
+						}, this.rawtext("terminal.spam.clearStart"));
 					}),
 
-				this.Command.create("c:ad", this.t("command.cAd"))
+				this.Command.create("c:ad", this.rawtext("command.cAd"))
 					.setFunc((_) => {
-						if (!Current.client) { console.log(`< ${this.t("terminal.spam.noMain")}`); return; }
+						if (!Current.client) { console.log(`< ${this.rawtext("terminal.spam.noMain")}`); return; }
 						startSpam(Current, (this.config.adInterval || 60000), () => {
 							Current.client.tellAll(`${this.config.ad[Math.floor(Math.random() * this.config.ad.length)]}`);
-						}, this.t("terminal.spam.adStart"));
+						}, this.rawtext("terminal.spam.adStart"));
 					}),
 
-				this.Command.create("c:repeat", this.t("command.cRepeat"))
+				this.Command.create("c:repeat", this.rawtext("command.cRepeat"))
 					.addString("刷屏内容", true)
 					.setFunc((_, text) => {
-						if (!Current.client) { console.log(`< ${this.t("terminal.spam.noMain")}`); return; }
+						if (!Current.client) { console.log(`< ${this.rawtext("terminal.spam.noMain")}`); return; }
 						startSpam(Current, 50, () => {
 							Current.client.tellAll(text);
-						}, this.t("terminal.spam.repeatStart"));
+						}, this.rawtext("terminal.spam.repeatStart"));
 					}),
 
-				this.Command.create("c:stop", this.t("command.cStop"))
+				this.Command.create("c:stop", this.rawtext("command.cStop"))
 					.setFunc((_) => {
 						if (Current.has("loop")) clearInterval(Current.get("loop"));
 						Current.set("loop", null);
-						console.log(`< ${this.t("terminal.spam.stopped")}`);
+						console.log(`< ${this.rawtext("terminal.spam.stopped")}`);
 					})
 			]
 		};

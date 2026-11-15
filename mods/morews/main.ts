@@ -62,7 +62,7 @@ this.Command.create("c:connect", "连接到 WebSocket 服务端")
 			// ws 错误
 			ws.on("error", (error) => {
 				// 提示
-				this.client.tellAll(`§cMoreWS | §fError > §i${this.t("error.connection")}`);
+				this.client.tellAll(`§cMoreWS | §fError > §i${this.rawtext("error.connection")}`);
 				// 删除连接
 				if (this.wss.has(ws)) this.wss.delete(ws);
 			});

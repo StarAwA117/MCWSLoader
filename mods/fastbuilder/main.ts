@@ -149,7 +149,7 @@ export default class FastBuilder extends ModBase {
 				code = fs.readFileSync(scriptPath, "utf-8");
 				this.client.tell(`§eFastBuilder | §fRun > §i加载脚本: ${input}`, sender);
 			} catch (e) {
-				this.client.tell(`§cFastBuilder | §fError > §i${this.t("error.readScript")}`, sender);
+				this.client.tell(`§cFastBuilder | §fError > §i${this.rawtext("error.readScript")}`, sender);
 				return;
 			}
 		}
@@ -189,7 +189,7 @@ export default class FastBuilder extends ModBase {
 			}
 			this.client.tell("§eFastBuilder | §fRun > §i执行完成", sender);
 		} catch (e) {
-			this.client.tell(`§cFastBuilder | §fError > §i${this.t("error.execute")}`, sender);
+			this.client.tell(`§cFastBuilder | §fError > §i${this.rawtext("error.execute")}`, sender);
 		}
 	}
 }
