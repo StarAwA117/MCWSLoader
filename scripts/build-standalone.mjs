@@ -171,7 +171,9 @@ function prepareServer() {
 function createDesktopAssets(nodePath) {
 	fs.mkdirSync(ASSETS, { recursive: true });
 	const tarPath = path.join(ASSETS, "server.tar.gz");
-	run("tar", ["-czf", tarPath, "-C", BUILD, "server"]);
+	const tarArgs = ["-czf", tarPath, "-C", BUILD, "server"];
+	if (process.platform === "win32") tarArgs.unshift("--force-local");
+	run("tar", tarArgs);
 	console.log(`server asset: ${(fs.statSync(tarPath).size / 1024 / 1024).toFixed(1)} MB`);
 	if (nodePath) {
 		const nodeDir = path.join(ASSETS, "node");

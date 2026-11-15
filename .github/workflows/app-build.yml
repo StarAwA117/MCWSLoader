@@ -96,6 +96,8 @@ jobs:
           mkdir -p "$PLUGIN/android/libnode" "$PLUGIN/android/libs/bin"
           unzip -q "$ZIP" -d "$PLUGIN/android/libnode"
           cp -R "$PLUGIN/android/libnode/bin/." "$PLUGIN/android/libs/bin/"
+          sed -i '1i set(CMAKE_CXX_STANDARD 20)' "$PLUGIN/android/CMakeLists.txt"
+          sed -i '1i set(CMAKE_CXX_STANDARD_REQUIRED ON)' "$PLUGIN/android/CMakeLists.txt"
 
       - name: Patch Linux WebView plugin for older GLib
         if: matrix.target == 'linux'
@@ -104,7 +106,10 @@ jobs:
           PLUGIN=$(find "$HOME/.pub-cache/hosted/pub.dev" -maxdepth 1 -type d -name 'webview_all_linux-*' | head -1)
           echo "webview plugin: $PLUGIN"
           grep -RIl 'G_REGEX_DEFAULT\|G_REGEX_MATCH_DEFAULT\|G_CONNECT_DEFAULT' "$PLUGIN/linux/src" | while read -r file; do
-            sed -i 's/G_REGEX_DEFAULT/G_REGEX_NONE/g; s/G_REGEX_MATCH_DEFAULT/G_REGEX_MATCH_NONE/g; s/G_CONNECT_DEFAULT/G_CONNECT_AFTER/g' "$file"
+            sed -i 's/G_REGEX_DEFAULT/0/g; s/G_REGEX_MATCH_DEFAULT/0/g; s/G_CONNECT_DEFAULT/G_CONNECT_AFTER/g' "$file"
+          done
+          grep -RIl 'cxx_std_14' "$PLUGIN/linux" | while read -r file; do
+            sed -i 's/cxx_std_14/cxx_std_17/g' "$file"
           done
           printf '\nset(CMAKE_CXX_STANDARD 17)\nset(CMAKE_CXX_STANDARD_REQUIRED ON)\n' >> build/flutter_app/linux/CMakeLists.txt
 
