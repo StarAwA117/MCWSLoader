@@ -1,0 +1,13 @@
+{
+	"extends": "./tsconfig.mods.json",
+	"compilerOptions": {
+		"noEmit": false,
+		"outDir": "build/standalone/modsout",
+		"rootDir": ".",
+		"sourceMap": false,
+		"declaration": false,
+		"declarationMap": false
+	},
+	"include": ["mods/**/*.ts", "lib/modbase.ts", "lib/types/**/*.d.ts"],
+	"exclude": ["node_modules", "web/frontend", "resources", "tmp", "logs", "build"]
+}

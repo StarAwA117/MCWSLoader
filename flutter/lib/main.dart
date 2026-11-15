@@ -1,19 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
-import 'server_setup_page.dart';
-import 'server_store.dart';
+import 'standalone_app.dart';
 
-Future<void> main() async {
+void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  final savedUrl = await ServerStore.load();
-  runApp(McwsApp(initialUrl: savedUrl));
+  runApp(const McwsApp());
 }
 
 class McwsApp extends StatelessWidget {
-  const McwsApp({super.key, this.initialUrl});
-
-  final String? initialUrl;
+  const McwsApp({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -22,15 +18,18 @@ class McwsApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         useMaterial3: true,
+        brightness: Brightness.light,
         colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF60A5FA)),
+        scaffoldBackgroundColor: const Color(0xFFF4F8FF),
+        fontFamily: 'sans-serif',
       ),
       localizationsDelegates: const [
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
-      supportedLocales: const [Locale('zh', 'CN'), Locale('en')],
-      home: ServerSetupPage(initialUrl: initialUrl),
+      supportedLocales: const [Locale('zh', 'CN'), Locale('zh', 'TW'), Locale('en')],
+      home: const StandaloneApp(),
     );
   }
 }

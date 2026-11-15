@@ -40,7 +40,8 @@
 		"ui": {
 			"theme": "star",
 			"allowedOrigins": []
-		}
+		},
+		"host": "0.0.0.0"
 	},
 	"logLevel": "info",
 	"commandPrefix": "$",
@@ -57,5 +58,6 @@
 		"autoCheck": false,
 		"allowPrerelease": false
 	},
-	"mode": "both"
+	"mode": "both",
+	"standalone": false
 }

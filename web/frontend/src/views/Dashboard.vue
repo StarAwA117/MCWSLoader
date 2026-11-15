@@ -200,7 +200,7 @@ usePolling(refresh, 3000);
 			</div>
 		</div>
 
-		<div class="card">
+		<div v-if="!status.server.standalone" class="card">
 			<div class="card-header">
 				<h2>{{ t('dashboard.serverControl') }}</h2>
 			</div>

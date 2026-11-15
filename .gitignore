@@ -36,3 +36,6 @@ tmp/
 
 # TypeScript
 *.tsbuildinfo
+
+# Generated standalone app build
+build/

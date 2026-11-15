@@ -350,7 +350,7 @@ onMounted(() => { refresh().catch(() => { message.value = t("common.networkError
 
 			</div>
 			<div v-if="activeTab === 'system'" class="tab-panel">
-				<SettingsCard :title="t('update.title')">
+				<SettingsCard v-if="!config.standalone" :title="t('update.title')">
 					<UpdatePanel />
 					<div class="switch-row" style="margin-top: 16px;">
 						<span class="switch-label">{{ t('settings.updateAutoCheck') }}</span>

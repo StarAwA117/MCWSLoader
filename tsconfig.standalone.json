@@ -1,0 +1,13 @@
+{
+	"extends": "./tsconfig.json",
+	"compilerOptions": {
+		"noEmit": false,
+		"outDir": "build/standalone/server",
+		"rootDir": ".",
+		"sourceMap": false,
+		"declaration": false,
+		"declarationMap": false
+	},
+	"include": ["main.ts", "ws.ts", "lib/**/*.ts", "web/server.ts", "lib/types/**/*.d.ts"],
+	"exclude": ["node_modules", "web/frontend", "mods", "resources", "tmp", "logs", "build", "lib/__tests__"]
+}

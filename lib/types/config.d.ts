@@ -52,6 +52,8 @@ export interface AuthConfig {
 }
 
 export interface WebConfig {
+	/** WebUI 监听地址；默认 0.0.0.0 */
+	host?: string;
 	port?: number;
 	auth?: AuthConfig;
 	ui?: { theme?: string; allowedOrigins?: string[] };
@@ -80,6 +82,8 @@ export type ServerMode = "both" | "webui" | "websocket";
 export interface AppConfig {
 	ws: WsConfig;
 	mode?: ServerMode;
+	/** 独立 Flutter 应用模式：隐藏更新和进程控制，WebUI 只监听本机 */
+	standalone?: boolean;
 	command?: CommandConfig;
 	web?: WebConfig;
 	sapi: SapiConfig;

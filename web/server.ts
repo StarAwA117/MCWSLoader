@@ -36,6 +36,7 @@ const DIST_DIR = path.join(__dirname, "frontend", "dist");
 const CONFIG_PATH = path.resolve(__dirname, "..", "config.json");
 
 const WEB_PORT = config.web?.port || 50005;
+const WEB_HOST = config.web?.host || "0.0.0.0";
 const MAX_PASSWORD_LENGTH = 1024;
 
 function authLimits(): { maxAttempts: number; windowMs: number; lockoutMs: number } {
@@ -553,6 +554,7 @@ async function handleAPI(req: IncomingMessage, res: ServerResponse, url: URL): P
 					name: config.ws.name,
 					webPort: WEB_PORT,
 					mode: config.mode ?? "both",
+					standalone: config.standalone === true,
 					websocketRunning: isWebSocketRunning()
 				},
 				connections: { count: Current.clientMods.size, mainClient: Current.client?.id || null, clients },
@@ -1300,7 +1302,7 @@ export function startWebServer(
 		};
 		server.once("error", onError);
 		server.once("listening", onListening);
-		server.listen(WEB_PORT, "0.0.0.0");
+		server.listen(WEB_PORT, WEB_HOST);
 	});
 }
 

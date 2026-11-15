@@ -11,3 +11,6 @@ build/
 # Generated platform folders (run `flutter create` to regenerate)
 # android/
 # ios/
+assets/server.tar.gz
+assets/node/node
+assets/node/node.exe

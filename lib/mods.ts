@@ -157,6 +157,8 @@ function normalizeConfig(cfg: AnyRecord): AnyRecord {
 	if (cfg.mode !== "webui" && cfg.mode !== "websocket") cfg.mode = "both";
 
 	if (!cfg.web || typeof cfg.web !== "object" || Array.isArray(cfg.web)) cfg.web = {};
+	if (typeof cfg.web.host !== "string" || !cfg.web.host) cfg.web.host = "0.0.0.0";
+	if (typeof cfg.standalone !== "boolean") cfg.standalone = false;
 	if (!cfg.web.auth || typeof cfg.web.auth !== "object" || Array.isArray(cfg.web.auth)) cfg.web.auth = {};
 	if (!cfg.sapi || typeof cfg.sapi !== "object" || Array.isArray(cfg.sapi)) cfg.sapi = {};
 	if (typeof cfg.sapi.gmsg !== "string" || !cfg.sapi.gmsg) cfg.sapi.gmsg = "gmsg";
@@ -180,6 +182,10 @@ function normalizeConfig(cfg: AnyRecord): AnyRecord {
 normalizeConfig(config);
 config.language = normalizeLanguage(config.language);
 setTextLanguage(config.language);
+const envMode = process.env.MCWS_MODE;
+if (envMode === "both" || envMode === "webui" || envMode === "websocket") config.mode = envMode;
+const envWebPort = Number(process.env.MCWS_WEB_PORT);
+if (Number.isInteger(envWebPort) && envWebPort > 0 && envWebPort <= 65535) config.web!.port = envWebPort;
 
 Command.commandPrefix = sanitizePrefix(config.commandPrefix);
 config.commandPrefix = Command.commandPrefix;
@@ -214,6 +220,10 @@ export function reloadConfig(): AppConfig {
 	config.commandPrefix = sanitizePrefix(config.commandPrefix);
 	config.language = normalizeLanguage(config.language);
 	setTextLanguage(config.language);
+	const envMode = process.env.MCWS_MODE;
+	if (envMode === "both" || envMode === "webui" || envMode === "websocket") config.mode = envMode;
+	const envWebPort = Number(process.env.MCWS_WEB_PORT);
+	if (Number.isInteger(envWebPort) && envWebPort > 0 && envWebPort <= 65535) config.web!.port = envWebPort;
 	Command.commandPrefix = config.commandPrefix;
 	// config.json 全量替换后，Mod 合并配置缓存全部失效
 	modRegistry.invalidateConfigCache();

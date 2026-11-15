@@ -1,0 +1,147 @@
+name: Build standalone apps
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Android APK
+            os: ubuntu-latest
+            target: android
+            server_target: android
+          - name: Windows
+            os: windows-latest
+            target: windows
+            server_target: desktop
+          - name: Linux
+            os: ubuntu-22.04
+            target: linux
+            server_target: desktop
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install root dependencies
+        run: npm ci
+
+      - name: Build WebUI
+        run: |
+          cd web/frontend
+          npm ci
+          npm run build
+
+      - name: Build standalone server
+        shell: bash
+        run: |
+          if [[ "${{ matrix.server_target }}" == "android" ]]; then
+            node scripts/build-standalone.mjs --target android
+          else
+            node scripts/build-standalone.mjs --target desktop --node "$(command -v node)"
+          fi
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.38.10"
+          channel: stable
+          cache: true
+
+      - name: Enable Flutter desktop
+        run: flutter config --enable-windows-desktop --enable-linux-desktop
+
+      - name: Install Java
+        if: matrix.target == 'android'
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Prepare Flutter app
+        shell: bash
+        run: bash scripts/prepare-flutter-app.sh ${{ matrix.target }}
+
+      - name: Install Android NDK
+        if: matrix.target == 'android'
+        shell: bash
+        run: |
+          SDKMANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          if [ ! -x "$SDKMANAGER" ]; then SDKMANAGER="$(command -v sdkmanager)"; fi
+          yes | "$SDKMANAGER" --install "ndk;27.0.12077973" "cmake;3.22.1" >/dev/null || true
+
+      - name: Add nodejs-mobile native libraries
+        if: matrix.target == 'android'
+        shell: bash
+        run: |
+          ZIP="$RUNNER_TEMP/nodejs-mobile.zip"
+          curl -L --fail -o "$ZIP" https://github.com/nodejs-mobile/nodejs-mobile/releases/download/v18.20.4/nodejs-mobile-v18.20.4-android.zip
+          PLUGIN=$(find "$HOME/.pub-cache/hosted/pub.dev" -maxdepth 1 -type d -name 'node_flutter-*' | head -1)
+          echo "node_flutter plugin: $PLUGIN"
+          rm -rf "$PLUGIN/android/libnode"
+          mkdir -p "$PLUGIN/android/libnode" "$PLUGIN/android/libs/bin"
+          unzip -q "$ZIP" -d "$PLUGIN/android/libnode"
+          cp -R "$PLUGIN/android/libnode/bin/." "$PLUGIN/android/libs/bin/"
+
+      - name: Install Linux desktop libraries
+        if: matrix.target == 'linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev libwebkit2gtk-4.1-dev libjavascriptcoregtk-4.1-dev
+
+      - name: Build Android APK
+        if: matrix.target == 'android'
+        working-directory: build/flutter_app
+        run: flutter build apk --release --target-platform android-arm64
+
+      - name: Build Windows app
+        if: matrix.target == 'windows'
+        working-directory: build/flutter_app
+        run: flutter build windows --release
+
+      - name: Build Linux app
+        if: matrix.target == 'linux'
+        working-directory: build/flutter_app
+        run: flutter build linux --release
+
+      - name: Package Android APK
+        if: matrix.target == 'android'
+        shell: bash
+        run: |
+          mkdir -p dist
+          cp build/flutter_app/build/app/outputs/flutter-apk/app-release.apk "dist/MCWSLoader-${GITHUB_REF_NAME:-dev}-arm64.apk"
+
+      - name: Package Windows
+        if: matrix.target == 'windows'
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force dist | Out-Null
+          $tag = if ($env:GITHUB_REF_NAME) { $env:GITHUB_REF_NAME } else { "dev" }
+          Compress-Archive -Path build/flutter_app/build/windows/x64/runner/Release/* -DestinationPath "dist/MCWSLoader-$tag-windows-x64.zip"
+
+      - name: Package Linux
+        if: matrix.target == 'linux'
+        shell: bash
+        run: |
+          mkdir -p dist
+          tar -C build/flutter_app/build/linux/x64/release/bundle -czf "dist/MCWSLoader-${GITHUB_REF_NAME:-dev}-linux-x64.tar.gz" .
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: mcwsloader-${{ matrix.target }}
+          path: dist/*
+          if-no-files-found: error
