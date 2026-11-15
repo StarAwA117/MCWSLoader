@@ -93,15 +93,15 @@ usePolling(refresh, 3000);
 					<span>WebUI {{ status.server.webPort }}</span>
 				</div>
 			</div>
+			<svg class="service-petal" viewBox="0 0 120 120" aria-hidden="true">
+				<g fill="currentColor">
+					<circle cx="60" cy="34" r="27"/>
+					<circle cx="60" cy="34" r="27" transform="rotate(90 60 60)"/>
+					<circle cx="60" cy="34" r="27" transform="rotate(180 60 60)"/>
+					<circle cx="60" cy="34" r="27" transform="rotate(270 60 60)"/>
+				</g>
+			</svg>
 			<div class="service-toggle" aria-hidden="true">
-				<svg class="service-petal" viewBox="0 0 120 120">
-					<g fill="currentColor">
-						<circle cx="60" cy="34" r="27"/>
-						<circle cx="60" cy="34" r="27" transform="rotate(90 60 60)"/>
-						<circle cx="60" cy="34" r="27" transform="rotate(180 60 60)"/>
-						<circle cx="60" cy="34" r="27" transform="rotate(270 60 60)"/>
-					</g>
-				</svg>
 				<div class="service-action">
 					<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
 						<path d="M18.36 6.64a9 9 0 1 1-12.73 0"/>
@@ -290,12 +290,11 @@ usePolling(refresh, 3000);
 
 .service-petal {
 	position: absolute;
-	top: 50%;
-	left: 50%;
-	width: 140px;
-	height: 140px;
+	top: -38px;
+	right: -30px;
+	width: 150px;
+	height: 150px;
 	color: var(--petal);
-	transform: translate(-50%, -50%);
 	transform-origin: center;
 	pointer-events: none;
 	z-index: 0;
@@ -383,8 +382,8 @@ usePolling(refresh, 3000);
 }
 
 @keyframes petal-sway {
-	0%, 100% { transform: translate(-50%, -50%) rotate(0deg) scale(1); }
-	50% { transform: translate(-50%, -50%) rotate(1.5deg) scale(1.015); }
+	0%, 100% { transform: rotate(0deg) scale(1); }
+	50% { transform: rotate(1.5deg) scale(1.015); }
 }
 
 @media (prefers-reduced-motion: reduce) {
