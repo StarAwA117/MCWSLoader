@@ -44,7 +44,9 @@ export default class Current {
 	 */
 	static addClient(client: Client, manager?: ClientModManager): Client | null {
 		if (manager) this.clientMods.set(client, manager);
-		if (!this.client) this.client = client;
+		// Only approved clients may become the main client. Pending clients stay
+		// connected so the WebUI can approve them, but must not receive commands.
+		if (!this.client && client.trusted !== false) this.client = client;
 		return this.client;
 	}
 
@@ -56,7 +58,14 @@ export default class Current {
 		this.clientMods.delete(client);
 		if (this.client !== client) return this.client;
 
-		this.client = this.clientMods.keys().next().value ?? null;
+		// Never promote a pending client. Pick the first approved remaining one.
+		this.client = null;
+		for (const candidate of this.clientMods.keys()) {
+			if (candidate.trusted !== false) {
+				this.client = candidate;
+				break;
+			}
+		}
 		// 仍有客户端时保留全局属性（如循环任务 ID），否则清理
 		if (!this.client) this.properties = {};
 		return this.client;
@@ -66,6 +75,7 @@ export default class Current {
 	 * 切换主客户端（同一连接重复调用是幂等的）
 	 */
 	static setMain(client: Client | null): Client | null {
+		if (client && client.trusted === false) return this.client;
 		if (client && !this.clientMods.has(client)) {
 			const manager = client.clientMod;
 			if (manager) this.clientMods.set(client, manager);

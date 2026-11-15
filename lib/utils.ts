@@ -306,6 +306,7 @@ export default class Utils {
 
 	/** 全局发送消息（使用 me 命令） */
 	tellAll(msg: string): void {
+		if (typeof msg !== "string") return;
 		if (this.tellAllToTell) {
 			this.tell(msg);
 			return;
@@ -321,6 +322,7 @@ export default class Utils {
 	 * @param isPrefix 是否加标识前缀
 	 */
 	tell(msg: string, current = "@a", isPrefix = true): void {
+		if (typeof msg !== "string") return;
 		const prefixParts = isPrefix
 			? [{ text: "* " }, { translate: "commands.origin.external" }, { text: " " }]
 			: [];

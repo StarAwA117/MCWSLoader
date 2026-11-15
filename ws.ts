@@ -252,8 +252,6 @@ function handleConnection(socket: WebSocket): void {
 	ws.localPlayerName = null;
 	ws._connectedAt = Date.now();
 	Current.addClient(ws, clientMod);
-	// 未批准的连接不能成为主客户端
-	if (!ws.trusted && Current.client === ws) Current.client = null;
 	if (!ws.trusted) clientMod.sapi?.stop();
 	if (isMainClient) logger.info(tr("terminal.ws.mainConnected"));
 	else if (!ws.trusted) logger.warning(tr("terminal.ws.pendingApproval", { ip: clientIP }));
@@ -374,8 +372,8 @@ async function destroy(): Promise<void> {
 async function shutdown(signal: string): Promise<void> {
 	logger.info(tr("terminal.ws.graceful", { signal }));
 	await destroy();
-	closeLogStreams();
 	logger.info(tr("terminal.ws.processEnded"));
+	await closeLogStreams();
 	process.exit(0);
 }
 

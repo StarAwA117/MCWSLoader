@@ -20,7 +20,7 @@ export function isTranslationKey(value: unknown): value is string {
 
 export function normalizeLanguage(value: unknown): LanguageId {
 	const language = String(value ?? "").trim().replace(/_/g, "-").toLowerCase();
-	if (language === "zh-tw" || language === "zh-hk" || language === "zh-mo") return "zh-TW";
+	if (language === "zh-tw" || language === "zh-hk" || language === "zh-mo" || language.includes("hant")) return "zh-TW";
 	if (language === "zh" || language.startsWith("zh-")) return "zh-CN";
 	return "en";
 }
@@ -37,9 +37,9 @@ export function parseLangText(text: string): Map<string, string> {
 		const value = line
 			.slice(separator + 1)
 			.trim()
-			.replace(/\\n/g, "\n")
-			.replace(/\\r/g, "\r")
-			.replace(/\\\\/g, "\\");
+			.replace(/\\(\\|n|r)/g, (_match, escaped: string) =>
+				escaped === "n" ? "\n" : escaped === "r" ? "\r" : "\\"
+			);
 		if (key) result.set(key, value);
 	}
 	return result;

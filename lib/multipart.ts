@@ -19,7 +19,8 @@ export type MultipartPart = MultipartFile | MultipartField;
 export type MultipartResult = Record<string, MultipartPart>;
 
 function parseMultipart(buffer: Buffer, boundary: string): MultipartResult {
-	const results: MultipartResult = {};
+	// Null prototype prevents a field named "__proto__" from replacing the result object's prototype.
+	const results: MultipartResult = Object.create(null) as MultipartResult;
 	const marker = Buffer.from(`--${boundary}`, "latin1");
 
 	// 找出所有「行首」的 boundary 位置（行首或 CRLF 之后），避免误匹配二进制内容
@@ -59,6 +60,7 @@ function parseMultipart(buffer: Buffer, boundary: string): MultipartResult {
 		const nameMatch = /name="([^"]*)"/i.exec(headerBlock);
 		if (!nameMatch?.[1]) continue;
 		const name = nameMatch[1];
+		if (name === "__proto__" || name === "prototype" || name === "constructor") continue;
 
 		const filenameMatch =
 			/filename\*=(?:UTF-8|utf-8)''([^;\r\n]+)/i.exec(headerBlock) ??

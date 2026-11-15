@@ -24,12 +24,20 @@ export interface PermissionData {
 
 const EMPTY: PermissionData = { owner: "", op: [], user: [], blocker: [] };
 
+/** Cached parsed permissions. The file is checked by mtime so manual edits still apply. */
+let cache: PermissionData | null = null;
+let cacheMtimeMs = -1;
+
+function empty(): PermissionData {
+	return { ...EMPTY, op: [], user: [], blocker: [] };
+}
+
 function stringArray(value: unknown): string[] {
 	return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : [];
 }
 
 function normalize(data: unknown): PermissionData {
-	if (!data || typeof data !== "object") return { ...EMPTY, op: [], user: [], blocker: [] };
+	if (!data || typeof data !== "object") return empty();
 	const record = data as Record<string, unknown>;
 	return {
 		owner: typeof record.owner === "string" ? record.owner : "",
@@ -40,22 +48,38 @@ function normalize(data: unknown): PermissionData {
 }
 
 function load(): PermissionData {
-	// chmod 失败（Windows/只读挂载）不应导致权限文件被当成空数据
-	try { fs.chmodSync(PERMISSION_FILE, 0o600); } catch { /* ignore */ }
 	try {
-		return normalize(JSON.parse(fs.readFileSync(PERMISSION_FILE, "utf-8")));
+		const stat = fs.statSync(PERMISSION_FILE);
+		if (cache && cacheMtimeMs === stat.mtimeMs) return cache;
+		// chmod 失败（Windows/只读挂载）不应导致权限文件被当成空数据
+		try { fs.chmodSync(PERMISSION_FILE, 0o600); } catch { /* ignore */ }
+		const data = normalize(JSON.parse(fs.readFileSync(PERMISSION_FILE, "utf-8")));
+		cache = data;
+		cacheMtimeMs = stat.mtimeMs;
+		return data;
 	} catch {
-		return { ...EMPTY, op: [], user: [], blocker: [] };
+		return empty();
 	}
 }
 
 function save(data: PermissionData): void {
-	fs.writeFileSync(PERMISSION_FILE, JSON.stringify(data, null, 2), { encoding: "utf-8", mode: 0o600 });
+	const temporary = `${PERMISSION_FILE}.tmp`;
+	fs.writeFileSync(temporary, JSON.stringify(data, null, 2), { encoding: "utf-8", mode: 0o600 });
+	fs.renameSync(temporary, PERMISSION_FILE);
+	try { fs.chmodSync(PERMISSION_FILE, 0o600); } catch { /* ignore */ }
+	cache = data;
+	try { cacheMtimeMs = fs.statSync(PERMISSION_FILE).mtimeMs; } catch { cacheMtimeMs = -1; }
 }
 
 export default class PermissionManager {
 	static get(): PermissionData {
-		return load();
+		const data = load();
+		return {
+			owner: data.owner,
+			op: [...data.op],
+			user: [...data.user],
+			blocker: [...data.blocker]
+		};
 	}
 
 	static set(data: unknown): true | Error {
@@ -71,7 +95,7 @@ export default class PermissionManager {
 	 */
 	static query(name: string): number {
 		const data = load();
-		const lower = name.toLowerCase();
+		const lower = String(name ?? "").toLowerCase();
 		if (data.owner && data.owner.toLowerCase() === lower) return LEVELS.owner;
 		if (data.op.some((n) => n.toLowerCase() === lower)) return LEVELS.op;
 		if (data.user.some((n) => n.toLowerCase() === lower)) return LEVELS.user;
@@ -85,13 +109,13 @@ export default class PermissionManager {
 	 * @param name 玩家名
 	 */
 	static add(type: PermissionGroup | string, name: string): true | Error {
-		if (!(type in LEVELS)) return new Error(`未知权限类型: ${type}`);
+		if (!Object.prototype.hasOwnProperty.call(LEVELS, type)) return new Error(`未知权限类型: ${type}`);
 		const data = load();
 		if (type === "owner") {
 			data.owner = name;
 		} else {
 			const group = type as Exclude<PermissionGroup, "owner">;
-			if (!data[group].includes(name)) data[group].push(name);
+			if (!data[group].some((entry) => entry.toLowerCase() === name.toLowerCase())) data[group].push(name);
 		}
 		save(data);
 		return true;
@@ -103,13 +127,13 @@ export default class PermissionManager {
 	 * @param name 玩家名
 	 */
 	static remove(type: PermissionGroup | string, name: string): true | Error {
-		if (!(type in LEVELS)) return new Error(`未知权限类型: ${type}`);
+		if (!Object.prototype.hasOwnProperty.call(LEVELS, type)) return new Error(`未知权限类型: ${type}`);
 		const data = load();
 		if (type === "owner") {
 			data.owner = "";
 		} else {
 			const group = type as Exclude<PermissionGroup, "owner">;
-			data[group] = data[group].filter((n) => n !== name);
+			data[group] = data[group].filter((n) => n.toLowerCase() !== name.toLowerCase());
 		}
 		save(data);
 		return true;

@@ -23,6 +23,11 @@ for (const signal of ["SIGINT", "SIGTERM"]) {
 	process.on(signal, () => child.kill(signal));
 }
 
+child.on("error", (error) => {
+	console.error(`Failed to start server: ${error.message}`);
+	process.exit(1);
+});
+
 child.on("exit", (code, signal) => {
 	if (signal) process.kill(process.pid, signal);
 	else process.exit(code ?? 0);

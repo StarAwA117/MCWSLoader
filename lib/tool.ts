@@ -129,7 +129,8 @@ export default class Tool {
 						if (perm >= 2) cmds.push(...cmdMap.op);
 						if (perm >= 3) cmds.push(...cmdMap.owner);
 
-						const kw = keyword.toLowerCase();
+						const term = String(keyword ?? "").trim();
+						const kw = term.toLowerCase();
 						const matched = cmds.filter(
 							(cmd) =>
 								cmd.name.toLowerCase().includes(kw) ||
@@ -148,9 +149,10 @@ export default class Tool {
 							matched,
 							page || 1,
 							5,
-							`t:search ${keyword}`,
-							`命令搜索 "${keyword}"`,
-							prefix
+							term ? `t:search ${term}` : "t:search",
+							this.rawtext("core.help.searchTitle"),
+							prefix,
+							(key, params) => this.rawtext(key, params)
 						);
 						lines.forEach((line) => this.client.tell(line, sender));
 					}),
@@ -166,7 +168,7 @@ export default class Tool {
 
 			op: [
 				this.Command.create("t:send", this.rawtext("core.msg.fde335fd21"))
-					.addString(this.rawtext("core.param.acbc5a5d36"), true)
+					.addString(this.rawtext("core.param.acbc5a5d36"))
 					.setFunc((_: string, text: string) => {
 						this.client.tellAll(text);
 					}),
@@ -190,7 +192,7 @@ export default class Tool {
 					}),
 
 				this.Command.create("t:cmd", this.rawtext("core.msg.9d34ca936d"))
-					.addString(this.rawtext("core.param.a95e895a9b"), true)
+					.addString(this.rawtext("core.param.a95e895a9b"))
 					.setFunc(async (_: string, command: string) => {
 						try {
 							const data = await this.client.runCommand(command);
@@ -291,7 +293,7 @@ export default class Tool {
 
 					// 主客户端切换后通知所有服务端 Mod 并重新挂载 SAPI
 					this.ServerModManager.onMainClientSwitch(oldClient, this.client);
-					this.Current.client = this.client;
+					this.Current.setMain(this.client);
 					this.ServerModManager.attachMainClient(this.client);
 
 					this.client.tellAll(this.rawtext("core.msg.ac46e35c76", { p0: sender }));
@@ -339,7 +341,7 @@ export default class Tool {
 				}),
 
 				this.Command.create("t:exec", this.rawtext("core.msg.ae4b234e0d"))
-					.addString(this.rawtext("core.param.a95e895a9b"), true)
+					.addString(this.rawtext("core.param.a95e895a9b"))
 					.setFunc((_: string, command: string) => {
 						if (this.config?.command?.allowShellExec !== true) {
 							this.client.tellAll(this.rawtext("core.msg.0892755781"));

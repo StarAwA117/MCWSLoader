@@ -29,14 +29,16 @@ interface LogSink {
 	bytes: number;
 	rotating: boolean;
 	pending: string[];
+	broken: boolean;
 }
 
 /** 日志文件流缓存 */
 const logStreams: Record<string, LogSink> = {};
+let closing = false;
 
 function getMinLevel(): number {
-	const level = config.logLevel ?? "";
-	return LOG_LEVELS[level] ?? LOG_LEVELS.info ?? 1;
+	const level = String(config.logLevel ?? "");
+	return Object.prototype.hasOwnProperty.call(LOG_LEVELS, level) ? LOG_LEVELS[level]! : LOG_LEVELS.info!;
 }
 
 /**
@@ -73,7 +75,13 @@ function openLogSink(name: string): LogSink {
 		}
 	} catch { /* ignore */ }
 	const stream = fs.createWriteStream(file, { flags: "a", mode: 0o600 });
-	const sink: LogSink = { stream, bytes, rotating: false, pending: [] };
+	const sink: LogSink = { stream, bytes, rotating: false, pending: [], broken: false };
+	// A disk-full or permission error must not crash the whole process through
+	// an unhandled stream "error" event. Stop writing to this sink instead.
+	stream.on("error", (error) => {
+		sink.broken = true;
+		console.error(`[logger] write ${name}.log failed: ${error.message}`);
+	});
 	logStreams[name] = sink;
 	return sink;
 }
@@ -89,6 +97,7 @@ function startRotation(name: string, oldSink: LogSink): void {
 
 	// 等 end 回调（数据已 flush、fd 即将关闭）后再重命名，避免文件还没创建/仍在写
 	oldSink.stream.end(() => {
+		if (closing) return;
 		const base = logPath(name);
 		try { fs.rmSync(`${base}.${LOG_BACKUPS}`, { force: true }); } catch (e) {
 			console.error(`[logger] remove old log failed: ${(e as Error).message}`);
@@ -117,8 +126,10 @@ function startRotation(name: string, oldSink: LogSink): void {
 }
 
 function writeLog(name: string, message: string): void {
+	if (closing) return;
 	const data = `${message}\n`;
 	const sink = getLogStream(name);
+	if (sink.broken) return;
 
 	// 正在轮转：先排队，完成后由 startRotation 写入新文件
 	if (sink.rotating) {
@@ -137,16 +148,27 @@ function writeLog(name: string, message: string): void {
 	sink.bytes += bytes;
 }
 
-/** 关闭所有日志文件流 */
-export function closeLogStreams(): void {
-	for (const name of Object.keys(logStreams)) {
+/** 关闭所有日志文件流并等待缓冲数据落盘 */
+export function closeLogStreams(): Promise<void> {
+	closing = true;
+	const sinks = Object.values(logStreams);
+	for (const name of Object.keys(logStreams)) delete logStreams[name];
+	return Promise.all(sinks.map((sink) => new Promise<void>((resolve) => {
+		let settled = false;
+		const done = (): void => {
+			if (settled) return;
+			settled = true;
+			resolve();
+		};
+		// Never let shutdown hang because a stream is stuck.
+		const timer = setTimeout(done, 1000);
+		if (typeof timer.unref === "function") timer.unref();
 		try {
-			logStreams[name]?.stream.end();
+			sink.stream.end(done);
 		} catch {
-			// ignore
+			done();
 		}
-		delete logStreams[name];
-	}
+	}))).then(() => undefined);
 }
 
 /** Logger utility class */

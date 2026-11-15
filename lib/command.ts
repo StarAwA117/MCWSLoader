@@ -252,7 +252,9 @@ export default class Command {
 			}
 
 			// 基础类型；未知类型原样透传文本
-			const parser = PARAM_PARSERS[type];
+			const parser = Object.prototype.hasOwnProperty.call(PARAM_PARSERS, type)
+				? PARAM_PARSERS[type]
+				: null;
 			const parsed = parser ? parser(text ?? "") : { value: text };
 			if (parsed.error) return { status: false, message: parsed.error };
 			resultList.push(parsed.value);

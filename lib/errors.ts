@@ -52,6 +52,7 @@ const ERROR_MESSAGES: Array<[RegExp, string]> = [
 	[/client not found/i, "客户端不存在或已经断开"],
 	[/message is required/i, "消息内容不能为空"],
 	[/new password is required/i, "请输入新密码"],
+	[/password is too long/i, "密码长度超出限制"],
 	[/incorrect old password/i, "当前密码不正确"],
 	[/password update failed/i, "密码更新失败，请稍后重试"],
 	[/manifest file not found/i, "没有找到 manifest.json"],

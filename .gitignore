@@ -1,6 +1,8 @@
 # Config
 config.json
+config.json.tmp
 permission.json
+permission.json.tmp
 mods/**/config.json
 mods/mods_config.json
 mods/mods_config.json.tmp

@@ -15,7 +15,7 @@ import type { Client } from "./types/client.js";
 import type { ModConstructor, ModEntry, ModSAPI } from "./types/mod.js";
 import type { CommandResponse } from "./types/config.js";
 import { errorDetail, toUserError } from "./errors.js";
-import { isTranslationKey, tForMod } from "./texts.js";
+import { isTranslationKey, normalizeLanguage, tForMod } from "./texts.js";
 
 type AnyRecord = Record<string, any>;
 
@@ -94,16 +94,28 @@ try {
 } catch (e) {
 	throw new Error(`Failed to read config.json: ${(e as Error).message}`);
 }
-export const config = sanitizeConfigObject(JSON.parse(rawConfig)) as AppConfig;
+let parsedConfig: unknown;
+try {
+	parsedConfig = JSON.parse(rawConfig);
+} catch (e) {
+	throw new Error(`Failed to parse config.json: ${(e as Error).message}`);
+}
+if (!parsedConfig || typeof parsedConfig !== "object" || Array.isArray(parsedConfig)) {
+	throw new Error("config.json must contain a JSON object");
+}
+export const config = sanitizeConfigObject(parsedConfig) as AppConfig;
 
 // 配置可能包含密码哈希，启动时收紧权限（Windows 上 chmod 语义有限，忽略失败）
 try { fs.chmodSync(CONFIG_PATH, 0o600); } catch { /* ignore */ }
 
 // 兼容旧版配置结构，将 safety/顶层 rateLimit 迁移到新路径
 function normalizeConfig(cfg: AnyRecord): AnyRecord {
-	if (!cfg || typeof cfg !== "object") return cfg;
-	const conn: AnyRecord = (cfg.ws && cfg.ws.connection) || {};
-	const cmd: AnyRecord = cfg.command || {};
+	if (!cfg || typeof cfg !== "object" || Array.isArray(cfg)) return cfg;
+	if (!cfg.ws || typeof cfg.ws !== "object" || Array.isArray(cfg.ws)) cfg.ws = { name: "MCWSLoader", port: 8080 };
+	if (!cfg.ws.connection || typeof cfg.ws.connection !== "object" || Array.isArray(cfg.ws.connection)) cfg.ws.connection = {};
+	if (!cfg.command || typeof cfg.command !== "object" || Array.isArray(cfg.command)) cfg.command = {};
+	const conn: AnyRecord = cfg.ws.connection;
+	const cmd: AnyRecord = cfg.command;
 	// 旧 safety 连接相关 -> ws.connection
 	const safety: AnyRecord = cfg.safety || {};
 	if (safety.rateLimitWindow !== undefined && conn.rateLimitWindow === undefined) conn.rateLimitWindow = safety.rateLimitWindow;
@@ -113,7 +125,9 @@ function normalizeConfig(cfg: AnyRecord): AnyRecord {
 	if (safety.enableConnectionRateLimit !== undefined && conn.enableConnectionRateLimit === undefined) conn.enableConnectionRateLimit = safety.enableConnectionRateLimit;
 	if (safety.perMessageDeflate !== undefined && conn.perMessageDeflate === undefined) conn.perMessageDeflate = safety.perMessageDeflate;
 	if (safety.maxPayload !== undefined && conn.maxPayload === undefined) conn.maxPayload = safety.maxPayload;
-	if (!cfg.ws) cfg.ws = { name: "MCWSLoader", port: 8080 };
+	if (!cfg.ws.name) cfg.ws.name = "MCWSLoader";
+	cfg.ws.port = Number(cfg.ws.port);
+	if (!Number.isInteger(cfg.ws.port) || cfg.ws.port < 1 || cfg.ws.port > 65535) cfg.ws.port = 8080;
 	if (!cfg.ws.host) cfg.ws.host = "127.0.0.1";
 	cfg.ws.connection = conn;
 	// 默认要求批准；loopback 连接在 ws.ts 中自动信任，所以本机使用无感
@@ -124,12 +138,12 @@ function normalizeConfig(cfg: AnyRecord): AnyRecord {
 	if (safety.commandMaxLength !== undefined && cmd.maxLength === undefined) cmd.maxLength = safety.commandMaxLength;
 	// 旧顶层 rateLimit.command -> command.rateLimit
 	const oldRate = (cfg.rateLimit && cfg.rateLimit.command) || {};
-	const rate = (cmd.rateLimit) || {};
+	const rate: AnyRecord = (cmd.rateLimit && typeof cmd.rateLimit === "object" && !Array.isArray(cmd.rateLimit)) ? cmd.rateLimit : {};
 	if (oldRate.enabled !== undefined && rate.enabled === undefined) rate.enabled = oldRate.enabled;
 	if (oldRate.windowMs !== undefined && rate.windowMs === undefined) rate.windowMs = oldRate.windowMs;
 	if (oldRate.maxPerWindow !== undefined && rate.maxPerWindow === undefined) rate.maxPerWindow = oldRate.maxPerWindow;
 	cmd.rateLimit = rate;
-	if (!cmd.playerRateLimit || typeof cmd.playerRateLimit !== "object") cmd.playerRateLimit = {};
+	if (!cmd.playerRateLimit || typeof cmd.playerRateLimit !== "object" || Array.isArray(cmd.playerRateLimit)) cmd.playerRateLimit = {};
 	if (cmd.playerRateLimit.enabled === undefined) cmd.playerRateLimit.enabled = true;
 	if (cmd.playerRateLimit.windowMs === undefined) cmd.playerRateLimit.windowMs = 5000;
 	if (cmd.playerRateLimit.maxPerWindow === undefined) cmd.playerRateLimit.maxPerWindow = 10;
@@ -142,15 +156,18 @@ function normalizeConfig(cfg: AnyRecord): AnyRecord {
 
 	if (cfg.mode !== "webui" && cfg.mode !== "websocket") cfg.mode = "both";
 
-	if (!cfg.web || typeof cfg.web !== "object") cfg.web = {};
+	if (!cfg.web || typeof cfg.web !== "object" || Array.isArray(cfg.web)) cfg.web = {};
+	if (!cfg.web.auth || typeof cfg.web.auth !== "object" || Array.isArray(cfg.web.auth)) cfg.web.auth = {};
 	if (!cfg.sapi || typeof cfg.sapi !== "object" || Array.isArray(cfg.sapi)) cfg.sapi = {};
-	if (!cfg.sapi.gmsg) cfg.sapi.gmsg = "gmsg";
-	if (!cfg.sapi.smsg) cfg.sapi.smsg = "smsg";
+	if (typeof cfg.sapi.gmsg !== "string" || !cfg.sapi.gmsg) cfg.sapi.gmsg = "gmsg";
+	if (typeof cfg.sapi.smsg !== "string" || !cfg.sapi.smsg) cfg.sapi.smsg = "smsg";
 	if (!cfg.utils || typeof cfg.utils !== "object" || Array.isArray(cfg.utils)) cfg.utils = {};
 	if (cfg.utils.tellAllToTell === undefined) cfg.utils.tellAllToTell = false;
 	if (cfg.utils.enablePolling === undefined) cfg.utils.enablePolling = true;
 
-	if (!cfg.web.ui || typeof cfg.web.ui !== "object") cfg.web.ui = {};
+	cfg.web.port = Number(cfg.web.port);
+	if (!Number.isInteger(cfg.web.port) || cfg.web.port < 1 || cfg.web.port > 65535) cfg.web.port = 50005;
+	if (!cfg.web.ui || typeof cfg.web.ui !== "object" || Array.isArray(cfg.web.ui)) cfg.web.ui = {};
 	if (typeof cfg.web.ui.theme !== "string" || !/^[a-z0-9][a-z0-9-]{0,31}$/.test(cfg.web.ui.theme)) cfg.web.ui.theme = "star";
 	if (!Array.isArray(cfg.web.ui.allowedOrigins)) cfg.web.ui.allowedOrigins = [];
 	cfg.web.ui.allowedOrigins = cfg.web.ui.allowedOrigins.map((item: unknown) => String(item));
@@ -161,6 +178,7 @@ function normalizeConfig(cfg: AnyRecord): AnyRecord {
 	return cfg;
 }
 normalizeConfig(config);
+config.language = normalizeLanguage(config.language);
 
 Command.commandPrefix = sanitizePrefix(config.commandPrefix);
 config.commandPrefix = Command.commandPrefix;
@@ -170,7 +188,7 @@ config.commandPrefix = Command.commandPrefix;
 function normalizeModEntry(value: unknown): string | null {
 	if (typeof value !== "string" || !value) return null;
 	const normalized = value.replace(/\\/g, "/");
-	if (normalized.startsWith("/") || /^[A-Za-z]:/.test(normalized) || normalized.split("/").includes("..")) {
+	if (normalized === "." || normalized === ".." || normalized.startsWith("/") || /^[A-Za-z]:/.test(normalized) || normalized.split("/").includes("..")) {
 		logger.warning(`Mod entry path rejected: ${value}`);
 		return null;
 	}
@@ -182,13 +200,18 @@ function sanitizePrefix(prefix: unknown): string {
 }
 
 export function reloadConfig(): AppConfig {
-	const fresh = sanitizeConfigObject(JSON.parse(readConfigText())) as AppConfig;
+	const parsed = JSON.parse(readConfigText()) as unknown;
+	if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+		throw new Error("config.json must contain a JSON object");
+	}
+	const fresh = sanitizeConfigObject(parsed) as AppConfig;
 	const prevPrefix = Command.commandPrefix;
 	for (const k of Object.keys(config)) delete config[k];
 	Object.assign(config, fresh);
 	normalizeConfig(config as AnyRecord);
 	if (fresh.commandPrefix == null) config.commandPrefix = prevPrefix;
 	config.commandPrefix = sanitizePrefix(config.commandPrefix);
+	config.language = normalizeLanguage(config.language);
 	Command.commandPrefix = config.commandPrefix;
 	// config.json 全量替换后，Mod 合并配置缓存全部失效
 	modRegistry.invalidateConfigCache();
@@ -321,8 +344,9 @@ class ModRegistry {
 				try { fs.chmodSync(configPath, 0o600); } catch { /* ignore */ }
 			}
 
-			// 配置损坏时回退为空对象，不应因此丢掉整个 Mod
-			const modConfig: AnyRecord = fs.existsSync(configPath) ? (this._readJson(configPath) || {}) : {};
+			// 配置损坏时回退为空对象，不应因此丢掉整个 Mod。
+			// 同时清理原型污染键，避免第三方 Mod 配置进入合并缓存或 WebUI 编辑器。
+			const modConfig: AnyRecord = sanitizeConfigObject(fs.existsSync(configPath) ? (this._readJson(configPath) || {}) : {});
 
 			if (this._ensureModInConfig(modsConfig, modId)) changed = true;
 			const enabled = modsConfig.get(modId)?.enabled ?? false;

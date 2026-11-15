@@ -16,6 +16,9 @@ export function resolveCaseInsensitivePath(
 	if (!baseDir || !relativePath) return null;
 
 	const normalized = relativePath.replace(/\\/g, "/");
+	if (normalized.startsWith("/") || /^[A-Za-z]:/.test(normalized) || normalized.split("/").includes("..")) {
+		return null;
+	}
 	const direct = path.resolve(baseDir, normalized);
 	if (fs.existsSync(direct)) return direct;
 

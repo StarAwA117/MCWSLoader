@@ -43,17 +43,27 @@ const configPath = path.join(__dirname, "config.json");
 const configExamplePath = path.join(__dirname, "config.example.json");
 if (!fs.existsSync(configPath) && fs.existsSync(configExamplePath)) {
 	fs.copyFileSync(configExamplePath, configPath);
+	try { fs.chmodSync(configPath, 0o600); } catch { /* ignore */ }
 	console.log(`< ${tr("terminal.configCreated")}`);
 }
 
 if (fs.existsSync(configPath)) {
-	const cfg = JSON.parse(fs.readFileSync(configPath, "utf-8")) as {
+	let cfg: {
 		language?: string;
 		update?: { autoCheck?: boolean; allowPrerelease?: boolean };
 	};
+	try {
+		const parsed = JSON.parse(fs.readFileSync(configPath, "utf-8")) as unknown;
+		if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) throw new Error("not an object");
+		cfg = parsed as typeof cfg;
+	} catch {
+		console.error(`< ${tr("terminal.configInvalid")}`);
+		process.exit(1);
+	}
 	if (!cfg.language) {
 		cfg.language = bootLanguage;
-		fs.writeFileSync(configPath, `${JSON.stringify(cfg, null, "\t")}\n`, "utf-8");
+		fs.writeFileSync(configPath, `${JSON.stringify(cfg, null, "\t")}\n`, { encoding: "utf-8", mode: 0o600 });
+		try { fs.chmodSync(configPath, 0o600); } catch { /* ignore */ }
 		console.log(`< ${tr("terminal.languageDefault", { language: cfg.language })}`);
 	}
 	if (cfg.update?.autoCheck) {

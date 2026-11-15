@@ -44,11 +44,14 @@ export function removeDir(dir: string | null | undefined): void {
 
 /** 清理文件夹名，避免路径穿越 / 非法字符 */
 export function sanitizeFolderName(name: unknown): string {
-	const cleaned = String(name ?? "")
+	const raw = String(name ?? "").trim();
+	if (!raw || raw === "." || raw === "..") return "mod";
+	const cleaned = raw
 		.replace(/[\\/:*?"<>|\x00-\x1f]/g, "_")
 		.replace(/\.\.+/g, "_")
-		.trim();
-	return cleaned || "mod";
+		.trim()
+		.replace(/[. ]+$/g, "");
+	return cleaned && cleaned !== "." && cleaned !== ".." ? cleaned : "mod";
 }
 
 const MAX_ZIP_ENTRIES = 5000;
