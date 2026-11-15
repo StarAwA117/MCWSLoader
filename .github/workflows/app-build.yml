@@ -27,7 +27,7 @@ jobs:
             target: windows
             server_target: desktop
           - name: Linux
-            os: ubuntu-22.04
+            os: ubuntu-latest
             target: linux
             server_target: desktop
           - name: macOS
@@ -49,7 +49,7 @@ jobs:
         run: |
           cd web/frontend
           npm ci
-          npm run build
+          VITE_STANDALONE=1 VITE_API_BASE=http://127.0.0.1:50100 npm run build
 
       - name: Build standalone server
         shell: bash
@@ -105,34 +105,13 @@ jobs:
           sed -i '1i set(CMAKE_CXX_STANDARD 20)' "$PLUGIN/android/CMakeLists.txt"
           sed -i '1i set(CMAKE_CXX_STANDARD_REQUIRED ON)' "$PLUGIN/android/CMakeLists.txt"
           sed -i 's/abiFilters "armeabi-v7a", "arm64-v8a", "x86_64"/abiFilters "arm64-v8a"/' "$PLUGIN/android/build.gradle"
-          python3 - "$PLUGIN" <<'PY'
-          import sys
-          from pathlib import Path
-          p = Path(sys.argv[1]) / "android/src/main/kotlin/org/binbard/node_flutter/NodeFlutterPlugin.kt"
-          s = p.read_text()
-          import re
-          s = s.replace('arrayOf("node", "$nodeJsProjectPath/$mainFileName")', 'arrayOf("node", "--max-old-space-size=128", "$nodeJsProjectPath/$mainFileName")')
-          s = s.replace('val title = options?.get("title") as? String ?: "Node Service"', 'waitForInit()\n          val title = options?.get("title") as? String ?: "Node Service"', 1)
-          # The Flutter UI process must not load the 60+ MB Node shared library.
-          # NodeService runs in the :node process and loads it only there.
-          s = re.sub(r'    init \{.*?System\.loadLibrary\("node"\)\n    \}\n', '', s, count=1, flags=re.S)
-          p.write_text(s)
-          service = p.parent / "NodeService.kt"
-          ss = service.read_text()
-          ss = ss.replace('arrayOf("node", "$nodeJsProjectPath/$mainFileName")', 'arrayOf("node", "--max-old-space-size=128", "$nodeJsProjectPath/$mainFileName")')
-          service.write_text(ss)
-          manifest = p.parents[4] / "AndroidManifest.xml"
-          ms = manifest.read_text()
-          if 'android:process=":node"' not in ms:
-              ms = ms.replace('<service android:name=".NodeService"', '<service android:name=".NodeService" android:process=":node"', 1)
-          manifest.write_text(ms)
-          PY
+          python3 scripts/patch-node-flutter.py "$PLUGIN"
 
       - name: Install Linux desktop libraries
         if: matrix.target == 'linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev
+          sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev libwebkit2gtk-4.1-dev
 
       - name: Build Android APK
         if: matrix.target == 'android'

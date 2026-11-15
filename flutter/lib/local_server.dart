@@ -18,21 +18,24 @@ class LocalServer {
   bool get isAndroid => Platform.isAndroid;
 
   Future<void> start() async {
-    if (_started) return;
-    if (isAndroid) {
-      // The future resolves when Node exits, so do not await it here; poll the API instead.
-      unawaited(Nodejs.startService(
-        'main.js',
-        title: 'MCWSLoader',
-        content: '本地服务运行中',
-        redirectOutputToLogcat: true,
-      ).catchError((Object e) {
-        debugPrint('Node service start failed: $e');
-      }));
-    } else {
-      await _startDesktop();
+    // A previous readiness poll may have failed while Node was still copying
+    // assets. Keep the service running, but allow retry to poll the API again.
+    if (!_started) {
+      if (isAndroid) {
+        // The future resolves when Node exits, so do not await it here; poll the API instead.
+        unawaited(Nodejs.startService(
+          'main.js',
+          title: 'MCWSLoader',
+          content: '本地服务运行中',
+          redirectOutputToLogcat: true,
+        ).catchError((Object e) {
+          debugPrint('Node service start failed: $e');
+        }));
+      } else {
+        await _startDesktop();
+      }
+      _started = true;
     }
-    _started = true;
     await waitUntilReady();
   }
 
@@ -60,7 +63,7 @@ class LocalServer {
       workingDirectory: serverDir.path,
       environment: {
         ...Platform.environment,
-        'MCWS_MODE': 'webui',
+        'MCWS_MODE': 'gui',
         'MCWS_WEB_PORT': '50100',
       },
       runInShell: false,
@@ -89,7 +92,7 @@ class LocalServer {
   }
 
   Future<void> waitUntilReady() async {
-    final deadline = DateTime.now().add(const Duration(seconds: 45));
+    final deadline = DateTime.now().add(const Duration(seconds: 60));
     final client = HttpClient();
     try {
       while (DateTime.now().isBefore(deadline)) {

@@ -158,6 +158,15 @@ function prepareServer() {
 	});
 	// The GUI launches compiled main.js directly; tsx/esbuild are not needed at
 	// runtime and account for a noticeable part of the standalone package.
+	// Also remove tsx from dependencies: main.ts checks every declared dependency
+	// at boot and would otherwise try to run `npm install` inside the app.
+	const serverPkgPath = path.join(SERVER, "package.json");
+	const serverPkg = JSON.parse(fs.readFileSync(serverPkgPath, "utf-8"));
+	if (serverPkg.dependencies) {
+		delete serverPkg.dependencies.tsx;
+	}
+	delete serverPkg.devDependencies;
+	fs.writeFileSync(serverPkgPath, JSON.stringify(serverPkg, null, "\t") + "\n");
 	for (const name of ["tsx", "esbuild", "@esbuild"]) {
 		fs.rmSync(path.join(SERVER, "node_modules", name), { recursive: true, force: true });
 	}
@@ -196,6 +205,17 @@ function createDesktopAssets(nodePath) {
 	fs.writeFileSync(path.join(ASSETS, ".gitkeep"), "");
 }
 
+function copyWebuiAssets() {
+	const dist = path.join(ROOT, "web", "frontend", "dist-standalone");
+	if (!fs.existsSync(path.join(dist, "index.html"))) {
+		throw new Error("web/frontend/dist-standalone/index.html is missing; build the WebUI with VITE_STANDALONE=1 first");
+	}
+	const target = path.join(ASSETS, "webui");
+	fs.rmSync(target, { recursive: true, force: true });
+	copyDir(dist, target);
+	console.log(`WebUI assets: ${target}`);
+}
+
 function createAndroidProject() {
 	const project = path.join(BUILD, "android", "nodejs-project");
 	fs.rmSync(path.dirname(project), { recursive: true, force: true });
@@ -215,4 +235,5 @@ const args = parseArgs();
 prepareServer();
 if (args.target === "android") createAndroidProject();
 else createDesktopAssets(args.node || process.execPath);
+copyWebuiAssets();
 console.log("Standalone server build complete.");

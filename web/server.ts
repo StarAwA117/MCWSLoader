@@ -78,9 +78,24 @@ function requireWebSocket(res: ServerResponse): boolean {
 }
 function applyCors(req: IncomingMessage, res: ServerResponse): void {
 	const origin = req.headers.origin;
+	if (!origin) return;
+	// 独立版把 Vue 资源放进 WebView 的 file:// 页面，浏览器的 Origin 是
+	// "null"。只对 loopback 请求放行该来源，不开放给任意网页。
+	const standaloneLocal = config.standalone === true && isLoopbackAddress(req.socket.remoteAddress);
+	const fileOrigin = origin === "null" || origin.startsWith("file://");
+	if (standaloneLocal && fileOrigin) {
+		res.setHeader("Access-Control-Allow-Origin", origin);
+		res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+		res.setHeader("Access-Control-Allow-Headers", "Content-Type, X-Auth-Token");
+		res.setHeader("Vary", "Origin");
+		if (req.headers["access-control-request-private-network"] === "true") {
+			res.setHeader("Access-Control-Allow-Private-Network", "true");
+		}
+		return;
+	}
 	// 每次读取配置，WebUI 修改 allowedOrigins 后无需重启 API
 	const allowed = config.web?.ui?.allowedOrigins ?? [];
-	if (!origin || !allowed.includes(origin)) return;
+	if (!allowed.includes(origin)) return;
 	res.setHeader("Access-Control-Allow-Origin", origin);
 	res.setHeader("Vary", "Origin");
 }
