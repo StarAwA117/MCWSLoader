@@ -79,6 +79,21 @@ s = s[:start] + s[end + len("          }\n"):]
 # Remove the blank line left between the intent setup and the service start.
 s = s.replace("          }\n\n\n          if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)", "          }\n\n          if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)")
 
+# The UI process intentionally does not load libnode, so these JNI helpers
+# cannot be called there. Derive the ABI from the platform and leave the native
+# data-dir registration to the :node process.
+s = s.replace(
+    'nativeAssetsPath = "$BUILTIN_NATIVE_ASSETS_PREFIX${getCurrentABIName()}"',
+    'nativeAssetsPath = "$BUILTIN_NATIVE_ASSETS_PREFIX${Build.SUPPORTED_ABIS.firstOrNull() ?: "arm64-v8a"}"',
+)
+s = s.replace(
+    '        val abiName = getCurrentABIName()\n        result.success(abiName)',
+    '        result.success(Build.SUPPORTED_ABIS.firstOrNull() ?: "arm64-v8a")',
+)
+s = s.replace(
+    '    // Register the filesDir as the Node data dir.\n    registerNodeDataDirPath(filesDirPath)\n',
+    '',
+)
 plugin.write_text(s)
 
 ss = service.read_text()
