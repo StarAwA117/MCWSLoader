@@ -1,6 +1,6 @@
-# MCWSLoader
-
 English | [简体中文](./README.md)
+
+# MCWSLoader
 
 <div align="center">
 
