@@ -7,6 +7,8 @@ import { useModal } from "./composables/useModal";
 import { useI18n } from "./composables/useI18n";
 import { useScrollLock } from "./composables/useScrollLock";
 import { api } from "./api";
+import { STANDALONE } from "./apiBase";
+import { getSession, removeSession } from "./utils/storage";
 
 const { ask } = useModal();
 const { t } = useI18n();
@@ -17,25 +19,25 @@ const sidebarOpen = ref(false);
 const authChecked = ref(false);
 
 onMounted(() => {
-	if (sessionStorage.getItem("auth_token")) {
+	if (STANDALONE || getSession("auth_token")) {
 		authChecked.value = true;
 	}
 });
 
 watch(() => route.path, () => {
-	authChecked.value = !!sessionStorage.getItem("auth_token");
+	authChecked.value = STANDALONE || !!getSession("auth_token");
 	// 切换页面时回到顶部；尊重系统“减少动态效果”设置
 	const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 	window.scrollTo({ top: 0, behavior: reduceMotion ? "auto" : "smooth" });
 });
 
-const isLoginPage = computed(() => route.path === "/login");
+const isLoginPage = computed(() => !STANDALONE && route.path === "/login");
 
 const navGroups = computed(() => [
 	{ label: t("nav.groups.control"), accent: 1, items: routes.filter(r => ["/", "/commands", "/clients"].includes(r.path)) },
 	{ label: t("nav.groups.management"), accent: 2, items: routes.filter(r => ["/mods", "/permissions"].includes(r.path)) },
 	{ label: t("nav.groups.monitoring"), accent: 3, items: routes.filter(r => ["/logs", "/chat"].includes(r.path)) },
-	{ label: t("nav.groups.system"), accent: 4, items: routes.filter(r => r.path === "/settings") }
+	{ label: t("nav.groups.system"), accent: 4, items: routes.filter(r => ["/settings", "/about"].includes(r.path)) }
 ]);
 
 const iconMap: Record<string, string> = {
@@ -47,6 +49,7 @@ const iconMap: Record<string, string> = {
 	logs: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>`,
 	chat: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>`,
 	config: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h.09a1.65 1.65 0 0 0-1.51 1z"/></svg>`,
+	about: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>`,
 };
 
 function navigate(path: string): void {
@@ -59,7 +62,7 @@ async function logout() {
 	if (!ok) return;
 	// 优先让服务端销毁会话；离线/超时也不阻止本地退出
 	await api.logout().catch(() => {});
-	sessionStorage.removeItem("auth_token");
+	removeSession("auth_token");
 	router.replace("/login");
 }
 

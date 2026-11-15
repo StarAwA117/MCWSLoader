@@ -1,7 +1,9 @@
 import { useI18n } from "./composables/useI18n";
 import { userErrorText } from "./utils/errors";
+import { STANDALONE, apiUrl } from "./apiBase";
+import { getSession, removeSession } from "./utils/storage";
 
-const BASE = "/api";
+const BASE = apiUrl("/api");
 
 /** 后端响应（成功/失败字段因接口而异，边界处保持宽松） */
 export type ApiResult = {
@@ -14,7 +16,7 @@ export type ApiResult = {
 export type RequestOptions = RequestInit & { raw?: boolean };
 
 function getToken(): string {
-	return sessionStorage.getItem("auth_token") || "";
+	return getSession("auth_token") || "";
 }
 
 function timeoutSignal(ms: number): AbortSignal | undefined {
@@ -66,11 +68,13 @@ async function request(path: string, options: RequestOptions = {}): Promise<ApiR
 		return { ok: false, code: "NETWORK", message: userErrorText(e, "common.networkError") };
 	}
 	if (res.status === 401) {
-		sessionStorage.removeItem("auth_token");
-		if (window.location.pathname !== "/login") {
-			window.location.href = "/login";
+		removeSession("auth_token");
+		if (!STANDALONE) {
+			if (window.location.pathname !== "/login") {
+				window.location.href = "/login";
+			}
+			return { ok: false, message: useI18n().t("common.unauthorized") };
 		}
-		return { ok: false, message: useI18n().t("common.unauthorized") };
 	}
 	return parseResponse(res);
 }

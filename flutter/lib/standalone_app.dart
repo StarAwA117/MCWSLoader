@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 
 import 'api.dart';
 import 'local_server.dart';
-import 'main_shell.dart';
+import 'webui_page.dart';
 
 class StandaloneApp extends StatefulWidget {
   const StandaloneApp({super.key});
@@ -60,7 +60,7 @@ class _StandaloneAppState extends State<StandaloneApp> with WidgetsBindingObserv
   @override
   Widget build(BuildContext context) {
     final api = _api;
-    if (api != null) return MainShell(api: api);
+    if (api != null) return const WebUiPage();
     return Scaffold(
       body: Center(
         child: ConstrainedBox(

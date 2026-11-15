@@ -4,6 +4,8 @@ import zhCNSource from "../../../../texts/zh_CN.lang?raw";
 import zhTWSource from "../../../../texts/zh_TW.lang?raw";
 import enSource from "../../../../texts/en_US.lang?raw";
 import { parseLang } from "../utils/lang";
+import { apiUrl } from "../apiBase";
+import { getLocal, getSession, setLocal } from "../utils/storage";
 
 type Messages = Record<string, string>;
 type Locale = "zh-CN" | "zh-TW" | "en";
@@ -25,7 +27,7 @@ function detectLocale(): Locale {
 
 function getStoredLocale(): string | null {
 	if (typeof window === "undefined") return null;
-	return window.localStorage.getItem("locale");
+	return getLocal("locale");
 }
 
 function getInjectedLocale(): string | null {
@@ -84,7 +86,7 @@ export function useI18n(): I18n {
 		state.messages = messages;
 		if (typeof window === "undefined") return;
 
-		window.localStorage.setItem("locale", locale);
+		setLocal("locale", locale);
 		document.documentElement.dataset.language = locale;
 	};
 
@@ -94,11 +96,11 @@ export function useI18n(): I18n {
 		applyLocale(locale);
 		if (typeof window === "undefined" || previousLanguage === locale) return;
 
-		fetch("/api/language", {
+		fetch(apiUrl("/api/language"), {
 			method: "POST",
 			headers: {
 				"Content-Type": "application/json",
-				"X-Auth-Token": window.sessionStorage.getItem("auth_token") || ""
+				"X-Auth-Token": getSession("auth_token") || ""
 			},
 			body: JSON.stringify({ language: locale })
 		})

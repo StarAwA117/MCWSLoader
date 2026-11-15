@@ -12,5 +12,6 @@ build/
 # android/
 # ios/
 assets/server.tar.gz
+assets/webui/
 assets/node/node
 assets/node/node.exe

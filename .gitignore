@@ -39,3 +39,6 @@ tmp/
 
 # Generated standalone app build
 build/
+
+# Standalone WebUI build (embedded in Flutter assets)
+web/frontend/dist-standalone/

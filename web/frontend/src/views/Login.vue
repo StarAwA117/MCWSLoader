@@ -3,6 +3,7 @@ import { ref, onMounted, onUnmounted } from "vue";
 import { useRouter } from "vue-router";
 import { loginWithPassword } from "../api";
 import { useI18n } from "../composables/useI18n";
+import { getSession, setSession } from "../utils/storage";
 
 const { t } = useI18n();
 
@@ -20,7 +21,7 @@ async function doLogin(pwd: string): Promise<void> {
 	try {
 		const data = await loginWithPassword(pwd);
 		if (data.ok) {
-			sessionStorage.setItem("auth_token", data.token);
+			setSession("auth_token", data.token);
 			router.replace("/");
 		} else if (data.locked) {
 			locked.value = true;
@@ -49,7 +50,7 @@ onUnmounted(() => {
 });
 
 onMounted(() => {
-	const token = sessionStorage.getItem("auth_token");
+	const token = getSession("auth_token");
 	if (token) {
 		router.replace("/");
 		return;

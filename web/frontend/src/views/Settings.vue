@@ -11,10 +11,13 @@ import UpdatePanel from "../components/UpdatePanel.vue";
 import { useTheme } from "../composables/useTheme";
 import { THEME_DEFINITIONS } from "../theme";
 import { userErrorText } from "../utils/errors";
+import { STANDALONE } from "../apiBase";
+import { removeSession, getSession, setSession } from "../utils/storage";
 
 const { t, applyLocale, availableLocales } = useI18n();
 const { setTheme } = useTheme();
 const { resetPassword } = useModal();
+const isAndroidStandalone = STANDALONE && /Android/i.test(navigator.userAgent);
 const route = useRoute();
 
 const config = ref<Record<string, any> | null>(null);
@@ -111,7 +114,7 @@ async function handleResetPassword() {
 		if (res.ok) {
 			resetSuccess.value = true;
 			resetMessage.value = t("settings.changePasswordSuccess");
-			sessionStorage.removeItem("auth_token");
+			removeSession("auth_token");
 			setTimeout(() => { window.location.href = "/login"; }, 800);
 		} else {
 			resetSuccess.value = false;
@@ -126,6 +129,11 @@ async function handleResetPassword() {
 
 function selectLocale(loc: string): void {
 	if (config.value) config.value.language = loc;
+}
+
+function requestBackgroundPermissions(): void {
+	const bridge = (window as unknown as { MCWSStandalone?: { postMessage: (message: string) => void } }).MCWSStandalone;
+	bridge?.postMessage("requestBackgroundPermissions");
 }
 
 onMounted(() => { refresh().catch(() => { message.value = t("common.networkError"); }); });
@@ -404,6 +412,11 @@ onMounted(() => { refresh().catch(() => { message.value = t("common.networkError
 						<span class="switch-label">{{ t('settings.checkDependenciesOnLoad') }}</span>
 						<SwitchToggle id="checkDependenciesOnLoad" v-model="config.ws.checkDependenciesOnLoad" />
 					</div>
+				</SettingsCard>
+
+				<SettingsCard v-if="isAndroidStandalone" :title="t('settings.background')">
+					<button class="btn" @click="requestBackgroundPermissions">{{ t('settings.backgroundPermissions') }}</button>
+					<p class="field-hint">{{ t('settings.backgroundHint') }}</p>
 				</SettingsCard>
 			</div>
 

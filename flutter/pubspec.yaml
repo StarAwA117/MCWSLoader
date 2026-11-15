@@ -13,6 +13,7 @@ dependencies:
   flutter_localizations:
     sdk: flutter
   node_flutter: ^0.0.4
+  webview_all: ^1.5.0
   archive: ^4.0.2
   path: ^1.9.0
   path_provider: ^2.1.5
@@ -29,6 +30,7 @@ flutter:
   assets:
     - assets/server.tar.gz
     - assets/node/
+    - assets/webui/
 
 flutter_launcher_icons:
   android: true

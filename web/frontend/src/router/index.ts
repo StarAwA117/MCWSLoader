@@ -1,5 +1,7 @@
-import { createRouter, createWebHistory } from "vue-router";
+import { createRouter, createWebHashHistory, createWebHistory } from "vue-router";
 import type { RouteRecordRaw } from "vue-router";
+import { STANDALONE } from "../apiBase";
+import { getSession } from "../utils/storage";
 
 declare module "vue-router" {
 	interface RouteMeta {
@@ -21,16 +23,23 @@ const routes: RouteRecordRaw[] = [
 	{ path: "/chat", name: "chat", component: () => import("../views/Chat.vue"), meta: { title: "Chat", titleKey: "nav.chat", icon: "chat" } },
 	{ path: "/update", redirect: "/settings?tab=system" },
 	{ path: "/settings", name: "settings", component: () => import("../views/Settings.vue"), meta: { title: "Settings", titleKey: "nav.settings", icon: "config" } },
+	{ path: "/about", name: "about", component: () => import("../views/About.vue"), meta: { title: "About", titleKey: "nav.about", icon: "about" } },
 	{ path: "/:pathMatch(.*)*", redirect: "/" }
 ];
 
 const router = createRouter({
-	history: createWebHistory(),
+	// File URLs cannot support history mode. The standalone build uses hash
+	// routing; the normal WebUI keeps clean history URLs.
+	history: STANDALONE ? createWebHashHistory() : createWebHistory(),
 	routes
 });
 
 router.beforeEach((to, _from, next) => {
-	const token = sessionStorage.getItem("auth_token");
+	if (STANDALONE) {
+		if (to.path === "/login") return next("/");
+		return next();
+	}
+	const token = getSession("auth_token");
 	if (!to.meta.public && !token) {
 		next("/login");
 	} else if (to.path === "/login" && token) {
