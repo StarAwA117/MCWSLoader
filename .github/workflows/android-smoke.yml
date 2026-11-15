@@ -64,7 +64,11 @@ jobs:
           script: |
             adb install -r build/flutter_app/build/app/outputs/flutter-apk/app-debug.apk
             adb shell am start -n com.mcwsloader.mcwsloader/.MainActivity
-            sleep 150
+            for i in $(seq 1 60); do
+              if adb logcat -d -s NodeService NODEJS-MOBILE NODEJS-FLUTTER | grep -q "Node service started\|Node.js started\|NODEJS-MOBILE"; then break; fi
+              sleep 5
+            done
+            sleep 15
             adb shell pidof com.mcwsloader.mcwsloader || true
             adb logcat -d > /tmp/logcat.txt
             grep -E "AndroidRuntime|FATAL EXCEPTION|NODEJS-FLUTTER|mcwsloader|UnsatisfiedLinkError" /tmp/logcat.txt | tail -120 || true
