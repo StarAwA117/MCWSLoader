@@ -94,6 +94,29 @@ s = s.replace(
     '    // Register the filesDir as the Node data dir.\n    registerNodeDataDirPath(filesDirPath)\n',
     '',
 )
+# Never leave waitForInit blocked forever if copying one asset fails. The old
+# code threw from the copy thread without releasing the semaphore.
+s = s.replace(
+    """          try {
+            copyNodeJsAssets()
+            initCompleted = true
+          } catch (e: IOException) {
+            throw RuntimeException("Node assets copy failed", e)
+          }
+          initSemaphore.release()
+          emptyTrash()
+""",
+    """          try {
+            copyNodeJsAssets()
+            initCompleted = true
+          } catch (e: Exception) {
+            Log.e(TAG, "Node assets copy failed", e)
+          } finally {
+            initSemaphore.release()
+            emptyTrash()
+          }
+""",
+)
 plugin.write_text(s)
 
 ss = service.read_text()
