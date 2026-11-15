@@ -6,7 +6,7 @@ English | [简体中文](./README.md)
 
 [![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![Node.js Version](https://img.shields.io/badge/Node.js-%3E%3D22-339933?style=flat-square&logo=node.js&logoColor=white)](https://nodejs.org/)
-[![Platform](https://img.shields.io/badge/Platform-Android%20%7C%20Windows-lightgrey?style=flat-square)]()
+[![Platform](https://img.shields.io/badge/Platform-Android%20%7C%20Windows%20%7C%20Linux%20%7C%20macOS-lightgrey?style=flat-square)]()
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg?style=flat-square)](https://www.gnu.org/licenses/gpl-3.0)
 
 Minecraft Bedrock Edition WebSocket bridge server. Connects clients through the game's built-in WebSocket API, injects commands and automation through a Mod system, and ships with a web management UI.
@@ -19,7 +19,7 @@ Minecraft Bedrock Edition WebSocket bridge server. Connects clients through the 
 - AI chat and AI command execution (OpenAI-compatible API)
 - MIDI music, region fill/copy, permission management
 - Client/server layered Mod loading with `.wsmod` / `.zip` import, dependency install and rollback
-- Web management UI (default 50005) and Android / Windows client shell
+- Web management UI (default 50005) and Android / Windows / Linux / macOS standalone apps
 
 ## Quick Start
 
@@ -46,7 +46,7 @@ Full documentation lives in the Wiki:
 - [Commands](https://github.com/StarAwA117/MCWSLoader/wiki/Commands)
 - [Mods](https://github.com/StarAwA117/MCWSLoader/wiki/Mods)
 - [API](https://github.com/StarAwA117/MCWSLoader/wiki/API)
-- [Android / Windows App](https://github.com/StarAwA117/MCWSLoader/wiki/App)
+- [Desktop and mobile apps](https://github.com/StarAwA117/MCWSLoader/wiki/App)
 - [Development](https://github.com/StarAwA117/MCWSLoader/wiki/Development)
 
 ## License
