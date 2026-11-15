@@ -1,4 +1,5 @@
 import ModBase from "../../lib/modbase.js";
+import { toUserError } from "../../lib/errors.js";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -149,7 +150,7 @@ export default class FastBuilder extends ModBase {
 				code = fs.readFileSync(scriptPath, "utf-8");
 				this.client.tell(`§eFastBuilder | §fRun > §i加载脚本: ${input}`, sender);
 			} catch (e) {
-				this.client.tell(`§cFastBuilder | §fError > §i读取脚本失败: ${e.message}`, sender);
+				this.client.tell(`§cFastBuilder | §fError > §i读取脚本失败：${toUserError(e, "读取脚本失败，请检查文件是否存在")}`, sender);
 				return;
 			}
 		}
@@ -189,7 +190,7 @@ export default class FastBuilder extends ModBase {
 			}
 			this.client.tell("§eFastBuilder | §fRun > §i执行完成", sender);
 		} catch (e) {
-			this.client.tell(`§cFastBuilder | §fError > §i${e.message}`, sender);
+			this.client.tell(`§cFastBuilder | §fError > §i${toUserError(e, "脚本执行失败，请稍后重试")}`, sender);
 		}
 	}
 }

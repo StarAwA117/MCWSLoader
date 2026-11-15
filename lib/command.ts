@@ -1,3 +1,5 @@
+import { toUserError } from "./errors.js";
+
 /** 参数类型：基础类型名、自定义类型名或枚举值数组 */
 export type CommandParameterType = string | readonly string[];
 
@@ -203,7 +205,7 @@ export default class Command {
 		try {
 			tokens = Command.parseArgs(text);
 		} catch (e) {
-			return { status: false, message: (e as Error).message };
+			return { status: false, message: toUserError(e, "命令格式不正确") };
 		}
 		return this.executeTokens(commander, tokens, onError);
 	}
@@ -269,7 +271,7 @@ export default class Command {
 				});
 			}
 		} catch (e) {
-			return { status: false, message: (e as Error).message };
+			return { status: false, message: toUserError(e, "命令格式不正确") };
 		}
 
 		return {

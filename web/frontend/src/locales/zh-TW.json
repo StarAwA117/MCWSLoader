@@ -54,7 +54,13 @@
 		"logout": "登出",
 		"save": "儲存",
 		"loading": "載入中...",
-		"saving": "儲存中..."
+		"saving": "儲存中...",
+		"networkError": "網路連線失敗，請檢查網路或伺服器狀態",
+		"serverError": "伺服器暫時無法處理請求，請稍後重試",
+		"requestFailed": "請求失敗，請稍後重試",
+		"notFound": "找不到請求的資源",
+		"invalidResponse": "伺服器回傳無法辨識的資料，請稍後重試",
+		"timeout": "請求逾時，請稍後重試"
 	},
 	"dashboard": {
 		"title": "儀表板",

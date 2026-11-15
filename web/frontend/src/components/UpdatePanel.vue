@@ -3,6 +3,7 @@ import { ref, onMounted } from "vue";
 import { api } from "../api";
 import { useModal } from "../composables/useModal";
 import { useI18n } from "../composables/useI18n";
+import { userErrorText } from "../utils/errors";
 import { compareVersions } from "../utils/version";
 import type { TagInfo } from "../types";
 
@@ -42,7 +43,7 @@ async function checkUpdate() {
 			actionStatus.value = { loading: false, message: t("update.noInfo") };
 		}
 	} catch (e) {
-		actionStatus.value = { loading: false, message: t("update.checkFailed") + ": " + (e as Error).message };
+		actionStatus.value = { loading: false, message: t("update.checkFailed") + ": " + userErrorText(e) };
 	}
 	checking.value = false;
 }
@@ -97,7 +98,7 @@ async function openVersionPicker(): Promise<void> {
 			actionStatus.value = { loading: false, message: res.message || `${label}${t("update.failed")}` };
 		}
 	} catch (e) {
-		actionStatus.value = { loading: false, message: `${label}${t("update.failed")}: ` + (e as Error).message };
+		actionStatus.value = { loading: false, message: `${label}${t("update.failed")}: ` + userErrorText(e) };
 	}
 }
 

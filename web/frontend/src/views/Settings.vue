@@ -10,6 +10,7 @@ import SelectMenu from "../components/SelectMenu.vue";
 import UpdatePanel from "../components/UpdatePanel.vue";
 import { useTheme } from "../composables/useTheme";
 import { THEME_DEFINITIONS } from "../theme";
+import { userErrorText } from "../utils/errors";
 
 const { t, setLocale, locale, availableLocales } = useI18n();
 const { setTheme } = useTheme();
@@ -83,7 +84,7 @@ async function save() {
 			message.value = res.message || t("common.saveFailed");
 		}
 	} catch (e) {
-		message.value = (e as Error).message;
+		message.value = userErrorText(e);
 	}
 	saving.value = false;
 	setTimeout(() => message.value = "", 3000);
@@ -105,7 +106,7 @@ async function handleResetPassword() {
 			resetMessage.value = res.message || t("settings.changePasswordFailed");
 		}
 	} catch (e) {
-		resetMessage.value = (e as Error).message;
+		resetMessage.value = userErrorText(e);
 	}
 	resetSaving.value = false;
 }

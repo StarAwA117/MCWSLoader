@@ -17,6 +17,7 @@ import { extractZip, resolveModRoot, readManifest, copyMerge, removeDir, sanitiz
 import type { Client } from "../lib/types/client.js";
 import type { ModEntry } from "../lib/types/mod.js";
 import { CURRENT_VERSION, checkForUpdate, latestRelease, listReleases } from "../lib/update.js";
+import { errorDetail, toUserError } from "../lib/errors.js";
 
 type AnyRecord = Record<string, any>;
 interface AuthState {
@@ -74,8 +75,20 @@ function getAuthState(ip: string): AuthState {
 	return lockedState;
 }
 
+function sanitizeApiPayload(payload: unknown, status: number): unknown {
+	if (!payload || typeof payload !== "object" || Array.isArray(payload)) return payload;
+	const record = payload as Record<string, unknown>;
+	const failed = status >= 400 || record.ok === false || typeof record.error === "string";
+	if (!failed) return payload;
+	const safe = { ...record };
+	if (typeof safe.message === "string") safe.message = toUserError(safe.message, "请求处理失败，请稍后重试");
+	if (typeof safe.error === "string") safe.error = toUserError(safe.error, "请求处理失败，请稍后重试");
+	return safe;
+}
+
 function json(res: ServerResponse, obj: unknown, status = 200): void {
 	if (res.headersSent) return;
+	const payload = sanitizeApiPayload(obj, status);
 	res.writeHead(status, {
 		"Content-Type": "application/json; charset=utf-8",
 		"X-Content-Type-Options": "nosniff",
@@ -83,7 +96,7 @@ function json(res: ServerResponse, obj: unknown, status = 200): void {
 		"Referrer-Policy": "no-referrer",
 		"Cache-Control": "no-store"
 	});
-	res.end(JSON.stringify(obj));
+	res.end(JSON.stringify(payload));
 }
 
 function readBody(req: IncomingMessage): Promise<string> {
@@ -1041,7 +1054,8 @@ async function handleAPI(req: IncomingMessage, res: ServerResponse, url: URL): P
 				const result = await checkForUpdate(config.update?.allowPrerelease === true);
 				return json(res, result);
 			} catch (e) {
-				return json(res, { current: CURRENT_VERSION, latest: null, hasUpdate: false, error: (e as Error).message }, 502);
+				logger.error(`Update check failed: ${errorDetail(e)}`);
+				return json(res, { current: CURRENT_VERSION, latest: null, hasUpdate: false, error: "检查更新失败，请稍后重试" }, 502);
 			}
 		}
 
@@ -1057,7 +1071,8 @@ async function handleAPI(req: IncomingMessage, res: ServerResponse, url: URL): P
 					}))
 				});
 			} catch (e) {
-				return json(res, { tags: [], error: (e as Error).message }, 502);
+				logger.error(`Update tags failed: ${errorDetail(e)}`);
+				return json(res, { tags: [], error: "获取版本列表失败，请稍后重试" }, 502);
 			}
 		}
 
@@ -1070,7 +1085,8 @@ async function handleAPI(req: IncomingMessage, res: ServerResponse, url: URL): P
 				json(res, { ok: true, message: "Update complete, exiting. Please restart manually." });
 				setTimeout(() => process.exit(0), 2000);
 			} catch (e) {
-				return json(res, { ok: false, message: "Update failed: " + (e as Error).message });
+				logger.error(`Update failed: ${errorDetail(e)}`);
+				return json(res, { ok: false, message: "更新失败，请稍后重试" });
 			}
 		}
 
@@ -1084,13 +1100,15 @@ async function handleAPI(req: IncomingMessage, res: ServerResponse, url: URL): P
 				json(res, { ok: true, message: "Rollback complete, exiting. Please restart manually." });
 				setTimeout(() => process.exit(0), 2000);
 			} catch (e) {
-				return json(res, { ok: false, message: "Rollback failed: " + (e as Error).message });
+				logger.error(`Rollback failed: ${errorDetail(e)}`);
+				return json(res, { ok: false, message: "回退失败，请稍后重试" });
 			}
 		}
 
 		json(res, { error: "Not Found" }, 404);
 	} catch (e) {
-		json(res, { ok: false, message: (e as Error).message }, 400);
+		logger.error(`API request failed: ${errorDetail(e)}`);
+		json(res, { ok: false, message: "请求处理失败，请稍后重试" }, 400);
 	}
 }
 

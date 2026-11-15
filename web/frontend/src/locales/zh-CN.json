@@ -54,7 +54,13 @@
 		"logout": "退出登录",
 		"save": "保存",
 		"loading": "加载中...",
-		"saving": "保存中..."
+		"saving": "保存中...",
+		"networkError": "网络连接失败，请检查网络或服务器状态",
+		"serverError": "服务器暂时无法处理请求，请稍后重试",
+		"requestFailed": "请求失败，请稍后重试",
+		"notFound": "请求的资源不存在",
+		"invalidResponse": "服务器返回了无法识别的数据，请稍后重试",
+		"timeout": "请求超时，请稍后重试"
 	},
 	"dashboard": {
 		"title": "仪表盘",

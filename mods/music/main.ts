@@ -1,4 +1,5 @@
 import ModBase from "../../lib/modbase.js";
+import { toUserError } from "../../lib/errors.js";
 import fs from "fs";
 import path from "path";
 import { parseMidi } from "midi-file";
@@ -331,7 +332,7 @@ this.Command.create("m:stop", "停止播放（不带参数停止全部）")
 					this.tracks = data.tracks;
 					resolve("音乐加载成功");
 				} catch (error) {
-					this.client.tell(`§cMusic | §fError > §iMIDI 加载失败: ${error.message}`);
+					this.client.tell(`§cMusic | §fError > §iMIDI 加载失败：${toUserError(error, "MIDI 文件解析失败")}`);
 					reject(new Error("MIDI 加载失败"));
 				}
 			} else {
@@ -347,7 +348,7 @@ this.Command.create("m:stop", "停止播放（不带参数停止全部）")
 						this.tracks = data?.tracks;
 						resolve("音乐加载成功");
 					} catch (parseError) {
-						this.client.tell(`§cMusic | §fError > §iJSON 解析失败: ${parseError.message}`);
+						this.client.tell(`§cMusic | §fError > §iJSON 解析失败：${toUserError(parseError, "音乐 JSON 解析失败")}`);
 						reject(new Error("JSON 解析失败"));
 					}
 				});

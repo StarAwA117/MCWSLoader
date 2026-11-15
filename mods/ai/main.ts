@@ -1,5 +1,6 @@
 import ModBase from "../../lib/modbase.js";
 import OpenAI from "openai";
+import { errorDetail, toUserError } from "../../lib/errors.js";
 
 // OpenAI 客户端（惰性创建；配置变化时重建）
 let openai: OpenAI | null = null;
@@ -38,7 +39,37 @@ type CommandResponseObject = {
 	message: string;
 	commands: string[];
 	continue: boolean;
+	warnings: string[];
 };
+
+class AIError extends Error {
+	userMessage: string;
+
+	constructor(userMessage: string, detail?: string) {
+		super(detail || userMessage);
+		this.name = "AIError";
+		this.userMessage = userMessage;
+	}
+}
+
+function mapAIError(error: unknown): AIError {
+	if (error instanceof AIError) return error;
+	const source = error as { status?: unknown; code?: unknown; message?: unknown; response?: { status?: unknown } } | null;
+	const status = Number(source?.status ?? source?.response?.status ?? 0);
+	const message = String(source?.message ?? "");
+	if (status === 401 || status === 403) return new AIError("AI 认证失败，请检查 apiKey 或接口权限。", message);
+	if (status === 404) return new AIError("AI 接口或模型不存在，请检查 baseURL 和 model。", message);
+	if (status === 429) return new AIError("AI 请求过于频繁或额度不足，请稍后重试。", message);
+	if (/context.length|maximum context|token.*exceed|too many tokens/i.test(message)) {
+		return new AIError("对话上下文过长，请使用 ai:reset 重置后再试。", message);
+	}
+	if (/ETIMEDOUT|timed? out|AbortError|aborted/i.test(message)) return new AIError("AI 请求超时，请稍后重试。", message);
+	if (/ECONNREFUSED|ENOTFOUND|EAI_AGAIN|fetch failed|network/i.test(message)) {
+		return new AIError("无法连接 AI 服务，请检查网络、baseURL 或代理。", message);
+	}
+	if (/content filter|safety/i.test(message)) return new AIError("AI 拒绝回答该请求。", message);
+	return new AIError("AI 请求失败，请稍后重试。", message);
+}
 
 function clampNumber(value: unknown, min: number, max: number, fallback: number): number {
 	const number = Number(value);
@@ -115,18 +146,47 @@ export function parseCommandResponse(raw: string): CommandResponseObject {
 	const start = text.indexOf("{");
 	const end = text.lastIndexOf("}");
 	if (start >= 0 && end > start) text = text.slice(start, end + 1);
-	const parsed = JSON.parse(text);
-	if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
-		throw new Error("AI response is not a JSON object");
+	let parsed: any;
+	try {
+		parsed = JSON.parse(text);
+	} catch (e) {
+		throw new AIError("AI 返回的内容不是有效 JSON，请重试。", (e as Error).message);
 	}
-	const message = typeof parsed.message === "string" ? parsed.message : "";
-	const commands = Array.isArray(parsed.commands)
-		? parsed.commands.filter((command: unknown): command is string => typeof command === "string" && command.trim().length > 0)
-		: [];
+	if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+		throw new AIError("AI 返回的内容不是 JSON 对象，请重试。", text);
+	}
+
+	const warnings: string[] = [];
+	let message = "";
+	if (typeof parsed.message === "string") {
+		message = parsed.message.trim();
+		if (!message) warnings.push("AI 没有返回 message（空输出）。");
+	} else if (parsed.message !== undefined) {
+		warnings.push("AI 返回的 message 不是字符串，已按空输出处理。");
+	} else {
+		warnings.push("AI 没有返回 message（空输出）。");
+	}
+
+	let commands: string[] = [];
+	if (Array.isArray(parsed.commands)) {
+		const rawCommands = parsed.commands;
+		commands = rawCommands
+			.filter((command: unknown): command is string => typeof command === "string" && command.trim().length > 0)
+			.map((command: string) => command.trim().replace(/^\/+/, ""));
+		if (commands.length !== rawCommands.length) warnings.push("AI 返回的部分 commands 不是有效字符串，已忽略。");
+	} else if (parsed.commands !== undefined) {
+		warnings.push("AI 返回的 commands 不是数组，已按空列表处理。");
+	}
+
+	if (parsed.continue !== undefined && typeof parsed.continue !== "boolean") {
+		warnings.push("AI 返回的 continue 不是布尔值，已按 false 处理。");
+	}
+
 	return {
 		message,
-		commands: commands.map((command: string) => command.trim().replace(/^\/+/, "")),
-		continue: parsed.continue === true
+		commands,
+		continue: parsed.continue === true,
+		warnings
 	};
 }
 
@@ -203,8 +263,12 @@ export default class AIHelper extends ModBase {
 
 		const clientKey = JSON.stringify(config.options);
 		if (!openai || openaiKey !== clientKey) {
-			openai = new OpenAI(config.options);
-			openaiKey = clientKey;
+			try {
+				openai = new OpenAI(config.options);
+				openaiKey = clientKey;
+			} catch (e) {
+				throw new AIError("AI 配置无效，请检查 baseURL 和 apiKey。", (e as Error).message);
+			}
 		}
 
 		const {
@@ -238,7 +302,12 @@ export default class AIHelper extends ModBase {
 			content: sendMsg
 		});
 
-		const completion = await openai.chat.completions.create(sendData);
+		let completion: any;
+		try {
+			completion = await openai.chat.completions.create(sendData);
+		} catch (e) {
+			throw mapAIError(e);
+		}
 
 		// 提取回复内容（兼容字符串、数组及推理模型返回值）
 		const rawContent = completion.choices?.[0]?.message?.content;
@@ -260,6 +329,10 @@ export default class AIHelper extends ModBase {
 				content: returnMsg ?? ""
 			});
 			if (contents.length > 40) contents.splice(0, contents.length - 40);
+		}
+
+		if (!returnMsg || !String(returnMsg).trim()) {
+			throw new AIError("AI 没有返回可显示的内容（空输出）。");
 		}
 
 		return returnMsg;
@@ -327,7 +400,8 @@ export default class AIHelper extends ModBase {
 			const result = await AIHelper.chat(sendMsg, "chat", contents);
 			this.client?.tellAll(`§bAI | §f${name} > §i${result}`);
 		} catch (e) {
-			this.client?.tellAll(`§cAI | §fError > §i${(e as Error).message}`);
+			this.logger.error(`AI chat failed: ${errorDetail(e)}`);
+			this.client?.tellAll(`§cAI | §fError > §i${toUserError(e, "AI 请求失败，请稍后重试。")}`);
 		}
 	}
 
@@ -347,7 +421,8 @@ export default class AIHelper extends ModBase {
 			try {
 				raw = await AIHelper.chat(input, "command", contents);
 			} catch (e) {
-				this.client?.tellAll(`§cAI | §fError > §i${(e as Error).message}`);
+				this.logger.error(`AI command request failed: ${errorDetail(e)}`);
+				this.client?.tellAll(`§cAI | §fError > §i${toUserError(e, "AI 请求失败，请稍后重试。")}`);
 				return;
 			}
 
@@ -355,10 +430,14 @@ export default class AIHelper extends ModBase {
 			try {
 				response = parseCommandResponse(raw);
 			} catch (e) {
-				this.client?.tellAll(`§cAI | §fError > §iAI 返回了无效的 JSON：${(e as Error).message}`);
+				this.logger.error(`AI command response invalid: ${errorDetail(e)}`);
+				this.client?.tellAll(`§cAI | §fError > §i${toUserError(e, "AI 返回了无效的 JSON，请重试。")}`);
 				return;
 			}
 
+			for (const warning of response.warnings) {
+				this.client?.tellAll(`§eAI | §fWarn > §i${warning}`);
+			}
 			if (response.message) this.client?.tellAll(`§bAI | §f${name} > §i${response.message}`);
 
 			const results: CommandExecution[] = [];
@@ -370,7 +449,8 @@ export default class AIHelper extends ModBase {
 					const result = await this.client.runCommand(normalized, config.command.commandTimeoutMs);
 					results.push({ command: normalized, result });
 				} catch (e) {
-					results.push({ command: normalized, error: (e as Error).message });
+					this.logger.error(`AI command failed: ${normalized}: ${errorDetail(e)}`);
+					results.push({ command: normalized, error: toUserError(e, "命令执行失败") });
 				}
 			}
 

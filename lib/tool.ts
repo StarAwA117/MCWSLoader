@@ -1,4 +1,5 @@
 import type { Client } from "./types/client.js";
+import { errorDetail, toUserError } from "./errors.js";
 
 type CommandClass = import("./command.js").default;
 interface CommandConstructor {
@@ -195,7 +196,8 @@ export default class Tool {
 							const msg = data.body?.statusMessage || "无返回消息";
 							this.client.tellAll(`§eTool | §fCommand > §i[${status}] ${msg}`);
 						} catch (e) {
-							this.client.tellAll(`§cTool | §fError > §i命令执行失败: ${(e as Error).message}`);
+							console.error(`t:cmd failed: ${errorDetail(e)}`);
+							this.client.tellAll(`§cTool | §fError > §i${toUserError(e, "命令执行失败，请稍后重试")}`);
 						}
 					})
 			],
@@ -207,7 +209,7 @@ export default class Tool {
 					.setFunc(async (_: string, object: string, value: string) => {
 						const result = await this.PermissionManager.add(object, value);
 						if (result instanceof Error) {
-							this.client.tellAll(`§cPermission | §fError > §i${result.message}`);
+							this.client.tellAll(`§cPermission | §fError > §i${toUserError(result, "权限操作失败，请稍后重试")}`);
 							return;
 						}
 						this.client.tellAll(`§ePermission | §fAdd > §i${value} -> ${object}`);
@@ -219,7 +221,7 @@ export default class Tool {
 					.setFunc(async (_: string, object: string, value: string) => {
 						const result = await this.PermissionManager.remove(object, value);
 						if (result instanceof Error) {
-							this.client.tellAll(`§cPermission | §fError > §i${result.message}`);
+							this.client.tellAll(`§cPermission | §fError > §i${toUserError(result, "权限操作失败，请稍后重试")}`);
 							return;
 						}
 						this.client.tellAll(`§ePermission | §fRemove > §i${value} <- ${object}`);
@@ -301,7 +303,7 @@ export default class Tool {
 						try {
 							this.reloadConfig();
 						} catch (e) {
-							client.tell(`§cTool | §fError > §i配置刷新失败: ${(e as Error).message}`, sender);
+							client.tell(`§cTool | §fError > §i${toUserError(e, "配置刷新失败，请稍后重试")}`, sender);
 							return;
 						}
 						if (modName) {
@@ -343,7 +345,8 @@ export default class Tool {
 						}
 						this.exec(command, { timeout: 30000 }, (error, stdout, stderr) => {
 							if (error) {
-								this.client.tellAll(`§cTool | §fexec > §i${error.message}`);
+								console.error(`t:exec failed: ${errorDetail(error)}`);
+								this.client.tellAll(`§cTool | §fexec > §i${toUserError(error, "命令执行失败，请稍后重试")}`);
 							}
 							const output = stdout || stderr || "";
 							const lines = output.split("\n").filter((l) => l.length > 0);

@@ -54,7 +54,13 @@
 		"logout": "Logout",
 		"save": "Save",
 		"loading": "Loading...",
-		"saving": "Saving..."
+		"saving": "Saving...",
+		"networkError": "Network error. Check your connection or server status.",
+		"serverError": "The server could not complete the request. Try again.",
+		"requestFailed": "Request failed. Try again.",
+		"notFound": "The requested resource was not found.",
+		"invalidResponse": "The server returned an invalid response.",
+		"timeout": "The request timed out. Try again."
 	},
 	"dashboard": {
 		"title": "Dashboard",

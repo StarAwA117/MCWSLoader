@@ -1,4 +1,5 @@
 import ModBase from "../../lib/modbase.js";
+import { toUserError } from "../../lib/errors.js";
 
 const FILL_LIMIT = 32767;
 const CHUNK = 16;
@@ -287,7 +288,7 @@ this.Command.create("p:show", "显示当前 A B 点坐标")
 		try {
 			await fn();
 		} catch (e) {
-			this.client.tellAll(`§cPosition | §fError > §i${e.message}`);
+			this.client.tellAll(`§cPosition | §fError > §i${toUserError(e, "位置工具执行失败")}`);
 		} finally {
 			this.job = null;
 		}
@@ -330,7 +331,7 @@ this.Command.create("p:show", "显示当前 A B 点坐标")
 				}
 			}
 		} catch (e) {
-			this.client.tellAll(`§cPosition | §fError > §i方块 ID 测试异常: ${e.message}`);
+			this.client.tellAll(`§cPosition | §fError > §i方块 ID 测试异常：${toUserError(e, "方块 ID 测试失败")}`);
 			return;
 		} finally {
 			try {
@@ -390,7 +391,7 @@ this.Command.create("p:show", "显示当前 A B 点坐标")
 				try {
 					await this.client.runCommand(`/tickingarea add ${fx1} ${absY1} ${fz1} ${fx2} ${absY2} ${fz2} ${tickName}`);
 				} catch (e) {
-					this.client.tellAll(`§cPosition | §fError > §i[tickingarea add] ${e.message}`);
+					this.client.tellAll(`§cPosition | §fError > §i[tickingarea add] ${toUserError(e, "创建区域失败")}`);
 				}
 
 				this.client.sendCommand(`/fill ${fx1} ${absY1} ${fz1} ${fx2} ${absY2} ${fz2} ${fillBlock}${replaceBlock ? ` replace ${replaceBlock}` : ""}`);
@@ -471,7 +472,7 @@ this.Command.create("p:show", "显示当前 A B 点坐标")
 				try {
 					await this.client.runCommand(`/tickingarea add ${fx1} ${ys} ${fz1} ${fx2} ${ye} ${fz2} ${tickName}`);
 				} catch (e) {
-					this.client.tellAll(`§cPosition | §fError > §i[tickingarea add] ${e.message}`);
+					this.client.tellAll(`§cPosition | §fError > §i[tickingarea add] ${toUserError(e, "创建区域失败")}`);
 				}
 
 				const structName = `Copy_${i}_${seg}`;
@@ -484,7 +485,7 @@ this.Command.create("p:show", "显示当前 A B 点坐标")
 						saveOk = true;
 					}
 				} catch (e) {
-					this.client.tellAll(`§cPosition | §fError > §i[structure save] ${structName}: ${e.message}`);
+					this.client.tellAll(`§cPosition | §fError > §i[structure save] ${structName}: ${toUserError(e, "结构保存失败")}`);
 				}
 
 				try {
@@ -579,7 +580,7 @@ this.Command.create("p:show", "显示当前 A B 点坐标")
 				try {
 					await this.client.runCommand(`/tickingarea add ${tickX1} ${tickY1} ${tickZ1} ${tickX2} ${tickY2} ${tickZ2} ${tickName}`);
 				} catch (e) {
-					this.client.tellAll(`§cPosition | §fError > §i[tickingarea add] ${e.message}`);
+					this.client.tellAll(`§cPosition | §fError > §i[tickingarea add] ${toUserError(e, "创建区域失败")}`);
 				}
 			}
 
@@ -590,7 +591,7 @@ this.Command.create("p:show", "显示当前 A B 点坐标")
 					errorCount++;
 				}
 			} catch (e) {
-				this.client.tellAll(`§cPosition | §fError > §i[structure load] ${s.name}: ${e.message}`);
+				this.client.tellAll(`§cPosition | §fError > §i[structure load] ${s.name}: ${toUserError(e, "结构加载失败")}`);
 				errorCount++;
 			}
 

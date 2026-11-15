@@ -14,6 +14,7 @@ import type { AppConfig } from "./types/config.js";
 import type { Client } from "./types/client.js";
 import type { ModConstructor, ModEntry, ModSAPI } from "./types/mod.js";
 import type { CommandResponse } from "./types/config.js";
+import { errorDetail, toUserError } from "./errors.js";
 
 type AnyRecord = Record<string, any>;
 type ModClass = ModConstructor;
@@ -1031,7 +1032,7 @@ export class ClientModManager extends ModManagerBase {
 
 	_tellError(sender: string, message: unknown): void {
 		if (!this.client) return;
-		const text = `§cCommand | §fError > §i${String(message)}`;
+		const text = `§cCommand | §fError > §i${toUserError(message, "命令执行失败")}`;
 		if (sender) this.client.tell(text, sender);
 		else this.client.tellAll(text);
 	}
@@ -1039,17 +1040,16 @@ export class ClientModManager extends ModManagerBase {
 	_runCommand(cmd: Command, sender: string, tokens: string[]): void {
 		try {
 			const onError = (e: Error) => {
-				this._tellError(sender, e.message);
-				logger.debug(e.stack ?? e.message);
+				logger.error(`Command ${cmd.name} async error: ${errorDetail(e)}`);
+				this._tellError(sender, e);
 			};
 			const result = typeof cmd.executeTokens === "function"
 				? cmd.executeTokens(sender, tokens, onError)
 				: cmd.execute(sender, tokens.join(" "), onError);
 			if (result && !result.status && result.message) this._tellError(sender, result.message);
 		} catch (e) {
-			const message = (e as Error).message;
-			logger.error(`Command ${cmd.name} execution error: ${message}`);
-			this._tellError(sender, message);
+			logger.error(`Command ${cmd.name} execution error: ${errorDetail(e)}`);
+			this._tellError(sender, e);
 		}
 	}
 

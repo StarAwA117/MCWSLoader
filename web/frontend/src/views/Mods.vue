@@ -3,6 +3,7 @@ import { ref, computed, onMounted, onBeforeUnmount } from "vue";
 import { api } from "../api";
 import ConfigField from "../components/ConfigField.vue";
 import { useI18n } from "../composables/useI18n";
+import { userErrorText } from "../utils/errors";
 import { useModal } from "../composables/useModal";
 import { useScrollLock } from "../composables/useScrollLock";
 import { renderMarkdown } from "../utils/markdown";
@@ -96,7 +97,7 @@ async function toggleMod(mod: ModInfo): Promise<void> {
 		}
 	} catch (e) {
 		mod.enabled = !target;
-		await showMessage(t("mods.toggleFailed") + "：" + (e as Error).message, t("mods.title"));
+		await showMessage(t("mods.toggleFailed") + "：" + userErrorText(e), t("mods.title"));
 	}
 }
 
@@ -150,7 +151,7 @@ async function importMod(event: Event): Promise<void> {
 		}
 	} catch (e) {
 		await refresh().catch(() => {});
-		await showMessage(t("mods.importFailed") + "：" + (e as Error).message, t("mods.importTitle"));
+		await showMessage(t("mods.importFailed") + "：" + userErrorText(e), t("mods.importTitle"));
 	} finally {
 		// 无论成功失败都要复位，否则导入按钮会永久禁用
 		importing.value = false;
@@ -169,7 +170,7 @@ async function deleteMod(mod: ModInfo): Promise<void> {
 			await showMessage(t("mods.deleteFailed") + "：" + ((res && res.message) || t("mods.deleteNotFound")), t("mods.deleteTitle"));
 		}
 	} catch (e) {
-		await showMessage(t("mods.deleteFailed") + "：" + (e as Error).message, t("mods.deleteTitle"));
+		await showMessage(t("mods.deleteFailed") + "：" + userErrorText(e), t("mods.deleteTitle"));
 	}
 }
 
@@ -239,7 +240,7 @@ async function saveConfig(): Promise<void> {
 		const res = await api.saveModConfig(modal.value.modName, modal.value.config);
 		if (res.ok) { modal.value.message = t("common.saveSuccess"); setTimeout(closeModal, 800); }
 		else { modal.value.message = res.message || t("common.saveFailed"); }
-	} catch (e) { modal.value.message = (e as Error).message; }
+	} catch (e) { modal.value.message = userErrorText(e); }
 	modal.value.saving = false;
 }
 

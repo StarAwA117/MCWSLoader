@@ -4,6 +4,7 @@ import { api } from "../api";
 import { useI18n } from "../composables/useI18n";
 import LogOutput from "../components/LogOutput.vue";
 import type { CommandOutputLine } from "../types";
+import { userErrorText } from "../utils/errors";
 
 const { t } = useI18n();
 
@@ -24,7 +25,7 @@ async function exec() {
 			output.value.push({ type: "error", text: res.message || t("commands.failed") });
 		}
 	} catch (e) {
-		output.value.push({ type: "error", text: (e as Error).message });
+		output.value.push({ type: "error", text: userErrorText(e) });
 	}
 	input.value = "";
 	loading.value = false;

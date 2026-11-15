@@ -1,4 +1,5 @@
 import { useI18n } from "./composables/useI18n";
+import { userErrorText } from "./utils/errors";
 
 const BASE = "/api";
 
@@ -21,11 +22,13 @@ function getToken(): string {
  */
 async function parseResponse(res: Response): Promise<ApiResult> {
 	const text = await res.text().catch(() => "");
-	if (!text) return { ok: false, message: `HTTP ${res.status}` };
+	if (!text) return { ok: false, code: "HTTP_ERROR", message: userErrorText(`HTTP ${res.status}`) };
 	try {
-		return JSON.parse(text) as ApiResult;
+		const data = JSON.parse(text) as ApiResult;
+		if (!res.ok && !data.message) data.message = userErrorText(`HTTP ${res.status}`);
+		return data;
 	} catch {
-		return { ok: false, message: `HTTP ${res.status}` };
+		return { ok: false, code: "INVALID_RESPONSE", message: userErrorText(`HTTP ${res.status}`) };
 	}
 }
 
@@ -35,14 +38,19 @@ async function parseResponse(res: Response): Promise<ApiResult> {
  */
 async function request(path: string, options: RequestOptions = {}): Promise<ApiResult> {
 	const { raw = false, headers, ...rest } = options;
-	const res = await fetch(`${BASE}${path}`, {
-		headers: {
-			"X-Auth-Token": getToken(),
-			...(raw ? {} : { "Content-Type": "application/json" }),
-			...headers
-		},
-		...rest
-	});
+	let res: Response;
+	try {
+		res = await fetch(`${BASE}${path}`, {
+			headers: {
+				"X-Auth-Token": getToken(),
+				...(raw ? {} : { "Content-Type": "application/json" }),
+				...headers
+			},
+			...rest
+		});
+	} catch (e) {
+		return { ok: false, code: "NETWORK", message: userErrorText(e, "common.networkError") };
+	}
 	if (res.status === 401) {
 		sessionStorage.removeItem("auth_token");
 		if (window.location.pathname !== "/login") {
@@ -55,12 +63,16 @@ async function request(path: string, options: RequestOptions = {}): Promise<ApiR
 
 // 登录接口不需要 token，且 401 响应体里带有锁定/剩余次数信息，不能走 request()
 export async function loginWithPassword(pwd: string): Promise<ApiResult> {
-	const res = await fetch(`${BASE}/login`, {
-		method: "POST",
-		headers: { "Content-Type": "application/json" },
-		body: JSON.stringify({ password: pwd })
-	});
-	return parseResponse(res);
+	try {
+		const res = await fetch(`${BASE}/login`, {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({ password: pwd })
+		});
+		return parseResponse(res);
+	} catch (e) {
+		return { ok: false, code: "NETWORK", message: userErrorText(e, "common.networkError") };
+	}
 }
 
 export const api = {
@@ -83,7 +95,7 @@ export const api = {
 		const form = new FormData();
 		form.append("file", file);
 		return request(`/mods/import${overwrite ? "?overwrite=1" : ""}`, { method: "POST", body: form, raw: true })
-			.catch((e: Error) => ({ ok: false, code: "NETWORK", message: e.message }));
+			.catch((e: Error) => ({ ok: false, code: "NETWORK", message: userErrorText(e, "common.networkError") }));
 	},
 	deleteMod: (name: string) => request(`/mods/${encodeURIComponent(name)}/delete`, { method: "POST" }),
 	getModConfig: (name: string) => request(`/mods/${encodeURIComponent(name)}/config`),
