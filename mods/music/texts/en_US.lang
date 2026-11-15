@@ -1,0 +1,6 @@
+# music texts (en_US)
+
+config.playPercussion=Play percussion
+config.basePath=Music directory
+error.midi=MIDI file parsing failed
+error.json=Music JSON parsing failed

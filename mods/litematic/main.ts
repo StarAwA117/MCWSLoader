@@ -1,5 +1,4 @@
 import ModBase from "../../lib/modbase.js";
-import { toUserError } from "../../lib/errors.js";
 import fs from "fs";
 import path from "path";
 import zlib from "zlib";
@@ -608,7 +607,7 @@ this.Command.create("l:y", "确认导入操作")
 						try {
 							await this.run();
 						} catch (e) {
-							this.client.tell(`§cLitematic | §fError > §i导入出错：${toUserError(e, "建筑导入失败，请检查文件")}`, sender);
+							this.client.tell(`§cLitematic | §fError > §i${this.t("error.import")}`, sender);
 							this.job = null;
 						}
 					}),
@@ -839,7 +838,7 @@ this.Command.create("l:fix", "修复被挖掉的方块 / 替换无法映射的�
 		try {
 			data = await parseLitematic(filePath);
 		} catch (e) {
-			this.client.tell(`§cLitematic | §fError > §i解析失败：${toUserError(e, "建筑文件解析失败")}`, sender);
+			this.client.tell(`§cLitematic | §fError > §i${this.t("error.parse")}`, sender);
 			return;
 		}
 		if (!raw) trimAir(data);
@@ -1007,7 +1006,7 @@ this.Command.create("l:fix", "修复被挖掉的方块 / 替换无法映射的�
 			try {
 				await this.client.runCommand(`/tickingarea add ${absX1} ${origin.y} ${absZ1} ${absX2} ${origin.y + sy - 1} ${absZ2} litematic_${i}`);
 			} catch (e) {
-				this.client.tellAll(`§cLitematic | §fError > §i[tickingarea add] ${toUserError(e, "创建区域失败")}`);
+				this.client.tellAll(`§cLitematic | §fError > §i[tickingarea add] ${this.t("error.tickingarea")}`);
 			}
 			const fillX1 = Math.max(absX1, origin.x);
 			const fillZ1 = Math.max(absZ1, origin.z);
@@ -1304,7 +1303,7 @@ this.Command.create("l:fix", "修复被挖掉的方块 / 替换无法映射的�
 		try {
 			data = await parseLitematic(filePath);
 		} catch (e) {
-			this.client.tell(`§cLitematic | §fError > §i解析失败：${toUserError(e, "建筑文件解析失败")}`, sender);
+			this.client.tell(`§cLitematic | §fError > §i${this.t("error.parse")}`, sender);
 			return;
 		}
 		if (!raw) trimAir(data);
@@ -1419,7 +1418,7 @@ this.Command.create("l:fix", "修复被挖掉的方块 / 替换无法映射的�
 		try {
 			data = await parseLitematic(filePath);
 		} catch (e) {
-			this.client.tell(`§cLitematic | §fError > §i解析失败：${toUserError(e, "建筑文件解析失败")}`, sender);
+			this.client.tell(`§cLitematic | §fError > §i${this.t("error.parse")}`, sender);
 			return;
 		}
 		if (!raw) trimAir(data);
@@ -1430,7 +1429,7 @@ this.Command.create("l:fix", "修复被挖掉的方块 / 替换无法映射的�
 		try {
 			fs.writeFileSync(outPath, buildMcStructure(data));
 		} catch (e) {
-			this.client.tell(`§cLitematic | §fError > §i导出失败：${toUserError(e, "建筑导出失败")}`, sender);
+			this.client.tell(`§cLitematic | §fError > §i${this.t("error.export")}`, sender);
 			return;
 		}
 		this.client.tell(

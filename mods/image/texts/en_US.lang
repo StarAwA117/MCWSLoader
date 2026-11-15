@@ -1,0 +1,5 @@
+# image texts (en_US)
+
+config.basePath=Image directory
+error.convert=Image conversion failed. Check the image format.
+error.process=Image processing failed. Check the image format.

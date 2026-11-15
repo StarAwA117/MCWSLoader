@@ -1,0 +1,10 @@
+# fastbuilder texts (en_US)
+
+config.defaultBlock=Default block
+config.origin=Origin
+config.origin.x=Origin X
+config.origin.y=Origin Y
+config.origin.z=Origin Z
+config.particle=Particle
+error.readScript=Could not read the script. Check that the file exists.
+error.execute=Script execution failed. Check the script contents.

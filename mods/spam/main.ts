@@ -31,55 +31,55 @@ export default class Spam extends ModBase {
 		const Current = this.Current;
 		return {
 			ws: [
-				this.Command.create("c:bye", "强制退出当前房间")
+				this.Command.create("c:bye", this.t("command.cBye"))
 					.setFunc((_) => {
 						if (!Current.client) {
-							console.log("< 主客户端未连接");
+							console.log(`< ${this.t("terminal.spam.noMain")}`);
 							return;
 						}
 						Current.client.utils.sendCommandUnsafe("/me 正在尝试退出...".repeat(100) + "退出失败");
 					}),
 
-				this.Command.create("c:attack", "攻击客户端聊天")
+				this.Command.create("c:attack", this.t("command.cAttack"))
 					.setFunc((_) => {
-						if (!Current.client) { console.log("< 主客户端未连接"); return; }
+						if (!Current.client) { console.log(`< ${this.t("terminal.spam.noMain")}`); return; }
 						startSpam(Current, 10, () => {
 							Current.client.sendCommand(`me ${replaceZeros(this.config.attack)}`);
-						}, "正在攻击客户端聊天…");
+						}, this.t("terminal.spam.attackStart"));
 					}),
 
-				this.Command.create("c:clear", "清屏聊天消息")
+				this.Command.create("c:clear", this.t("command.cClear"))
 					.setFunc((_) => {
-						if (!Current.client) { console.log("< 主客户端未连接"); return; }
+						if (!Current.client) { console.log(`< ${this.t("terminal.spam.noMain")}`); return; }
 						startSpam(Current, 50, () => {
 							for (let i = 0; i < 8; i++) {
 								Current.client.tellAll(CLEAR_TEXT);
 							}
-						}, "正在为客户端聊天清屏…");
+						}, this.t("terminal.spam.clearStart"));
 					}),
 
-				this.Command.create("c:ad", "推送广告")
+				this.Command.create("c:ad", this.t("command.cAd"))
 					.setFunc((_) => {
-						if (!Current.client) { console.log("< 主客户端未连接"); return; }
+						if (!Current.client) { console.log(`< ${this.t("terminal.spam.noMain")}`); return; }
 						startSpam(Current, (this.config.adInterval || 60000), () => {
 							Current.client.tellAll(`${this.config.ad[Math.floor(Math.random() * this.config.ad.length)]}`);
-						}, "正在为客户端推送 AD…");
+						}, this.t("terminal.spam.adStart"));
 					}),
 
-				this.Command.create("c:repeat", "刷屏指定内容")
+				this.Command.create("c:repeat", this.t("command.cRepeat"))
 					.addString("刷屏内容", true)
 					.setFunc((_, text) => {
-						if (!Current.client) { console.log("< 主客户端未连接"); return; }
+						if (!Current.client) { console.log(`< ${this.t("terminal.spam.noMain")}`); return; }
 						startSpam(Current, 50, () => {
 							Current.client.tellAll(text);
-						}, "正在为刷屏客户端…");
+						}, this.t("terminal.spam.repeatStart"));
 					}),
 
-				this.Command.create("c:stop", "停止所有刷屏")
+				this.Command.create("c:stop", this.t("command.cStop"))
 					.setFunc((_) => {
 						if (Current.has("loop")) clearInterval(Current.get("loop"));
 						Current.set("loop", null);
-						console.log("< 已停止客户端刷屏");
+						console.log(`< ${this.t("terminal.spam.stopped")}`);
 					})
 			]
 		};

@@ -1,0 +1,19 @@
+# mcfunc texts (en_US)
+
+config.basePath=Function directory
+
+# Commands and messages
+command.fFunction=Run a Function file
+command.fLoop=Loop a Function file
+command.fStop=Stop a loop, or all loops when no name is given
+mcfunc.loadFailed=Could not load function file {name}
+mcfunc.running=Function file {name} is running
+mcfunc.stopped=Loop stopped
+mcfunc.depth=Function nesting is too deep
+
+# Loops
+mcfunc.loopExists=Loop {name} already exists
+mcfunc.loopStarted=Loop {name} started
+mcfunc.allStopped=All loops stopped
+mcfunc.loopStopped=Loop {name} stopped
+mcfunc.loopMissing=Loop {name} does not exist

@@ -1,7 +1,7 @@
 # AI Mod — Simplified Chinese
 command.ai=与 AI 进行对话
 command.aiReset=重置对话上下文
-command.aiCommand=让 AI 执行命令（支持连续对话）
+command.aiCommand=让 AI 执行命令，支持连续对话
 ai.contextReset=对话上下文已重置
 config.options=API 选项
 config.options.baseURL=API 地址
@@ -10,21 +10,21 @@ config.model=模型
 config.messages=人格提示词
 config.max_tokens=最大 Token 数
 config.stream=流式输出
-config.chatCooldown=聊天冷却（毫秒）
+config.chatCooldown=聊天冷却毫秒数
 config.command=命令模式
 config.command.maxRounds=最大连续对话轮数
-config.command.commandTimeoutMs=命令超时（毫秒）
+config.command.commandTimeoutMs=命令超时毫秒数
 config.thinking=思考模式
 config.thinking.type=思考模式类型
 
 # Warnings
-ai.warn.emptyMessage=AI 没有返回 message（空输出）。
+ai.warn.emptyMessage=AI 没有返回 message，空输出。
 ai.warn.messageNotString=AI 返回的 message 不是字符串，已按空输出处理。
 ai.warn.commandsNotArray=AI 返回的 commands 不是数组，已按空列表处理。
 ai.warn.partialCommands=AI 返回的部分 commands 不是有效字符串，已忽略。
 ai.warn.continueNotBool=AI 返回的 continue 不是布尔值，已按 false 处理。
 ai.cooldown=聊天速度过快，请稍后再试。
-ai.maxRounds=已达到最大连续对话轮数（{max}）。
+ai.maxRounds=已达到最大连续对话轮数：{max}
 
 # Errors
 ai.error.request=AI 请求失败，请稍后重试。
@@ -37,4 +37,4 @@ ai.error.network=无法连接 AI 服务，请检查网络、baseURL 或代理。
 ai.error.content=AI 拒绝回答该请求。
 ai.error.config=AI 配置无效，请检查 baseURL 和 apiKey。
 ai.error.invalidJson=AI 返回的内容不是有效 JSON，请重试。
-ai.error.emptyOutput=AI 没有返回可显示的内容（空输出）。
+ai.error.emptyOutput=AI 没有返回可显示的内容，空输出。

@@ -1,0 +1,7 @@
+# litematic texts (zh_CN)
+
+config.basePath=建筑目录
+error.import=建筑导入失败，请检查文件
+error.parse=建筑文件解析失败
+error.tickingarea=创建区域失败，请检查坐标
+error.export=建筑导出失败

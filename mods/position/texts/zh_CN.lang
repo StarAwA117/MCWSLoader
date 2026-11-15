@@ -1,0 +1,7 @@
+# position texts (zh_CN)
+
+error.execute=位置工具执行失败
+error.testBlock=方块 ID 测试失败
+error.tickingarea=创建区域失败，请检查坐标
+error.save=结构保存失败
+error.load=结构加载失败

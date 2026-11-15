@@ -18,7 +18,7 @@ import type { Client } from "../lib/types/client.js";
 import type { ModEntry } from "../lib/types/mod.js";
 import { CURRENT_VERSION, checkForUpdate, latestRelease, listReleases } from "../lib/update.js";
 import { errorDetail, toUserError } from "../lib/errors.js";
-import { modConfigLabels } from "../lib/texts.js";
+import { modConfigLabels, tForMod } from "../lib/texts.js";
 
 type AnyRecord = Record<string, any>;
 interface AuthState {
@@ -48,6 +48,7 @@ let shutdownHandler: (() => Promise<void>) | null = null;
 // 请求体上限：防止异常客户端一次占满内存（Mod 导入单独限制）
 const MAX_BODY_BYTES = 2 * 1024 * 1024;
 const MAX_UPLOAD_BYTES = 64 * 1024 * 1024;
+const tr = (key: string, params?: Record<string, unknown>): string => tForMod(null, config.language, key, params);
 function applyCors(req: IncomingMessage, res: ServerResponse): void {
 	const origin = req.headers.origin;
 	// 每次读取配置，WebUI 修改 allowedOrigins 后无需重启 API
@@ -462,14 +463,14 @@ async function handleAPI(req: IncomingMessage, res: ServerResponse, url: URL): P
 			state.lockedUntil = 0;
 
 			const token = createSession(ip);
-			logger.info(`WebUI login success: IP=${ip}`);
+			logger.info(tr("terminal.webui.loginSuccess", { ip }));
 			return json(res, { ok: true, token, expiresIn: SESSION_TIMEOUT });
 		}
 
 		state.attempts.push(Date.now());
 		if (state.attempts.length >= AUTH_MAX_ATTEMPTS) {
 			state.lockedUntil = Date.now() + AUTH_LOCKOUT_MS;
-			logger.error(`WebUI login locked: IP=${ip} locked for ${AUTH_LOCKOUT_MS / 1000}s`);
+			logger.error(tr("terminal.webui.loginLocked", { ip, seconds: AUTH_LOCKOUT_MS / 1000 }));
 			return json(res, { ok: false, locked: true, waitSec: Math.ceil(AUTH_LOCKOUT_MS / 1000) }, 401);
 		}
 		return json(res, { ok: false, message: "Invalid username or password", remaining: Math.max(0, AUTH_MAX_ATTEMPTS - state.attempts.length) }, 401);
@@ -1152,10 +1153,10 @@ export function startWebServer(onShutdown: (() => Promise<void>) | null = null):
 			const hasCustomPassword = !!(config.web?.auth?.passwordHash || config.web?.auth?.password);
 			if (!hasCustomPassword) {
 				temporaryPassword = crypto.randomBytes(8).toString("hex");
-				logger.info(`WebUI temporary password: ${temporaryPassword}`);
+				logger.info(tr("terminal.webui.temporaryPassword", { password: temporaryPassword }));
 			}
 			const source = hasCustomPassword ? "config file" : "random";
-			logger.info(`WebUI started: http://127.0.0.1:${WEB_PORT}/login [${source}]`);
+			logger.info(tr("terminal.webui.started", { url: `http://127.0.0.1:${WEB_PORT}/login` }));
 			resolve();
 		};
 		server.once("error", onError);

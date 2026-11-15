@@ -1,0 +1,19 @@
+# mcfunc texts (zh_CN)
+
+config.basePath=函数目录
+
+# Commands and messages
+command.fFunction=运行 Function 文件
+command.fLoop=循环运行 Function
+command.fStop=停止循环，不带参数时停止全部
+mcfunc.loadFailed=函数文件 {name} 加载失败
+mcfunc.running=函数文件 {name} 已运行
+mcfunc.stopped=循环已停止
+mcfunc.depth=函数嵌套层级过深
+
+# Loops
+mcfunc.loopExists=循环 {name} 已存在
+mcfunc.loopStarted=循环 {name} 已开启
+mcfunc.allStopped=已停止所有循环
+mcfunc.loopStopped=循环 {name} 已关闭
+mcfunc.loopMissing=循环 {name} 不存在

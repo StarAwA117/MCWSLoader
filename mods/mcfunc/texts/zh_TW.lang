@@ -1,0 +1,19 @@
+# mcfunc texts (zh_TW)
+
+config.basePath=函式目錄
+
+# Commands and messages
+command.fFunction=執行 Function 檔案
+command.fLoop=循環執行 Function
+command.fStop=停止循環，未提供參數時停止全部
+mcfunc.loadFailed=函式檔案 {name} 載入失敗
+mcfunc.running=函式檔案 {name} 已執行
+mcfunc.stopped=循環已停止
+mcfunc.depth=函式巢狀層級過深
+
+# Loops
+mcfunc.loopExists=循環 {name} 已存在
+mcfunc.loopStarted=循環 {name} 已開啟
+mcfunc.allStopped=已停止所有循環
+mcfunc.loopStopped=循環 {name} 已關閉
+mcfunc.loopMissing=循環 {name} 不存在

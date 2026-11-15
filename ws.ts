@@ -9,11 +9,17 @@ import { config, ClientModManager, ServerModManager, modRegistry, checkModDepend
 import Utils from "./lib/utils.js";
 import Current from "./lib/current.js";
 import { startWebServer } from "./web/server.js";
+import { tForMod } from "./lib/texts.js";
+import { errorDetail } from "./lib/errors.js";
 import type { Client } from "./lib/types/client.js";
 import type { CommandResponse, ConnectionConfig } from "./lib/types/config.js";
 
 // WebSocket server instance
 let server: WebSocketServer | null = null;
+
+function tr(key: string, params?: Record<string, unknown>): string {
+	return tForMod(null, config.language, key, params);
+}
 
 // Connection tracking for rate limiting
 const connectionAttempts = new Map<string, number[]>();
@@ -33,7 +39,7 @@ for (const raw of connCfg.allowedIPs ?? []) {
 	const [address, prefixText] = text.split("/");
 	const family = isIP(address ?? "");
 	if (!family) {
-		logger.warning(`Ignoring invalid allowedIPs entry: ${text}`);
+		logger.warning(tr("terminal.ws.invalidIp", { value: text }));
 		continue;
 	}
 	const type = family === 6 ? "ipv6" : "ipv4";
@@ -48,7 +54,7 @@ for (const raw of connCfg.allowedIPs ?? []) {
 		}
 		IP_ALLOWLIST_SIZE++;
 	} catch {
-		logger.warning(`Ignoring invalid allowedIPs entry: ${text}`);
+		logger.warning(tr("terminal.ws.invalidIp", { value: text }));
 	}
 }
 
@@ -129,13 +135,14 @@ function createServer(): WebSocketServer {
 			if (allowedOrigins.includes(origin) || (host && allowedOrigins.includes(host))) {
 				return done(true);
 			}
-			logger.warning(`WebSocket connection rejected: Origin=${origin}`);
+			logger.warning(tr("terminal.ws.originRejected", { origin }));
 			done(false, 403, "Forbidden");
 		}
 	});
 
 	wsServer.on("error", (error: Error) => {
-		logger.error(`WebSocket server error: ${error.message}`);
+		logger.error(tr("terminal.ws.serverError"));
+			logger.debug(errorDetail(error));
 		logger.debug(error.stack ?? error.message);
 	});
 
@@ -150,11 +157,12 @@ await ClientModManager.load();
 
 // Create WebSocket server
 server = createServer();
-logger.info(`WebSocket server started on port ${config.ws.port}`);
+logger.info(tr("terminal.ws.started", { port: config.ws.port }));
 
 // Start WebUI server (传入关闭钩子，供 WebUI 的重启接口复用)
 startWebServer(destroy).catch((e: Error) => {
-	logger.error(`WebUI start failed: ${e.message}`);
+	logger.error(tr("terminal.ws.webuiFailed"));
+	logger.debug(errorDetail(e));
 });
 
 // Handle client connections
@@ -163,13 +171,13 @@ server.on("connection", (socket: WebSocket) => {
 	const clientIP = normalizeIP(ws._socket?.remoteAddress ?? "unknown");
 
 	if (!isIPAllowed(clientIP)) {
-		logger.warning(`Connection rejected: IP not allowed ${clientIP}`);
+		logger.warning(tr("terminal.ws.ipRejected", { ip: clientIP }));
 		ws.close(1008, "Forbidden");
 		return;
 	}
 
 	if (isRateLimited(clientIP)) {
-		logger.warning(`Connection rate limited: ${clientIP}`);
+		logger.warning(tr("terminal.ws.rateLimited", { ip: clientIP }));
 		ws.close(1008, "Rate limited");
 		return;
 	}
@@ -179,14 +187,14 @@ server.on("connection", (socket: WebSocket) => {
 	const ENABLE_MAX_CONNECTIONS = connCfg.enableMaxConnections === true;
 
 	if (ENABLE_MAX_CONNECTIONS && MAX_CONNECTIONS > 0 && currentConnections.size >= MAX_CONNECTIONS) {
-		logger.warning("Connection rejected: max connections reached");
+		logger.warning(tr("terminal.ws.maxConnections"));
 		ws.close(1013, "Max connections reached");
 		return;
 	}
 	currentConnections.add(ws);
 	if (ENABLE_RATE_LIMIT && RATE_LIMIT_MAX > 0) recordConnectionAttempt(clientIP);
 
-	logger.info(`Client connected: ${clientIP}`);
+	logger.info(tr("terminal.ws.clientConnected", { ip: clientIP }));
 
 	ws.id = randomUUID();
 	ws.trusted = !REQUIRE_APPROVAL || isLoopbackIP(clientIP);
@@ -201,8 +209,8 @@ server.on("connection", (socket: WebSocket) => {
 	// 未批准的连接不能成为主客户端
 	if (!ws.trusted && Current.client === ws) Current.client = null;
 	if (!ws.trusted) clientMod.sapi?.stop();
-	if (isMainClient) logger.info("Main client connected");
-	else if (!ws.trusted) logger.warning(`Client pending approval: ${clientIP}`);
+	if (isMainClient) logger.info(tr("terminal.ws.mainConnected"));
+	else if (!ws.trusted) logger.warning(tr("terminal.ws.pendingApproval", { ip: clientIP }));
 
 	setTimeout(async () => {
 		try {
@@ -234,7 +242,7 @@ server.on("connection", (socket: WebSocket) => {
 	});
 
 	ws.on("close", () => {
-		logger.info(`Client disconnected: ${clientIP}`);
+		logger.info(tr("terminal.ws.clientDisconnected", { ip: clientIP }));
 		const wasMain = ws === Current.client;
 		ServerModManager.onClientDisconnect(ws, wasMain);
 
@@ -243,11 +251,11 @@ server.on("connection", (socket: WebSocket) => {
 		const newMain = Current.removeClient(ws);
 		if (wasMain) {
 			if (newMain) {
-				logger.info(`Main client switched to ${newMain._socket?.remoteAddress ?? "unknown"}`);
+				logger.info(tr("terminal.ws.mainSwitched", { ip: newMain._socket?.remoteAddress ?? tr("terminal.list.unknownIp") }));
 				ServerModManager.onMainClientSwitch(ws, newMain);
 				ServerModManager.attachMainClient(newMain);
 			} else {
-				logger.info("Main client disconnected");
+				logger.info(tr("terminal.ws.mainDisconnected"));
 			}
 		}
 		clientMod.destroy();
@@ -257,10 +265,11 @@ server.on("connection", (socket: WebSocket) => {
 
 	ws.on("error", (error: Error) => {
 		if (ws === Current.client) {
-			logger.error(`Main client error: ${error.message}`);
+			logger.error(tr("terminal.ws.mainError"));
 			logger.debug(error.stack ?? error.message);
 		} else {
-			logger.warning(`Client error from ${clientIP}: ${error.message}`);
+			logger.warning(tr("terminal.ws.clientError", { ip: clientIP }));
+			logger.debug(errorDetail(error));
 		}
 	});
 });
@@ -273,11 +282,11 @@ async function destroy(): Promise<void> {
 
 	clearInterval(cleanupTimer);
 
-	logger.info("Shutting down server mods...");
+	logger.info(tr("terminal.ws.shutdownMods"));
 	ServerModManager.destroy();
-	logger.info("Server mods closed");
+	logger.info(tr("terminal.ws.modsClosed"));
 
-	logger.info("Notifying clients to disconnect...");
+	logger.info(tr("terminal.ws.notifying"));
 	if (server) {
 		server.clients.forEach((client) => {
 			const c = client as unknown as Client;
@@ -285,13 +294,13 @@ async function destroy(): Promise<void> {
 			client.close();
 		});
 	}
-	logger.info("Client notifications completed");
+	logger.info(tr("terminal.ws.notified"));
 
-	logger.info("Shutting down server...");
+	logger.info(tr("terminal.ws.shuttingDown"));
 
 	const hardTimeout = new Promise<never>((_, reject) => {
 		setTimeout(() => {
-			logger.warning("Server shutdown timeout, force exit");
+			logger.warning(tr("terminal.ws.shutdownTimeout"));
 			reject(new Error("Server shutdown timeout"));
 		}, 10000);
 	});
@@ -299,7 +308,7 @@ async function destroy(): Promise<void> {
 	const close = new Promise<void>((resolve) => {
 		if (server) {
 			server.close(() => {
-				logger.info("Server closed");
+				logger.info(tr("terminal.ws.closed"));
 				resolve();
 			});
 		} else {
@@ -310,16 +319,16 @@ async function destroy(): Promise<void> {
 	try {
 		await Promise.race([close, hardTimeout]);
 	} catch {
-		logger.warning("Server shutdown abnormal, forcing exit");
+		logger.warning(tr("terminal.ws.shutdownAbnormal"));
 	}
 }
 
 // Signal handling
 async function shutdown(signal: string): Promise<void> {
-	logger.info(`Performing graceful shutdown... (${signal})`);
+	logger.info(tr("terminal.ws.graceful", { signal }));
 	await destroy();
 	closeLogStreams();
-	logger.info("Process ended");
+	logger.info(tr("terminal.ws.processEnded"));
 	process.exit(0);
 }
 

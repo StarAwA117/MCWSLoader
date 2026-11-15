@@ -1,5 +1,4 @@
 import ModBase from "../../lib/modbase.js";
-import { toUserError } from "../../lib/errors.js";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -416,7 +415,7 @@ this.Command.create("i:y", "确认转换操作")
 						try {
 							await this.run();
 						} catch (e) {
-							this.client.tell(`§cImage | §fError > §i转换出错：${toUserError(e, "图片转换失败，请检查图片格式")}`, sender);
+							this.client.tell(`§cImage | §fError > §i${this.t("error.convert")}`, sender);
 							this.job = null;
 						}
 					}),
@@ -498,7 +497,7 @@ this.Command.create("i:status", "查看转换进度")
 		try {
 			data = processImage(filePath, maxDim);
 		} catch (e) {
-			this.client.tell(`§cImage | §fError > §i图片处理失败：${toUserError(e, "图片处理失败，请检查图片格式")}`, sender);
+			this.client.tell(`§cImage | §fError > §i${this.t("error.process")}`, sender);
 			return;
 		}
 

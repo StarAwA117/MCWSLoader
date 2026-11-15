@@ -1,5 +1,4 @@
 import ModBase from "../../lib/modbase.js";
-import { toUserError } from "../../lib/errors.js";
 import WebSocket from "ws";
 
 // 扩展 WebSocket 连接类
@@ -63,7 +62,7 @@ this.Command.create("c:connect", "连接到 WebSocket 服务端")
 			// ws 错误
 			ws.on("error", (error) => {
 				// 提示
-				this.client.tellAll(`§cMoreWS | §fError > §i${toUserError(error, "WebSocket 连接失败，请检查地址")}`);
+				this.client.tellAll(`§cMoreWS | §fError > §i${this.t("error.connection")}`);
 				// 删除连接
 				if (this.wss.has(ws)) this.wss.delete(ws);
 			});

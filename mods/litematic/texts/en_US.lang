@@ -1,0 +1,7 @@
+# litematic texts (en_US)
+
+config.basePath=Structure directory
+error.import=Structure import failed. Check the file.
+error.parse=Structure file parsing failed
+error.tickingarea=Could not create the working area. Check the coordinates.
+error.export=Structure export failed

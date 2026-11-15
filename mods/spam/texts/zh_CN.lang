@@ -1,0 +1,19 @@
+# spam texts (zh_CN)
+
+config.attack=攻击规则
+config.ad=广告消息
+config.adInterval=广告间隔
+
+# Terminal commands
+command.cBye=强制退出当前房间
+command.cAttack=攻击客户端聊天
+command.cClear=清屏聊天消息
+command.cAd=推送广告
+command.cRepeat=刷屏指定内容
+command.cStop=停止所有刷屏
+terminal.spam.noMain=主客户端未连接
+terminal.spam.attackStart=正在攻击客户端聊天...
+terminal.spam.clearStart=正在为客户端聊天清屏...
+terminal.spam.adStart=正在推送广告...
+terminal.spam.repeatStart=正在为客户端刷屏...
+terminal.spam.stopped=已停止客户端刷屏

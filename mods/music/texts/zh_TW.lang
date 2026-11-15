@@ -1,0 +1,6 @@
+# music texts (zh_TW)
+
+config.playPercussion=播放打擊樂
+config.basePath=音樂目錄
+error.midi=MIDI 檔案解析失敗
+error.json=音樂 JSON 解析失敗

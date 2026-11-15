@@ -1,0 +1,7 @@
+# litematic texts (zh_TW)
+
+config.basePath=建築目錄
+error.import=建築匯入失敗，請檢查檔案
+error.parse=建築檔案解析失敗
+error.tickingarea=建立區域失敗，請檢查座標
+error.export=建築匯出失敗

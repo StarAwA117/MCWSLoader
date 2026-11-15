@@ -18,6 +18,10 @@ import { errorDetail, toUserError } from "./errors.js";
 import { tForMod } from "./texts.js";
 
 type AnyRecord = Record<string, any>;
+
+function tr(key: string, params?: Record<string, unknown>): string {
+	return tForMod(null, config.language, key, params);
+}
 type ModClass = ModConstructor;
 type ModsConfigMap = Map<string, { enabled: boolean }>;
 interface ResolvedMethod {
@@ -726,7 +730,7 @@ export class ClientModManager extends ModManagerBase {
 				if (!modClass) throw new Error("no default export");
 				entry.clientClass = modClass;
 				ClientModManager.loadedMod[entry.name] = modClass;
-				logger.info(`Client Mod ${entry.name} loaded`);
+				logger.info(tr("terminal.mod.clientLoaded", { name: entry.name }));
 			} catch (e) {
 				logger.error(`Client Mod ${entry.name} load failed: ${(e as Error).message}`);
 			}
@@ -889,7 +893,7 @@ export class ClientModManager extends ModManagerBase {
 			this._instantiateMod(name, modClass);
 			this._buildMethodLists();
 			this._collectCommands();
-			logger.info(`Client Mod ${name} reloaded`);
+			logger.info(tr("terminal.mod.clientReloaded", { name }));
 			return { success: true, message: `Client Mod ${name} reloaded` };
 		} catch (e) {
 			const message = (e as Error).message;
@@ -1149,7 +1153,7 @@ export class ServerModManager extends ModManagerBase {
 				if (!modClass) throw new Error("no default export");
 				entry.serverClass = modClass;
 				ServerModManager.loadedMod[entry.name] = modClass;
-				logger.info(`Server Mod ${entry.name} loaded`);
+				logger.info(tr("terminal.mod.serverLoaded", { name: entry.name }));
 			} catch (e) {
 				logger.error(`Server Mod ${entry.name} load failed: ${(e as Error).message}`);
 			}
@@ -1234,7 +1238,7 @@ export class ServerModManager extends ModManagerBase {
 				return { success: false, message: `Server Mod "${name}" instantiation failed` };
 			}
 			this._buildMethodLists();
-			logger.info(`Server Mod ${name} reloaded`);
+			logger.info(tr("terminal.mod.serverReloaded", { name }));
 			return { success: true, message: `Server Mod ${name} reloaded` };
 		} catch (e) {
 			const message = (e as Error).message;
@@ -1352,7 +1356,7 @@ export async function checkModDependencies(): Promise<void> {
 			}
 			try {
 				const r = await installNpmDependency(parsed.name, projectRoot());
-				if (!r.skipped) logger.info(`npm package "${r.name}" installed for mod "${label}"`);
+				if (!r.skipped) logger.info(tr("terminal.mod.npmInstalled", { mod: label, packageName: r.name }));
 			} catch (e) {
 				logger.error(`Failed to install npm package "${parsed.name}" for mod "${label}": ${(e as Error).message}`);
 			}

@@ -1,0 +1,5 @@
+# image texts (zh_CN)
+
+config.basePath=图片目录
+error.convert=图片转换失败，请检查图片格式
+error.process=图片处理失败，请检查图片格式

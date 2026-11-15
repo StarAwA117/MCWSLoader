@@ -1,0 +1,10 @@
+# fastbuilder texts (zh_CN)
+
+config.defaultBlock=默认方块
+config.origin=原点
+config.origin.x=原点 X
+config.origin.y=原点 Y
+config.origin.z=原点 Z
+config.particle=粒子效果
+error.readScript=读取脚本失败，请检查文件是否存在
+error.execute=脚本执行失败，请检查脚本内容

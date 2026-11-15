@@ -1,0 +1,7 @@
+# position texts (en_US)
+
+error.execute=Position tool execution failed
+error.testBlock=Block ID test failed
+error.tickingarea=Could not create the working area. Check the coordinates.
+error.save=Structure save failed
+error.load=Structure load failed

@@ -1,0 +1,19 @@
+# spam texts (en_US)
+
+config.attack=Attack rule
+config.ad=Advertisement messages
+config.adInterval=Advertisement interval
+
+# Terminal commands
+command.cBye=Force leave the current room
+command.cAttack=Attack client chat
+command.cClear=Clear chat messages
+command.cAd=Push advertisements
+command.cRepeat=Repeat specified content
+command.cStop=Stop all repeats
+terminal.spam.noMain=Main client not connected
+terminal.spam.attackStart=Attacking client chat...
+terminal.spam.clearStart=Clearing client chat...
+terminal.spam.adStart=Pushing advertisements...
+terminal.spam.repeatStart=Repeating content for the client...
+terminal.spam.stopped=Client repeat stopped

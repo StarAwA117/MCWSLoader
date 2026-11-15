@@ -334,7 +334,7 @@ export default class AIHelper extends ModBase {
 		}
 
 		if (!returnMsg || !String(returnMsg).trim()) {
-			throw new AIError("AI 没有返回可显示的内容（空输出）。", undefined, "ai.error.emptyOutput");
+			throw new AIError("AI 没有返回可显示的内容，空输出。", undefined, "ai.error.emptyOutput");
 		}
 
 		return returnMsg;

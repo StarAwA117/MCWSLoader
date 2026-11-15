@@ -1,0 +1,7 @@
+# position texts (zh_TW)
+
+error.execute=位置工具執行失敗
+error.testBlock=方塊 ID 測試失敗
+error.tickingarea=建立區域失敗，請檢查座標
+error.save=結構儲存失敗
+error.load=結構載入失敗
