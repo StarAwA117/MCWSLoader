@@ -23,7 +23,9 @@ class _StandaloneAppState extends State<StandaloneApp> with WidgetsBindingObserv
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _boot();
+    // Render the native splash before starting Node so the first frame is not
+    // blocked by the native runtime and foreground-service setup.
+    WidgetsBinding.instance.addPostFrameCallback((_) => _boot());
   }
 
   @override

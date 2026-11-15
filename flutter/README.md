@@ -1,112 +1,114 @@
-# MCWSLoader Standalone App
+# MCWSLoader Native App
 
-独立版 Flutter GUI，内置 Node 服务端，默认只启动 WebUI，不自动启动 WebSocket。
+独立版 Flutter 原生 GUI，内置 Node 24 LTS 服务端。界面不再使用 WebView，也不启动 WebUI 页面服务器。
 
-Standalone Flutter GUI with an embedded Node server. It starts the WebUI only; WebSocket must be started from the dashboard.
+Standalone native Flutter GUI with an embedded Node 24 LTS server. It no longer uses WebView or starts a WebUI page server.
 
 ## 平台 / Platforms
 
-- Android APK
+- Android APK arm64
 - Windows x64
 - Linux x64
-
-Android 通过 `node_flutter` 和 nodejs-mobile 运行 Node 18；Windows/Linux 使用随包附带的 Node 二进制文件。
-Android uses `node_flutter` and nodejs-mobile for Node 18. Windows and Linux use a bundled Node binary.
+- macOS arm64
 
 ## 默认行为 / Default behavior
 
-- 本地服务监听 `127.0.0.1:50100`
-- 默认模式为 `webui`
-- 打开 App 不会自动启动 WebSocket
-- WebSocket 由仪表盘上的服务状态卡手动启动
-- 独立版隐藏服务重启、结束进程和应用内更新入口
+- 本机 API 监听 `127.0.0.1:50100`
+- 默认模式为 `gui`
+- 默认不启动 WebSocket
+- 不显示登录页，不使用密码
+- 不启动 Vue WebUI 静态服务
+- WebSocket 在仪表盘手动启动
+- 更新和进程控制入口在独立版中隐藏
 
-- The local service listens on `127.0.0.1:50100`.
-- The default mode is `webui`.
-- Opening the app does not start WebSocket.
-- WebSocket is started manually from the service status card.
-- Standalone builds hide restart, kill and in-app update controls.
+- Local API listens on `127.0.0.1:50100`.
+- Default mode is `gui`.
+- WebSocket is off by default.
+- There is no login screen or password.
+- The Vue WebUI static server is not started.
+- WebSocket is started manually from the dashboard.
+- Update and process-control entries are hidden in standalone builds.
 
-## 首次登录 / First login
+## 原生界面 / Native UI
 
-独立版生成一个本地配置，默认密码为：
+- 仪表盘
+- 客户端管理
+- 命令执行
+- 消息
+- 模组
+- 应用日志
+- 设置
 
-```text
-mcwsloader
-```
+The native UI includes dashboard, clients, commands, chat, Mods, logs and settings.
 
-App 会尝试自动登录。修改密码后需要手动登录。
+## Android 后台 / Android background
 
-The standalone build creates a local config with this default password:
+- Node 运行在独立的 `:node` 进程
+- 使用前台服务保持运行
+- 支持启动时自启动
+- 设置页可打开电池优化豁免
+- Node 堆上限为 128 MB
 
-```text
-mcwsloader
-```
-
-The app tries to sign in automatically. After changing the password, sign in manually.
+- Node runs in a separate `:node` process.
+- A foreground service keeps it alive.
+- Boot autostart is supported.
+- Battery optimization settings are available from Settings.
+- The Node heap is capped at 128 MB.
 
 ## 构建 / Build
 
-GitHub Actions workflow:
+GitHub Actions:
 
 ```text
 .github/workflows/app-build.yml
 ```
 
-手动运行 workflow 或推送 `v*` tag 后生成：
+产物 / Artifacts：
 
 - `MCWSLoader-<tag>-arm64.apk`
 - `MCWSLoader-<tag>-windows-x64.zip`
 - `MCWSLoader-<tag>-linux-x64.tar.gz`
+- `MCWSLoader-<tag>-macos.zip`
 
-The workflow builds:
-
-- `MCWSLoader-<tag>-arm64.apk`
-- `MCWSLoader-<tag>-windows-x64.zip`
-- `MCWSLoader-<tag>-linux-x64.tar.gz`
-
-本地构建步骤 / Local build：
+本地构建 / Local build：
 
 ```bash
 npm ci
 cd web/frontend && npm ci && npm run build && cd ../..
 
-# Android
 node scripts/build-standalone.mjs --target android
 bash scripts/prepare-flutter-app.sh android
 
-# Windows / Linux desktop
-node scripts/build-standalone.mjs --target desktop --node "$(command -v node)"
+# desktop / macOS
+node scripts/build-standalone.mjs --target desktop
 bash scripts/prepare-flutter-app.sh windows
-# or: bash scripts/prepare-flutter-app.sh linux
+bash scripts/prepare-flutter-app.sh linux
+bash scripts/prepare-flutter-app.sh macos
 ```
 
 ## 运行依赖 / Runtime requirements
 
 - Android 7 以上
-- Windows 10 1809 以上，需要 WebView2 Runtime
-- Linux 需要 WebKitGTK 4.1，例如 Debian/Ubuntu 的 `libwebkit2gtk-4.1-0`
+- Windows 10 1809 以上
+- Linux 需要 GTK 3
+- macOS 11 以上
+- macOS 首次运行如被 Gatekeeper 阻止，请在系统设置中允许
 
-Windows 10 1809 or newer with WebView2 Runtime. Linux requires WebKitGTK 4.1.
+Android 7 or newer. Windows 10 1809 or newer. Linux needs GTK 3. macOS 11 or newer.
 
 ## 数据目录 / Data
 
-- Android: App 私有目录 `files/nodejs-project`
-- Windows/Linux: 用户应用支持目录下的 `server/`
+- Android: 应用私有目录 `files/nodejs-project`
+- Windows/Linux/macOS: 应用支持目录下的 `server/`
 
-Android uses the private app directory. Desktop uses the application support directory.
-
-升级 APK 时 node_flutter 可能重新复制项目文件。测试版升级前请备份配置、Mod 和权限文件。
-On APK upgrades, node_flutter may replace the project files. Back up config, Mods and permissions before upgrading a test build.
+Android uses the private app directory. Desktop and macOS use `server/` under application support.
 
 ## 限制 / Limitations
 
-- 独立版默认只监听本机，不提供远程访问。
-- Android 的 Mod 导入、运行外部命令和 npm 依赖安装受 Android 环境限制。
-- 内置 Node 脚本使用 VM 沙箱，但不是操作系统级隔离。
-- 默认密码仅用于本地首次启动，建议登录后立即修改。
+- 独立版只监听本机 API，不支持远程 WebUI。
+- Android Mod 导入、外部命令和 npm 依赖安装受系统限制。
+- 仅运行可信来源的 Mod 和脚本。
 
-- Standalone builds listen locally and do not expose remote access.
-- Mod imports, shell commands and npm dependency installs are limited on Android.
-- The embedded Node sandbox is not OS-level isolation.
-- Change the default password after the first login.
+- Standalone builds expose only a local API, not a remote WebUI.
+- Android Mod imports, shell commands and npm dependency installs are limited by the system.
+- Only run trusted Mods and scripts.
