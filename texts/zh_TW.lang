@@ -284,3 +284,41 @@ settings.theme=主題
 settings.themeHint=僅替換配色，不影響功能。預設使用星風格；選擇後點擊儲存生效。
 settings.themeStar=星風格
 settings.themeMocha=Catppuccin Mocha
+
+# Terminal output
+terminal.installingDeps=正在安裝依賴...
+terminal.depsInstalled=依賴安裝完成
+terminal.depsFailed=依賴安裝失敗，請檢查網路或 npm 設定
+terminal.configCreated=已從 config.example.json 初始化 config.json
+terminal.languageDefault=已寫入預設語言設定：{language}
+terminal.updateAvailable=發現新版本 v{latest}（目前 v{current}）
+terminal.updateHint=可在 WebUI -> 設定 -> 系統 -> 更新 中處理
+terminal.updateCheckFailed=更新檢查失敗，請稍後重試
+
+# Terminal commands
+terminal.test.description=測試命令
+terminal.test.success=測試成功
+terminal.list.description=列出所有連線（主客戶端 + IP 或 編號 + IP）
+terminal.list.empty=沒有已連線客戶端
+terminal.list.title=目前連線（{count}）：
+terminal.list.mainClient=主客戶端
+terminal.list.number=編號 {index}
+terminal.list.unknownIp=未知 IP
+terminal.reload.description=重新載入所有伺服器 Mod + 所有客戶端 Mod 執行個體（並重新讀取 config.json）
+terminal.reload.start=正在重新載入所有 Mod...
+terminal.reload.config=設定已按 config.json 重新整理
+terminal.reload.configFailed=設定重新整理失敗
+terminal.reload.serverSuccess=伺服器成功：{names}
+terminal.reload.none=無
+terminal.reload.serverFailed=伺服器失敗：{names}
+terminal.reload.clientSuccess=客戶端成功：{count} 個執行個體
+terminal.reload.clientFailed=客戶端失敗：
+terminal.mods.description=列出所有伺服器 Mod 與客戶端 Mod
+terminal.mods.server=伺服器 Mod（{count}）：
+terminal.mods.client=客戶端 Mod（{count}）：
+terminal.mods.none=無
+terminal.noMainClient=主客戶端未連線，請先在遊戲內連線並批准
+terminal.commandStatus=命令回傳狀態 {status}：{message}
+terminal.commandFailed=命令執行失敗
+terminal.unknownCommand=未知命令：{command}
+terminal.null=無

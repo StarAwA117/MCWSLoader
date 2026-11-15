@@ -44,11 +44,13 @@ type CommandResponseObject = {
 
 class AIError extends Error {
 	userMessage: string;
+	key: string;
 
-	constructor(userMessage: string, detail?: string) {
+	constructor(userMessage: string, detail?: string, key = "ai.error.request") {
 		super(detail || userMessage);
 		this.name = "AIError";
 		this.userMessage = userMessage;
+		this.key = key;
 	}
 }
 
@@ -57,17 +59,17 @@ function mapAIError(error: unknown): AIError {
 	const source = error as { status?: unknown; code?: unknown; message?: unknown; response?: { status?: unknown } } | null;
 	const status = Number(source?.status ?? source?.response?.status ?? 0);
 	const message = String(source?.message ?? "");
-	if (status === 401 || status === 403) return new AIError("AI 认证失败，请检查 apiKey 或接口权限。", message);
-	if (status === 404) return new AIError("AI 接口或模型不存在，请检查 baseURL 和 model。", message);
-	if (status === 429) return new AIError("AI 请求过于频繁或额度不足，请稍后重试。", message);
+	if (status === 401 || status === 403) return new AIError("AI 认证失败，请检查 apiKey 或接口权限。", message, "ai.error.auth");
+	if (status === 404) return new AIError("AI 接口或模型不存在，请检查 baseURL 和 model。", message, "ai.error.model");
+	if (status === 429) return new AIError("AI 请求过于频繁或额度不足，请稍后重试。", message, "ai.error.rate");
 	if (/context.length|maximum context|token.*exceed|too many tokens/i.test(message)) {
-		return new AIError("对话上下文过长，请使用 ai:reset 重置后再试。", message);
+		return new AIError("对话上下文过长，请使用 ai:reset 重置后再试。", message, "ai.error.context");
 	}
-	if (/ETIMEDOUT|timed? out|AbortError|aborted/i.test(message)) return new AIError("AI 请求超时，请稍后重试。", message);
+	if (/ETIMEDOUT|timed? out|AbortError|aborted/i.test(message)) return new AIError("AI 请求超时，请稍后重试。", message, "ai.error.timeout");
 	if (/ECONNREFUSED|ENOTFOUND|EAI_AGAIN|fetch failed|network/i.test(message)) {
-		return new AIError("无法连接 AI 服务，请检查网络、baseURL 或代理。", message);
+		return new AIError("无法连接 AI 服务，请检查网络、baseURL 或代理。", message, "ai.error.network");
 	}
-	if (/content filter|safety/i.test(message)) return new AIError("AI 拒绝回答该请求。", message);
+	if (/content filter|safety/i.test(message)) return new AIError("AI 拒绝回答该请求。", message, "ai.error.content");
 	return new AIError("AI 请求失败，请稍后重试。", message);
 }
 
@@ -150,21 +152,21 @@ export function parseCommandResponse(raw: string): CommandResponseObject {
 	try {
 		parsed = JSON.parse(text);
 	} catch (e) {
-		throw new AIError("AI 返回的内容不是有效 JSON，请重试。", (e as Error).message);
+		throw new AIError("AI 返回的内容不是有效 JSON，请重试。", (e as Error).message, "ai.error.invalidJson");
 	}
 	if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
-		throw new AIError("AI 返回的内容不是 JSON 对象，请重试。", text);
+		throw new AIError("AI 返回的内容不是 JSON 对象，请重试。", text, "ai.error.invalidJson");
 	}
 
 	const warnings: string[] = [];
 	let message = "";
 	if (typeof parsed.message === "string") {
 		message = parsed.message.trim();
-		if (!message) warnings.push("AI 没有返回 message（空输出）。");
+		if (!message) warnings.push("ai.warn.emptyMessage");
 	} else if (parsed.message !== undefined) {
-		warnings.push("AI 返回的 message 不是字符串，已按空输出处理。");
+		warnings.push("ai.warn.messageNotString");
 	} else {
-		warnings.push("AI 没有返回 message（空输出）。");
+		warnings.push("ai.warn.emptyMessage");
 	}
 
 	let commands: string[] = [];
@@ -173,13 +175,13 @@ export function parseCommandResponse(raw: string): CommandResponseObject {
 		commands = rawCommands
 			.filter((command: unknown): command is string => typeof command === "string" && command.trim().length > 0)
 			.map((command: string) => command.trim().replace(/^\/+/, ""));
-		if (commands.length !== rawCommands.length) warnings.push("AI 返回的部分 commands 不是有效字符串，已忽略。");
+		if (commands.length !== rawCommands.length) warnings.push("ai.warn.partialCommands");
 	} else if (parsed.commands !== undefined) {
-		warnings.push("AI 返回的 commands 不是数组，已按空列表处理。");
+		warnings.push("ai.warn.commandsNotArray");
 	}
 
 	if (parsed.continue !== undefined && typeof parsed.continue !== "boolean") {
-		warnings.push("AI 返回的 continue 不是布尔值，已按 false 处理。");
+		warnings.push("ai.warn.continueNotBool");
 	}
 
 	return {
@@ -267,7 +269,7 @@ export default class AIHelper extends ModBase {
 				openai = new OpenAI(config.options);
 				openaiKey = clientKey;
 			} catch (e) {
-				throw new AIError("AI 配置无效，请检查 baseURL 和 apiKey。", (e as Error).message);
+				throw new AIError("AI 配置无效，请检查 baseURL 和 apiKey。", (e as Error).message, "ai.error.config");
 			}
 		}
 
@@ -332,7 +334,7 @@ export default class AIHelper extends ModBase {
 		}
 
 		if (!returnMsg || !String(returnMsg).trim()) {
-			throw new AIError("AI 没有返回可显示的内容（空输出）。");
+			throw new AIError("AI 没有返回可显示的内容（空输出）。", undefined, "ai.error.emptyOutput");
 		}
 
 		return returnMsg;
@@ -381,7 +383,7 @@ export default class AIHelper extends ModBase {
 
 		// 发言过快检测（先判定，通过后再更新时间，避免冷却被每次失败发言后移）
 		if (now - lastTime < cooldown) {
-			this.client?.tellAll(`§cAI | §fCooldown > §i聊天速度过快`);
+			this.client?.tellAll(`§cAI | §fCooldown > §i${this.t("ai.cooldown")}`);
 			return false;
 		}
 
@@ -401,7 +403,7 @@ export default class AIHelper extends ModBase {
 			this.client?.tellAll(`§bAI | §f${name} > §i${result}`);
 		} catch (e) {
 			this.logger.error(`AI chat failed: ${errorDetail(e)}`);
-			this.client?.tellAll(`§cAI | §fError > §i${toUserError(e, "AI 请求失败，请稍后重试。")}`);
+			this.client?.tellAll(`§cAI | §fError > §i${e instanceof AIError ? this.t(e.key) : this.t("ai.error.request")}`);
 		}
 	}
 
@@ -422,7 +424,7 @@ export default class AIHelper extends ModBase {
 				raw = await AIHelper.chat(input, "command", contents);
 			} catch (e) {
 				this.logger.error(`AI command request failed: ${errorDetail(e)}`);
-				this.client?.tellAll(`§cAI | §fError > §i${toUserError(e, "AI 请求失败，请稍后重试。")}`);
+				this.client?.tellAll(`§cAI | §fError > §i${e instanceof AIError ? this.t(e.key) : this.t("ai.error.request")}`);
 				return;
 			}
 
@@ -431,12 +433,12 @@ export default class AIHelper extends ModBase {
 				response = parseCommandResponse(raw);
 			} catch (e) {
 				this.logger.error(`AI command response invalid: ${errorDetail(e)}`);
-				this.client?.tellAll(`§cAI | §fError > §i${toUserError(e, "AI 返回了无效的 JSON，请重试。")}`);
+				this.client?.tellAll(`§cAI | §fError > §i${e instanceof AIError ? this.t(e.key) : this.t("ai.error.invalidJson")}`);
 				return;
 			}
 
 			for (const warning of response.warnings) {
-				this.client?.tellAll(`§eAI | §fWarn > §i${warning}`);
+				this.client?.tellAll(`§eAI | §fWarn > §i${this.t(warning)}`);
 			}
 			if (response.message) this.client?.tellAll(`§bAI | §f${name} > §i${response.message}`);
 
@@ -458,7 +460,7 @@ export default class AIHelper extends ModBase {
 			if (!response.continue || results.length === 0) return;
 
 			if (round >= maxRounds) {
-				this.client?.tellAll(`§eAI | §fSystem > §i已达到最大连续对话轮数（${maxRounds}）`);
+				this.client?.tellAll(`§eAI | §fSystem > §i${this.t("ai.maxRounds", { max: maxRounds })}`);
 				return;
 			}
 

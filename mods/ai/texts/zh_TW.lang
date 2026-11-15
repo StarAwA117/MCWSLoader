@@ -16,3 +16,25 @@ config.command.maxRounds=最大連續對話輪數
 config.command.commandTimeoutMs=命令逾時（毫秒）
 config.thinking=思考模式
 config.thinking.type=思考模式類型
+
+# Warnings
+ai.warn.emptyMessage=AI 沒有回傳 message（空輸出）。
+ai.warn.messageNotString=AI 回傳的 message 不是字串，已按空輸出處理。
+ai.warn.commandsNotArray=AI 回傳的 commands 不是陣列，已按空清單處理。
+ai.warn.partialCommands=AI 回傳的部分 commands 不是有效字串，已忽略。
+ai.warn.continueNotBool=AI 回傳的 continue 不是布林值，已按 false 處理。
+ai.cooldown=聊天速度過快，請稍後再試。
+ai.maxRounds=已達到最大連續對話輪數（{max}）。
+
+# Errors
+ai.error.request=AI 請求失敗，請稍後重試。
+ai.error.auth=AI 認證失敗，請檢查 apiKey 或介面權限。
+ai.error.model=AI 介面或模型不存在，請檢查 baseURL 和 model。
+ai.error.rate=AI 請求過於頻繁或額度不足，請稍後重試。
+ai.error.context=對話上下文過長，請使用 ai:reset 重置後再試。
+ai.error.timeout=AI 請求逾時，請稍後重試。
+ai.error.network=無法連線 AI 服務，請檢查網路、baseURL 或代理。
+ai.error.content=AI 拒絕回答該請求。
+ai.error.config=AI 設定無效，請檢查 baseURL 和 apiKey。
+ai.error.invalidJson=AI 回傳的內容不是有效 JSON，請重試。
+ai.error.emptyOutput=AI 沒有回傳可顯示的內容（空輸出）。

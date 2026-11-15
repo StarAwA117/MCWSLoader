@@ -2,7 +2,9 @@ import readline from "node:readline";
 import { logger } from "./logger.js";
 import Command from "./command.js";
 import Current from "./current.js";
-import { reloadConfig } from "./mods.js";
+import { reloadConfig, config } from "./mods.js";
+import { tForMod } from "./texts.js";
+import { errorDetail, toUserError } from "./errors.js";
 type ServerModManagerClass = typeof import("./mods.js").ServerModManager;
 type ClientModManagerClass = typeof import("./mods.js").ClientModManager;
 
@@ -10,6 +12,10 @@ type ClientModManagerClass = typeof import("./mods.js").ClientModManager;
 const commands: { normal: Command[]; ws: Command[] } = { normal: [], ws: [] };
 
 let rl: readline.Interface | null = null;
+
+function tr(key: string, params?: Record<string, unknown>): string {
+	return tForMod(null, config.language, key, params);
+}
 
 /**
  * 收集所有服务端 Mod 的终端命令（加载后调用）
@@ -24,45 +30,45 @@ export function collectCommands(
 
 	// 内置 p: 命令
 	commands.normal.push(
-		Command.create("test", "测试命令").setFunc(() => {
-			console.log("< 测试成功");
+		Command.create("test", tr("terminal.test.description")).setFunc(() => {
+			console.log(`< ${tr("terminal.test.success")}`);
 		}),
 
-		Command.create("p:list", "列出所有连接（主客户端 + IP 或 编号 + IP）").setFunc(() => {
+		Command.create("p:list", tr("terminal.list.description")).setFunc(() => {
 			if (Current.clientMods.size === 0) {
-				console.log("< 无已连接客户端");
+				console.log(`< ${tr("terminal.list.empty")}`);
 				return;
 			}
-			console.log(`< 当前连接 (${Current.clientMods.size}):`);
+			console.log(`< ${tr("terminal.list.title", { count: Current.clientMods.size })}`);
 			let index = 0;
 			for (const [ws] of Current.clientMods) {
 				index += 1;
-				const isMain = ws === Current.client ? "主客户端" : `编号 ${index}`;
-				const ip = ws._socket?.remoteAddress || "未知 IP";
+				const isMain = ws === Current.client ? tr("terminal.list.mainClient") : tr("terminal.list.number", { index });
+				const ip = ws._socket?.remoteAddress || tr("terminal.list.unknownIp");
 				console.log(`  §b${isMain} §f- §e${ip}`);
 			}
 		}),
 
-		Command.create("p:reload", "重载所有服务端 Mod + 所有客户端 Mod 全部实例（并重新读取 config.json）").setFunc(
+		Command.create("p:reload", tr("terminal.reload.description")).setFunc(
 			async () => {
-				console.log("< 正在重载所有 Mod...");
+				console.log(`< ${tr("terminal.reload.start")}`);
 				try {
 					reloadConfig();
-					console.log("< §a配置已按 config.json 刷新");
+					console.log(`< §a${tr("terminal.reload.config")}`);
 				} catch (e) {
-					console.error(`< §c配置刷新失败: ${(e as Error).message}`);
+					console.error(`< §c${tr("terminal.reload.configFailed")}: ${toUserError(e)}`);
 					return;
 				}
 				const serverResult = await ServerModManager.reloadAll();
-				console.log(`< §a服务端成功: ${serverResult.success.join(", ") || "无"}`);
+				console.log(`< §a${tr("terminal.reload.serverSuccess", { names: serverResult.success.join(", ") || tr("terminal.reload.none") })}`);
 				if (serverResult.failed.length > 0) {
-					console.error(`< §c服务端失败: ${serverResult.failed.join(", ")}`);
+					console.error(`< §c${tr("terminal.reload.serverFailed", { names: serverResult.failed.join(", ") })}`);
 				}
 
 				const clientResult = await ClientModManager.reloadAllClients();
-				console.log(`< §a客户端成功: ${clientResult.success.length || 0} 个实例`);
+				console.log(`< §a${tr("terminal.reload.clientSuccess", { count: clientResult.success.length || 0 })}`);
 				if (clientResult.failed.length > 0) {
-					console.error("< §c客户端失败:");
+					console.error(`< §c${tr("terminal.reload.clientFailed")}`);
 					clientResult.failed.forEach((f) => console.error(`  §c${f}`));
 				}
 
@@ -71,19 +77,19 @@ export function collectCommands(
 			}
 		),
 
-		Command.create("p:mod", "列出所有服务端 Mod 与客户端 Mod").setFunc(() => {
+		Command.create("p:mod", tr("terminal.mods.description")).setFunc(() => {
 			const serverMods = ServerModManager.getLoadedModNames();
-			console.log(`< 服务端 Mod (${serverMods.length}):`);
+			console.log(`< ${tr("terminal.mods.server", { count: serverMods.length })}`);
 			if (serverMods.length === 0) {
-				console.log("  §7无");
+				console.log(`  §7${tr("terminal.mods.none")}`);
 			} else {
 				serverMods.forEach((name) => console.log(`  §b${name}`));
 			}
 
 			const clientMods = Object.keys(ClientModManager.loadedMod ?? {});
-			console.log(`< 客户端 Mod (${clientMods.length}):`);
+			console.log(`< ${tr("terminal.mods.client", { count: clientMods.length })}`);
 			if (clientMods.length === 0) {
-				console.log("  §7无");
+				console.log(`  §7${tr("terminal.mods.none")}`);
 			} else {
 				clientMods.forEach((name) => console.log(`  §b${name}`));
 			}
@@ -153,17 +159,17 @@ function execute(msg: string, cmds: Command[]): boolean {
 	try {
 		for (const cmd of cmds) {
 			const onError = (e: Error): void => {
-				console.error(e.message);
-				logger.error(`Command ${e.message}`);
+				console.error(toUserError(e));
+				logger.error(`Command ${errorDetail(e)}`);
 			};
 			const result = cmd.execute("Terminal", msg, onError);
 			if (result) {
-				if (!result.status && result.message) console.error(result.message);
+				if (!result.status && result.message) console.error(toUserError(result.message));
 				return false;
 			}
 		}
 	} catch (e) {
-		console.error((e as Error).message);
+		console.error(toUserError(e));
 		return false;
 	}
 	return true;
@@ -178,7 +184,7 @@ function onLine(input: string): void {
 	}
 
 	if (!Current.client) {
-		console.log("主客户端未连接");
+		console.log(tr("terminal.noMainClient"));
 		return;
 	}
 
@@ -187,10 +193,10 @@ function onLine(input: string): void {
 		Current.client
 			.runCommand(input)
 			.then((data) => {
-				console.log(`CMD ${data.body?.statusCode} -> ${data.body?.statusMessage || "Null"}`);
+				console.log(tr("terminal.commandStatus", { status: data.body?.statusCode ?? "", message: data.body?.statusMessage || tr("terminal.null") }));
 			})
 			.catch((e: Error) => {
-				console.error(`CMD 执行失败: ${e.message}`);
+				console.error(`${tr("terminal.commandFailed")}: ${toUserError(e)}`); logger.error(`Terminal command failed: ${errorDetail(e)}`);
 			});
 		return;
 	}
@@ -204,5 +210,5 @@ function onLine(input: string): void {
 	// 执行 WebSocket 级别命令
 	if (!execute(input, commands.ws)) return;
 
-	console.log(`未知的命令 ${input.split(" ")[0] ?? ""}`);
+	console.log(tr("terminal.unknownCommand", { command: input.split(" ")[0] ?? "" }));
 }

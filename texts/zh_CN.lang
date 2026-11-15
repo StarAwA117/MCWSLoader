@@ -284,3 +284,41 @@ settings.theme=主题
 settings.themeHint=仅替换配色，不影响功能。默认使用星风格；选择后点击保存生效。
 settings.themeStar=星风格
 settings.themeMocha=Catppuccin Mocha
+
+# Terminal output
+terminal.installingDeps=正在安装依赖...
+terminal.depsInstalled=依赖安装完成
+terminal.depsFailed=依赖安装失败，请检查网络或 npm 配置
+terminal.configCreated=已从 config.example.json 初始化 config.json
+terminal.languageDefault=已写入默认语言设置：{language}
+terminal.updateAvailable=发现新版本 v{latest}（当前 v{current}）
+terminal.updateHint=可在 WebUI -> 设置 -> 系统 -> 更新 中处理
+terminal.updateCheckFailed=更新检查失败，请稍后重试
+
+# Terminal commands
+terminal.test.description=测试命令
+terminal.test.success=测试成功
+terminal.list.description=列出所有连接（主客户端 + IP 或 编号 + IP）
+terminal.list.empty=无已连接客户端
+terminal.list.title=当前连接（{count}）：
+terminal.list.mainClient=主客户端
+terminal.list.number=编号 {index}
+terminal.list.unknownIp=未知 IP
+terminal.reload.description=重载所有服务端 Mod + 所有客户端 Mod 全部实例（并重新读取 config.json）
+terminal.reload.start=正在重载所有 Mod...
+terminal.reload.config=配置已按 config.json 刷新
+terminal.reload.configFailed=配置刷新失败
+terminal.reload.serverSuccess=服务端成功：{names}
+terminal.reload.none=无
+terminal.reload.serverFailed=服务端失败：{names}
+terminal.reload.clientSuccess=客户端成功：{count} 个实例
+terminal.reload.clientFailed=客户端失败：
+terminal.mods.description=列出所有服务端 Mod 与客户端 Mod
+terminal.mods.server=服务端 Mod（{count}）：
+terminal.mods.client=客户端 Mod（{count}）：
+terminal.mods.none=无
+terminal.noMainClient=主客户端未连接，请先在游戏内连接并批准
+terminal.commandStatus=命令返回状态 {status}：{message}
+terminal.commandFailed=命令执行失败
+terminal.unknownCommand=未知命令：{command}
+terminal.null=无

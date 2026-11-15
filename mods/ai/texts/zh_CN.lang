@@ -16,3 +16,25 @@ config.command.maxRounds=最大连续对话轮数
 config.command.commandTimeoutMs=命令超时（毫秒）
 config.thinking=思考模式
 config.thinking.type=思考模式类型
+
+# Warnings
+ai.warn.emptyMessage=AI 没有返回 message（空输出）。
+ai.warn.messageNotString=AI 返回的 message 不是字符串，已按空输出处理。
+ai.warn.commandsNotArray=AI 返回的 commands 不是数组，已按空列表处理。
+ai.warn.partialCommands=AI 返回的部分 commands 不是有效字符串，已忽略。
+ai.warn.continueNotBool=AI 返回的 continue 不是布尔值，已按 false 处理。
+ai.cooldown=聊天速度过快，请稍后再试。
+ai.maxRounds=已达到最大连续对话轮数（{max}）。
+
+# Errors
+ai.error.request=AI 请求失败，请稍后重试。
+ai.error.auth=AI 认证失败，请检查 apiKey 或接口权限。
+ai.error.model=AI 接口或模型不存在，请检查 baseURL 和 model。
+ai.error.rate=AI 请求过于频繁或额度不足，请稍后重试。
+ai.error.context=对话上下文过长，请使用 ai:reset 重置后再试。
+ai.error.timeout=AI 请求超时，请稍后重试。
+ai.error.network=无法连接 AI 服务，请检查网络、baseURL 或代理。
+ai.error.content=AI 拒绝回答该请求。
+ai.error.config=AI 配置无效，请检查 baseURL 和 apiKey。
+ai.error.invalidJson=AI 返回的内容不是有效 JSON，请重试。
+ai.error.emptyOutput=AI 没有返回可显示的内容（空输出）。

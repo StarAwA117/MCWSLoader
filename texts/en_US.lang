@@ -284,3 +284,41 @@ settings.theme=Theme
 settings.themeHint=Color palette only; functionality is unchanged. Star is the default; click Save to apply the selection.
 settings.themeStar=Star
 settings.themeMocha=Catppuccin Mocha
+
+# Terminal output
+terminal.installingDeps=Installing dependencies...
+terminal.depsInstalled=Dependencies installed
+terminal.depsFailed=Dependency installation failed. Check your network or npm configuration.
+terminal.configCreated=Created config.json from config.example.json
+terminal.languageDefault=Default language set to {language}
+terminal.updateAvailable=Update available: v{latest} (current v{current})
+terminal.updateHint=Open WebUI -> Settings -> System -> Update to continue
+terminal.updateCheckFailed=Update check failed. Try again later.
+
+# Terminal commands
+terminal.test.description=Test command
+terminal.test.success=Test succeeded
+terminal.list.description=List all connections (main client + IP or index + IP)
+terminal.list.empty=No connected clients
+terminal.list.title=Connections ({count}):
+terminal.list.mainClient=Main client
+terminal.list.number=Index {index}
+terminal.list.unknownIp=Unknown IP
+terminal.reload.description=Reload all server Mods and client Mod instances (and reread config.json)
+terminal.reload.start=Reloading all Mods...
+terminal.reload.config=Config reloaded from config.json
+terminal.reload.configFailed=Config reload failed
+terminal.reload.serverSuccess=Server: {names}
+terminal.reload.none=none
+terminal.reload.serverFailed=Server failures: {names}
+terminal.reload.clientSuccess=Client: {count} instances
+terminal.reload.clientFailed=Client failures:
+terminal.mods.description=List all server and client Mods
+terminal.mods.server=Server Mods ({count}):
+terminal.mods.client=Client Mods ({count}):
+terminal.mods.none=none
+terminal.noMainClient=Main client not connected. Connect and approve it in-game first.
+terminal.commandStatus=Command status {status}: {message}
+terminal.commandFailed=Command failed
+terminal.unknownCommand=Unknown command: {command}
+terminal.null=none

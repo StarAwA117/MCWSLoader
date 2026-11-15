@@ -16,3 +16,25 @@ config.command.maxRounds=Max chained rounds
 config.command.commandTimeoutMs=Command timeout (ms)
 config.thinking=Thinking mode
 config.thinking.type=Thinking mode type
+
+# Warnings
+ai.warn.emptyMessage=AI did not return a message (empty output).
+ai.warn.messageNotString=AI returned a non-string message; treating it as empty.
+ai.warn.commandsNotArray=AI returned commands that are not an array; using an empty list.
+ai.warn.partialCommands=Some AI commands were not valid strings and were ignored.
+ai.warn.continueNotBool=AI returned a non-boolean continue value; using false.
+ai.cooldown=You are sending requests too quickly. Please wait.
+ai.maxRounds=Maximum chained rounds reached ({max}).
+
+# Errors
+ai.error.request=AI request failed. Try again later.
+ai.error.auth=AI authentication failed. Check the API key or endpoint permissions.
+ai.error.model=AI endpoint or model was not found. Check baseURL and model.
+ai.error.rate=AI is rate-limited or out of quota. Try again later.
+ai.error.context=The conversation context is too long. Use ai:reset first.
+ai.error.timeout=AI request timed out. Try again later.
+ai.error.network=Could not reach the AI service. Check the network, baseURL or proxy.
+ai.error.content=AI declined this request.
+ai.error.config=Invalid AI configuration. Check baseURL and apiKey.
+ai.error.invalidJson=AI returned invalid JSON. Try again.
+ai.error.emptyOutput=AI returned no visible content (empty output).
