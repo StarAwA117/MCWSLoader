@@ -93,15 +93,10 @@ usePolling(refresh, 3000);
 					<span>WebUI {{ status.server.webPort }}</span>
 				</div>
 			</div>
-			<svg class="service-petal" viewBox="0 0 120 120" aria-hidden="true">
-				<g fill="currentColor">
-					<circle cx="60" cy="34" r="27"/>
-					<circle cx="60" cy="34" r="27" transform="rotate(90 60 60)"/>
-					<circle cx="60" cy="34" r="27" transform="rotate(180 60 60)"/>
-					<circle cx="60" cy="34" r="27" transform="rotate(270 60 60)"/>
-				</g>
-			</svg>
 			<div class="service-toggle" aria-hidden="true">
+				<svg class="service-badge" viewBox="0 0 100 100">
+					<path fill="currentColor" d="M 50 5 C 53.49 5 56.73 9.88 60.48 10.88 C 64.23 11.88 69.47 9.28 72.5 11.03 C 75.53 12.78 75.89 18.62 78.64 21.36 C 81.38 24.11 87.22 24.47 88.97 27.5 C 90.72 30.53 88.12 35.77 89.12 39.52 C 90.12 43.27 95 46.51 95 50 C 95 53.49 90.12 56.73 89.12 60.48 C 88.12 64.23 90.72 69.47 88.97 72.5 C 87.22 75.53 81.38 75.89 78.64 78.64 C 75.89 81.38 75.53 87.22 72.5 88.97 C 69.47 90.72 64.23 88.12 60.48 89.12 C 56.73 90.12 53.49 95 50 95 C 46.51 95 43.27 90.12 39.52 89.12 C 35.77 88.12 30.53 90.72 27.5 88.97 C 24.47 87.22 24.11 81.38 21.36 78.64 C 18.62 75.89 12.78 75.53 11.03 72.5 C 9.28 69.47 11.88 64.23 10.88 60.48 C 9.88 56.73 5 53.49 5 50 C 5 46.51 9.88 43.27 10.88 39.52 C 11.88 35.77 9.28 30.53 11.03 27.5 C 12.78 24.47 18.62 24.11 21.36 21.36 C 24.11 18.62 24.47 12.78 27.5 11.03 C 30.53 9.28 35.77 11.88 39.52 10.88 C 43.27 9.88 46.51 5 50 5 Z"/>
+				</svg>
 				<div class="service-action">
 					<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
 						<path d="M18.36 6.64a9 9 0 1 1-12.73 0"/>
@@ -226,7 +221,7 @@ usePolling(refresh, 3000);
 	display: flex;
 	align-items: center;
 	gap: 18px;
-	padding: 28px 22px;
+	padding: 26px 116px 26px 22px;
 	margin-bottom: 16px;
 	border: 1px solid var(--glass-border);
 	border-radius: 18px;
@@ -280,30 +275,31 @@ usePolling(refresh, 3000);
 }
 
 .service-toggle {
-	position: relative;
-	width: 76px;
-	height: 76px;
-	flex-shrink: 0;
+	position: absolute;
+	top: 8px;
+	right: 12px;
+	width: 92px;
+	height: 92px;
 	display: grid;
 	place-items: center;
+	z-index: 1;
 }
 
-.service-petal {
+.service-badge {
 	position: absolute;
-	top: -38px;
-	right: -30px;
-	width: 150px;
-	height: 150px;
-	color: var(--petal);
+	inset: 0;
+	width: 100%;
+	height: 100%;
+	color: var(--badge);
 	transform-origin: center;
 	pointer-events: none;
 	z-index: 0;
 	transition: color var(--dur-base) var(--ease-out);
 }
 
-.service-card.running .service-petal {
-	color: var(--petal-active);
-	animation: petal-sway 7s ease-in-out infinite;
+.service-card.running .service-badge {
+	color: var(--badge-active);
+	animation: badge-sway 7s ease-in-out infinite;
 }
 
 .service-copy {
@@ -359,21 +355,16 @@ usePolling(refresh, 3000);
 .service-action {
 	position: relative;
 	z-index: 1;
-	width: 42px;
-	height: 42px;
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	border-radius: 50%;
-	border: 1px solid var(--glass-border);
-	background: rgba(255, 255, 255, 0.32);
+	width: 100%;
+	height: 100%;
+	display: grid;
+	place-items: center;
 	color: var(--text-muted);
-	transition: color var(--dur-base), background var(--dur-base);
+	transition: color var(--dur-base);
 }
 
 .service-card.running .service-action {
 	color: var(--primary);
-	background: var(--primary-glow);
 }
 
 .service-action svg {
@@ -381,18 +372,18 @@ usePolling(refresh, 3000);
 	height: 18px;
 }
 
-@keyframes petal-sway {
+@keyframes badge-sway {
 	0%, 100% { transform: rotate(0deg) scale(1); }
 	50% { transform: rotate(1.5deg) scale(1.015); }
 }
 
 @media (prefers-reduced-motion: reduce) {
 	.service-card,
-	.service-petal,
+	.service-badge,
 	.service-dot,
 	.service-value,
 	.service-action { transition: none; }
-	.service-card.running .service-petal { animation: none; }
+	.service-card.running .service-badge { animation: none; }
 	.service-card:hover,
 	.service-card:active { transform: none; }
 }
