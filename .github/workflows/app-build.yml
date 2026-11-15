@@ -108,13 +108,22 @@ jobs:
           from pathlib import Path
           p = Path(sys.argv[1]) / "android/src/main/kotlin/org/binbard/node_flutter/NodeFlutterPlugin.kt"
           s = p.read_text()
+          import re
           s = s.replace('arrayOf("node", "$nodeJsProjectPath/$mainFileName")', 'arrayOf("node", "--max-old-space-size=128", "$nodeJsProjectPath/$mainFileName")')
           s = s.replace('val title = options?.get("title") as? String ?: "Node Service"', 'waitForInit()\n          val title = options?.get("title") as? String ?: "Node Service"', 1)
+          # The Flutter UI process must not load the 60+ MB Node shared library.
+          # NodeService runs in the :node process and loads it only there.
+          s = re.sub(r'    init \{.*?System\.loadLibrary\("node"\)\n    \}\n', '', s, count=1, flags=re.S)
           p.write_text(s)
           service = p.parent / "NodeService.kt"
           ss = service.read_text()
           ss = ss.replace('arrayOf("node", "$nodeJsProjectPath/$mainFileName")', 'arrayOf("node", "--max-old-space-size=128", "$nodeJsProjectPath/$mainFileName")')
           service.write_text(ss)
+          manifest = p.parent.parent.parent / "AndroidManifest.xml"
+          ms = manifest.read_text()
+          if 'android:process=":node"' not in ms:
+              ms = ms.replace('<service android:name=".NodeService"', '<service android:name=".NodeService" android:process=":node"', 1)
+          manifest.write_text(ms)
           PY
 
       - name: Install Linux desktop libraries

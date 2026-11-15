@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import 'api.dart';
 
@@ -676,6 +677,18 @@ class _SettingsPageState extends State<SettingsPage> {
           ),
         ),
         FilledButton(onPressed: _save, child: const Text('保存设置')),
+        const SizedBox(height: 12),
+        OutlinedButton.icon(
+          onPressed: () async {
+            try {
+              await MethodChannel('mcws/standalone').invokeMethod('requestBackgroundPermissions');
+            } catch (e) {
+              if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('无法打开后台权限设置: $e')));
+            }
+          },
+          icon: const Icon(Icons.battery_saver_rounded),
+          label: const Text('后台运行与电池优化'),
+        ),
         const SizedBox(height: 20),
         const Text('独立版默认不启动 WebSocket，请在仪表盘手动启动。', style: TextStyle(fontSize: 12, color: Color(0xFF64748B))),
       ],

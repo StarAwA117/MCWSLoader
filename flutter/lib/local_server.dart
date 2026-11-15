@@ -20,19 +20,14 @@ class LocalServer {
   Future<void> start() async {
     if (_started) return;
     if (isAndroid) {
-      // Ask the Android shell for notification and battery exemption prompts.
-      try {
-        await MethodChannel('mcws/standalone').invokeMethod('requestBackgroundPermissions');
-      } catch (_) {}
       // The future resolves when Node exits, so do not await it here; poll the API instead.
       unawaited(Nodejs.startService(
         'main.js',
         title: 'MCWSLoader',
         content: '本地服务运行中',
         redirectOutputToLogcat: true,
-      ).catchError((Object e) async {
-        debugPrint('Node service start failed: $e; falling back to in-process Node');
-        await Nodejs.start(redirectOutputToLogcat: true);
+      ).catchError((Object e) {
+        debugPrint('Node service start failed: $e');
       }));
     } else {
       await _startDesktop();
