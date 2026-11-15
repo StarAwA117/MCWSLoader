@@ -105,13 +105,15 @@ jobs:
         run: |
           PLUGIN=$(find "$HOME/.pub-cache/hosted/pub.dev" -maxdepth 1 -type d -name 'webview_all_linux-*' | head -1)
           echo "webview plugin: $PLUGIN"
-          grep -RIl 'G_REGEX_DEFAULT\|G_REGEX_MATCH_DEFAULT\|G_CONNECT_DEFAULT' "$PLUGIN/linux/src" | while read -r file; do
+          grep -RIl 'G_REGEX_DEFAULT\|G_REGEX_MATCH_DEFAULT\|G_CONNECT_DEFAULT' "$PLUGIN/linux/src" 2>/dev/null | while read -r file; do
             sed -i 's/G_REGEX_DEFAULT/0/g; s/G_REGEX_MATCH_DEFAULT/0/g; s/G_CONNECT_DEFAULT/G_CONNECT_AFTER/g' "$file"
-          done
-          grep -RIl 'cxx_std_14' "$PLUGIN/linux" | while read -r file; do
+          done || true
+          grep -RIl 'cxx_std_14' "$PLUGIN/linux" 2>/dev/null | while read -r file; do
             sed -i 's/cxx_std_14/cxx_std_17/g' "$file"
-          done
+          done || true
           printf '\nset(CMAKE_CXX_STANDARD 17)\nset(CMAKE_CXX_STANDARD_REQUIRED ON)\n' >> build/flutter_app/linux/CMakeLists.txt
+          sed -i '1i set(CMAKE_CXX_STANDARD 17)' "$PLUGIN/linux/CMakeLists.txt"
+          printf 'add_compile_definitions(G_REGEX_DEFAULT=0 G_REGEX_MATCH_DEFAULT=0 G_CONNECT_DEFAULT=G_CONNECT_AFTER)\n' >> "$PLUGIN/linux/CMakeLists.txt"
 
       - name: Install Linux desktop libraries
         if: matrix.target == 'linux'
@@ -123,6 +125,12 @@ jobs:
         if: matrix.target == 'android'
         working-directory: build/flutter_app
         run: flutter build apk --release --target-platform android-arm64
+
+      - name: Patch Windows WebView plugin for newer MSVC
+        if: matrix.target == 'windows'
+        shell: bash
+        run: |
+          printf '\nadd_compile_definitions(_SILENCE_EXPERIMENTAL_COROUTINE_DEPRECATION_WARNINGS)\n' >> build/flutter_app/windows/CMakeLists.txt
 
       - name: Build Windows app
         if: matrix.target == 'windows'
