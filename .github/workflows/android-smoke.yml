@@ -1,0 +1,84 @@
+name: Android smoke test
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  emulator:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: |
+          cd web/frontend
+          npm ci
+          npm run build
+      - run: node scripts/build-standalone.mjs --target android
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.38.10"
+          channel: stable
+          cache: true
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - name: Prepare Flutter app
+        run: bash scripts/prepare-flutter-app.sh android
+      - name: Install Android NDK
+        run: |
+          SDKMANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          if [ ! -x "$SDKMANAGER" ]; then SDKMANAGER="$(command -v sdkmanager)"; fi
+          yes | "$SDKMANAGER" --install "ndk;27.0.12077973" "cmake;3.22.1" >/dev/null || true
+      - name: Install nodejs-mobile
+        run: |
+          ZIP="$RUNNER_TEMP/nodejs-mobile.zip"
+          curl -L --fail -o "$ZIP" https://github.com/gmaclennan/nodejs-mobile/releases/download/v24.18.0-0/nodejs-mobile-android-24.18.0-0.zip
+          PLUGIN=$(find "$HOME/.pub-cache/hosted/pub.dev" -maxdepth 1 -type d -name 'node_flutter-*' | head -1)
+          rm -rf "$PLUGIN/android/libnode"
+          mkdir -p "$PLUGIN/android/libnode" "$PLUGIN/android/libs/bin"
+          unzip -q "$ZIP" -d "$PLUGIN/android/libnode"
+          cp -R "$PLUGIN/android/libnode/bin/." "$PLUGIN/android/libs/bin/"
+          sed -i '1i set(CMAKE_CXX_STANDARD 20)' "$PLUGIN/android/CMakeLists.txt"
+          sed -i '1i set(CMAKE_CXX_STANDARD_REQUIRED ON)' "$PLUGIN/android/CMakeLists.txt"
+          python3 - "$PLUGIN" <<'PY'
+          import sys
+          from pathlib import Path
+          p = Path(sys.argv[1]) / "android/src/main/kotlin/org/binbard/node_flutter/NodeFlutterPlugin.kt"
+          s = p.read_text()
+          s = s.replace('arrayOf("node", "$nodeJsProjectPath/$mainFileName")', 'arrayOf("node", "--max-old-space-size=128", "$nodeJsProjectPath/$mainFileName")')
+          s = s.replace('val title = options?.get("title") as? String ?: "Node Service"', 'waitForInit()\n          val title = options?.get("title") as? String ?: "Node Service"', 1)
+          p.write_text(s)
+          p.write_text(s)
+          PY
+      - name: Build x86_64 debug APK
+        working-directory: build/flutter_app
+        run: flutter build apk --debug --target-platform android-x64
+      - name: Run emulator and capture logcat
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          arch: x86_64
+          profile: pixel_6
+          disable-animations: true
+          script: |
+            adb install -r build/flutter_app/build/app/outputs/flutter-apk/app-debug.apk
+            adb shell am start -n com.mcwsloader.mcwsloader/.MainActivity
+            sleep 12
+            adb shell pidof com.mcwsloader.mcwsloader || true
+            adb logcat -d > /tmp/logcat.txt
+            grep -E "AndroidRuntime|FATAL EXCEPTION|NODEJS-FLUTTER|mcwsloader|UnsatisfiedLinkError" /tmp/logcat.txt | tail -120 || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: android-logcat
+          path: /tmp/logcat.txt
+          if-no-files-found: ignore

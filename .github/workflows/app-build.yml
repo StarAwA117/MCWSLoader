@@ -102,6 +102,7 @@ jobs:
           cp -R "$PLUGIN/android/libnode/bin/." "$PLUGIN/android/libs/bin/"
           sed -i '1i set(CMAKE_CXX_STANDARD 20)' "$PLUGIN/android/CMakeLists.txt"
           sed -i '1i set(CMAKE_CXX_STANDARD_REQUIRED ON)' "$PLUGIN/android/CMakeLists.txt"
+          sed -i 's/abiFilters "armeabi-v7a", "arm64-v8a", "x86_64"/abiFilters "arm64-v8a"/' "$PLUGIN/android/build.gradle"
           python3 - "$PLUGIN" <<'PY'
           import sys
           from pathlib import Path
