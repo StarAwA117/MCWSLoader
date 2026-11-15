@@ -161,6 +161,21 @@ function prepareServer() {
 	for (const name of ["tsx", "esbuild", "@esbuild"]) {
 		fs.rmSync(path.join(SERVER, "node_modules", name), { recursive: true, force: true });
 	}
+	// Type declarations and source maps are not needed by the runtime and add
+	// several MB to the packed Node project.
+	const walkRemove = (dir) => {
+		if (!fs.existsSync(dir)) return;
+		for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+			const full = path.join(dir, entry.name);
+			if (entry.isDirectory()) {
+				if (entry.name === "@types") fs.rmSync(full, { recursive: true, force: true });
+				else walkRemove(full);
+			} else if (entry.name.endsWith(".d.ts") || entry.name.endsWith(".map")) {
+				fs.rmSync(full, { force: true });
+			}
+		}
+	};
+	walkRemove(path.join(SERVER, "node_modules"));
 }
 
 function createDesktopAssets(nodePath) {
