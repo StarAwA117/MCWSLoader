@@ -92,7 +92,7 @@ class LocalServer {
   }
 
   Future<void> waitUntilReady() async {
-    final deadline = DateTime.now().add(const Duration(seconds: 60));
+    final deadline = DateTime.now().add(const Duration(seconds: 180));
     final client = HttpClient();
     try {
       while (DateTime.now().isBefore(deadline)) {

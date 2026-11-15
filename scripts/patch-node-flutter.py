@@ -133,6 +133,46 @@ s = s.replace(
           }
 """,
 )
+# Asset copying must not block the Flutter main thread. Start the service from
+# a worker after waitForInit(), and acknowledge the method call immediately.
+start = s.index('      "startNodeService" -> {')
+end = s.index('      "stopNodeService" -> {', start)
+service_method = """      "startNodeService" -> {
+          val mainFileName = call.argument<String>("mainFileName") ?: ""
+          val options = call.argument<Map<String, Any>>("options")
+
+          val title = options?.get("title") as? String ?: "Node Service"
+          val content = options?.get("content") as? String ?: "Running"
+          val redirectOutputToLogcat = extractRedirectOutputToLogcatOption(options)
+
+          val intent = Intent(context, NodeService::class.java).apply {
+              putExtra("action", "start")
+              putExtra("title", title)
+              putExtra("content", content)
+              putExtra("redirectOutputToLogcat", redirectOutputToLogcat)
+
+              putExtra("mainFileName", mainFileName)
+              putExtra("nodeJsProjectPath", nodeJsProjectPath)
+              putExtra("builtinModulesPath", builtinModulesPath)
+          }
+
+          Thread {
+            try {
+              waitForInit()
+              if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                  context.startForegroundService(intent)
+              } else {
+                  context.startService(intent)
+              }
+              Log.d(TAG, "Node service requested after asset init")
+            } catch (e: Exception) {
+              Log.e(TAG, "Node service start failed", e)
+            }
+          }.start()
+          result.success("starting")
+      }
+"""
+s = s[:start] + service_method + s[end:]
 plugin.write_text(s)
 
 ss = service.read_text()
