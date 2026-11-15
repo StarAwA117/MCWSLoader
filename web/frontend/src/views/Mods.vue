@@ -83,7 +83,13 @@ async function reloadAll() {
 	const ok = await showQuestion(t("mods.reloadConfirm"), t("mods.reloadTitle"));
 	if (!ok) return;
 	loading.value = true;
-	try { await api.reloadAllMods(); await refresh(); } catch {}
+	try {
+		const res = await api.reloadAllMods();
+		if (!res.ok) await showMessage(res.message || t("mods.reloadFailed"), t("mods.reloadTitle"));
+		await refresh();
+	} catch (e) {
+		await showMessage(userErrorText(e), t("mods.reloadTitle"));
+	}
 	loading.value = false;
 }
 
@@ -107,7 +113,12 @@ async function reloadMod(mod: ModInfo): Promise<void> {
 	const ok = await showQuestion(t("mods.reloadOneConfirm", { name: mod.name }), t("mods.reloadTitle"));
 	if (!ok) return;
 	reloading.value[mod.name] = true;
-	try { await api.reloadMod(mod.name); } catch {}
+	try {
+		const res = await api.reloadMod(mod.name);
+		if (!res.ok) await showMessage(res.message || t("mods.reloadFailed"), t("mods.reloadTitle"));
+	} catch (e) {
+		await showMessage(userErrorText(e), t("mods.reloadTitle"));
+	}
 	reloading.value[mod.name] = false;
 }
 

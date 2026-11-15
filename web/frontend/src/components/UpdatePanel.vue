@@ -91,7 +91,8 @@ async function openVersionPicker(): Promise<void> {
 
 	actionStatus.value = { loading: true, message: `${label}，${t("update.pleaseWait")}` };
 	try {
-		const res = label === t("update.update") ? await api.doUpdate() : await api.rollback(tag);
+		// The version picker targets the exact tag the user selected, not merely the latest release.
+		const res = await api.rollback(tag);
 		if (res.ok) {
 			actionStatus.value = { loading: false, message: res.message || `${label}${t("update.done")}` };
 		} else {

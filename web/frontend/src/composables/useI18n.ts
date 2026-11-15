@@ -41,9 +41,10 @@ function getInitialLocale(): Locale {
 	return detectLocale();
 }
 
+const initialLocale = getInitialLocale();
 const state = reactive<{ locale: Locale; messages: Messages }>({
-	locale: getInitialLocale(),
-	messages: locales[getInitialLocale()] ?? locales.en!
+	locale: initialLocale,
+	messages: locales[initialLocale] ?? locales.en!
 });
 
 export interface I18n {

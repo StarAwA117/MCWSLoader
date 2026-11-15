@@ -80,6 +80,7 @@ function onKeydown(e: KeyboardEvent): void {
 					v-if="state.type === 'choice'"
 					v-model="state.selected"
 					:options="state.choices"
+					inline
 					style="margin-top: 12px;"
 				/>
 			</div>

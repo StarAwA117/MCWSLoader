@@ -20,7 +20,8 @@ const routes: RouteRecordRaw[] = [
 	{ path: "/logs", name: "logs", component: () => import("../views/Logs.vue"), meta: { title: "Logs", titleKey: "nav.logs", icon: "logs" } },
 	{ path: "/chat", name: "chat", component: () => import("../views/Chat.vue"), meta: { title: "Chat", titleKey: "nav.chat", icon: "chat" } },
 	{ path: "/update", redirect: "/settings?tab=system" },
-	{ path: "/settings", name: "settings", component: () => import("../views/Settings.vue"), meta: { title: "Settings", titleKey: "nav.settings", icon: "config" } }
+	{ path: "/settings", name: "settings", component: () => import("../views/Settings.vue"), meta: { title: "Settings", titleKey: "nav.settings", icon: "config" } },
+	{ path: "/:pathMatch(.*)*", redirect: "/" }
 ];
 
 const router = createRouter({

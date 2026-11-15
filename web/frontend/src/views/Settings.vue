@@ -22,6 +22,7 @@ const saving = ref(false);
 const message = ref("");
 const resetSaving = ref(false);
 const resetMessage = ref("");
+const resetSuccess = ref(false);
 const activeTab = ref<"server" | "webui" | "system">(route.query.tab === "system" ? "system" : "server");
 
 const listToText = (items: unknown): string => Array.isArray(items) ? items.join("\n") : "";
@@ -108,13 +109,16 @@ async function handleResetPassword() {
 	try {
 		const res = await api.changePassword(oldPwd, newPwd);
 		if (res.ok) {
+			resetSuccess.value = true;
 			resetMessage.value = t("settings.changePasswordSuccess");
 			sessionStorage.removeItem("auth_token");
 			setTimeout(() => { window.location.href = "/login"; }, 800);
 		} else {
+			resetSuccess.value = false;
 			resetMessage.value = res.message || t("settings.changePasswordFailed");
 		}
 	} catch (e) {
+		resetSuccess.value = false;
 		resetMessage.value = userErrorText(e);
 	}
 	resetSaving.value = false;
@@ -124,7 +128,7 @@ function selectLocale(loc: string): void {
 	if (config.value) config.value.language = loc;
 }
 
-onMounted(refresh);
+onMounted(() => { refresh().catch(() => { message.value = t("common.networkError"); }); });
 </script>
 
 <template>
@@ -311,6 +315,7 @@ onMounted(refresh);
 					<div class="form-group">
 						<label>{{ t('settings.httpPort') }}</label>
 						<input v-model.number="config.web.port" type="number" />
+						<p class="field-hint">{{ t('settings.modeHint') }}</p>
 					</div>
 					<div class="form-group" style="margin-top: 10px;">
 						<label>{{ t('settings.allowedOrigins') }}</label>
@@ -338,7 +343,7 @@ onMounted(refresh);
 						<button class="btn btn-danger" @click="handleResetPassword" :disabled="saving || resetSaving">
 							{{ t('settings.resetPassword') }}
 						</button>
-						<span v-if="resetMessage" style="margin-left: 10px; font-size: 13px; color: var(--danger);">{{ resetMessage }}</span>
+						<span v-if="resetMessage" class="reset-message" :class="resetSuccess ? 'reset-ok' : 'reset-error'">{{ resetMessage }}</span>
 					</div>
 				</SettingsCard>
 
@@ -434,6 +439,14 @@ onMounted(refresh);
 	align-items: center;
 	gap: 10px;
 }
+
+.reset-message {
+	margin-left: 10px;
+	font-size: 13px;
+}
+
+.reset-ok { color: var(--primary); }
+.reset-error { color: var(--danger); }
 
 .settings-message {
 	font-size: 13px;

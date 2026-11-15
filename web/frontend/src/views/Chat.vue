@@ -6,8 +6,11 @@ import { usePolling } from "../composables/usePolling";
 import LogOutput from "../components/LogOutput.vue";
 import ServerOffNotice from "../components/ServerOffNotice.vue";
 import { useServerStatus } from "../composables/useServerStatus";
+import { useModal } from "../composables/useModal";
+import { userErrorText } from "../utils/errors";
 
 const { t } = useI18n();
+const { notify } = useModal();
 const { running: serverRunning } = useServerStatus();
 
 const messages = ref<string[]>([]);
@@ -25,9 +28,18 @@ async function send() {
 	if (!serverRunning.value || !input.value.trim()) return;
 	const msg = input.value.trim();
 	input.value = "";
-	const res = await api.sendChat(msg);
-	if (!res.ok) return;
-	await refresh();
+	try {
+		const res = await api.sendChat(msg);
+		if (!res.ok) {
+			input.value = msg;
+			await notify(res.message || t("chat.sendFailed"));
+			return;
+		}
+		await refresh().catch(() => {});
+	} catch (e) {
+		input.value = msg;
+		await notify(userErrorText(e));
+	}
 }
 
 usePolling(refresh, 2000);

@@ -12,11 +12,14 @@ const props = withDefaults(defineProps<{
 	placeholder?: string;
 	disabled?: boolean;
 	id?: string;
+	/** Keep options in normal flow, useful inside a clipped modal body. */
+	inline?: boolean;
 }>(), {
 	modelValue: "",
 	placeholder: "",
 	disabled: false,
-	id: ""
+	id: "",
+	inline: false
 });
 
 const emit = defineEmits<{
@@ -82,7 +85,7 @@ onBeforeUnmount(() => document.removeEventListener("pointerdown", onOutsidePoint
 			</svg>
 		</button>
 		<Transition name="select-pop">
-			<ul v-if="open" class="select-options" role="listbox">
+			<ul v-if="open" class="select-options" :class="{ 'select-inline': inline }" role="listbox">
 				<li v-for="option in options" :key="option.value">
 					<button
 						type="button"
@@ -162,8 +165,13 @@ onBeforeUnmount(() => document.removeEventListener("pointerdown", onOutsidePoint
 .select-chevron.rotated { transform: rotate(180deg); }
 
 .select-options {
+	position: absolute;
+	top: calc(100% + 6px);
+	left: 0;
+	right: 0;
+	z-index: 40;
 	list-style: none;
-	margin: 6px 0 0;
+	margin: 0;
 	padding: 4px;
 	max-height: 220px;
 	overflow-y: auto;
@@ -171,6 +179,15 @@ onBeforeUnmount(() => document.removeEventListener("pointerdown", onOutsidePoint
 	border: 1px solid var(--border);
 	border-radius: var(--radius);
 	box-shadow: var(--shadow-modal);
+}
+
+.select-options.select-inline {
+	position: static;
+	top: auto;
+	left: auto;
+	right: auto;
+	z-index: auto;
+	margin-top: 6px;
 }
 
 .select-option {

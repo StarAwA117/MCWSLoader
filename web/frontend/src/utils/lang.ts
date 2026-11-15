@@ -10,9 +10,9 @@ export function parseLang(raw: string): Record<string, string> {
 		const value = line
 			.slice(separator + 1)
 			.trim()
-			.replace(/\\n/g, "\n")
-			.replace(/\\r/g, "\r")
-			.replace(/\\\\/g, "\\");
+			.replace(/\\(\\|n|r)/g, (_match, escaped: string) =>
+				escaped === "n" ? "\n" : escaped === "r" ? "\r" : "\\"
+			);
 		if (key) messages[key] = value;
 	}
 	return messages;

@@ -1,1 +1,0 @@
-import{A as u,H as a}from"./vendor-ne18HEFH.js";function c(t,i,o={}){const{immediate:r=!0}=o;let e=null;async function n(){if(!(typeof document<"u"&&document.hidden))try{await t()}catch{}}return u(()=>{r&&n(),e=setInterval(()=>void n(),i)}),a(()=>{e&&clearInterval(e),e=null}),{refresh:n}}export{c as u};

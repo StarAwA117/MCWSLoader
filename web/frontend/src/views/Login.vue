@@ -132,11 +132,13 @@ function login() {
 .login-card {
 	width: 100%;
 	max-width: 340px;
-	background: var(--bg-card);
-	border: 1px solid var(--border);
+	background: var(--glass-bg);
+	border: 1px solid var(--glass-border);
 	border-radius: var(--radius);
 	padding: 32px 28px;
-	box-shadow: var(--shadow);
+	box-shadow: var(--glass-shadow);
+	backdrop-filter: blur(var(--glass-blur)) saturate(1.3);
+	-webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.3);
 }
 
 .login-header {
@@ -175,5 +177,9 @@ function login() {
 	width: 100%;
 	padding: 10px;
 	font-size: 14px;
+}
+
+@supports not ((backdrop-filter: blur(10px)) or (-webkit-backdrop-filter: blur(10px))) {
+	.login-card { background: var(--bg-card); }
 }
 </style>

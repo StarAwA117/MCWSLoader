@@ -23,10 +23,12 @@ async function exec() {
 	try {
 		const res = await api.execCommand(cmd);
 		if (res.ok) {
-			output.value.push({ type: "success", text: typeof res.result === "string" ? res.result : JSON.stringify(res.result, null, 2) });
+			output.value.push({ type: "success", text: typeof res.result === "string" ? res.result : JSON.stringify(res.result, null, 2) ?? "" });
 		} else {
 			output.value.push({ type: "error", text: res.message || t("commands.failed") });
 		}
+		// Commands can produce large JSON responses; keep the visible history bounded.
+		if (output.value.length > 500) output.value.splice(0, output.value.length - 500);
 	} catch (e) {
 		output.value.push({ type: "error", text: userErrorText(e) });
 	}

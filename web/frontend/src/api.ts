@@ -17,6 +17,12 @@ function getToken(): string {
 	return sessionStorage.getItem("auth_token") || "";
 }
 
+function timeoutSignal(ms: number): AbortSignal | undefined {
+	return typeof AbortSignal !== "undefined" && typeof AbortSignal.timeout === "function"
+		? AbortSignal.timeout(ms)
+		: undefined;
+}
+
 /**
  * 解析响应体：空响应体 / 非 JSON（网关错误页）不应让调用方抛异常。
  */
@@ -24,9 +30,13 @@ async function parseResponse(res: Response): Promise<ApiResult> {
 	const text = await res.text().catch(() => "");
 	if (!text) return { ok: false, code: "HTTP_ERROR", message: userErrorText(`HTTP ${res.status}`) };
 	try {
-		const data = JSON.parse(text) as ApiResult;
-		if (!res.ok && !data.message) data.message = userErrorText(`HTTP ${res.status}`);
-		return data;
+		const data = JSON.parse(text) as unknown;
+		if (!data || typeof data !== "object") {
+			return { ok: false, code: "INVALID_RESPONSE", message: userErrorText(`HTTP ${res.status}`) };
+		}
+		const result = data as ApiResult;
+		if (!res.ok && !result.message) result.message = userErrorText(`HTTP ${res.status}`);
+		return result;
 	} catch {
 		return { ok: false, code: "INVALID_RESPONSE", message: userErrorText(`HTTP ${res.status}`) };
 	}
@@ -38,6 +48,8 @@ async function parseResponse(res: Response): Promise<ApiResult> {
  */
 async function request(path: string, options: RequestOptions = {}): Promise<ApiResult> {
 	const { raw = false, headers, ...rest } = options;
+	// Mod installs and update checkout can legitimately run much longer than a normal API call.
+	const longRunning = raw || path.startsWith("/mods/") || path.startsWith("/update/");
 	let res: Response;
 	try {
 		res = await fetch(`${BASE}${path}`, {
@@ -46,7 +58,9 @@ async function request(path: string, options: RequestOptions = {}): Promise<ApiR
 				...(raw ? {} : { "Content-Type": "application/json" }),
 				...headers
 			},
-			...rest
+			...rest,
+			// Ordinary API calls should not hang forever; long-running routes opt out.
+			signal: rest.signal ?? (longRunning ? undefined : timeoutSignal(30000))
 		});
 	} catch (e) {
 		return { ok: false, code: "NETWORK", message: userErrorText(e, "common.networkError") };
@@ -67,7 +81,8 @@ export async function loginWithPassword(pwd: string): Promise<ApiResult> {
 		const res = await fetch(`${BASE}/login`, {
 			method: "POST",
 			headers: { "Content-Type": "application/json" },
-			body: JSON.stringify({ password: pwd })
+			body: JSON.stringify({ password: pwd }),
+			signal: timeoutSignal(15000)
 		});
 		return parseResponse(res);
 	} catch (e) {

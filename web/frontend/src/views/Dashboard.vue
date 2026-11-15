@@ -78,18 +78,11 @@ usePolling(refresh, 3000);
 			role="button"
 			tabindex="0"
 			:aria-pressed="wsRunning"
+			:aria-busy="startingWebSocket || stoppingWebSocket"
 			@click="toggleWebSocket"
 			@keydown.enter.prevent="toggleWebSocket"
 			@keydown.space.prevent="toggleWebSocket"
 		>
-			<svg class="service-petal" viewBox="0 0 120 120" aria-hidden="true">
-				<g fill="currentColor">
-					<path d="M60 7c12 0 22 10 22 22 0 13-10 24-22 33-12-9-22-20-22-33 0-12 10-22 22-22Z"/>
-					<path d="M60 7c12 0 22 10 22 22 0 13-10 24-22 33-12-9-22-20-22-33 0-12 10-22 22-22Z" transform="rotate(90 60 60)"/>
-					<path d="M60 7c12 0 22 10 22 22 0 13-10 24-22 33-12-9-22-20-22-33 0-12 10-22 22-22Z" transform="rotate(180 60 60)"/>
-					<path d="M60 7c12 0 22 10 22 22 0 13-10 24-22 33-12-9-22-20-22-33 0-12 10-22 22-22Z" transform="rotate(270 60 60)"/>
-				</g>
-			</svg>
 			<div class="service-copy">
 				<div class="service-label"><span class="service-dot"></span>{{ t('dashboard.serverStatus') }}</div>
 				<div class="service-value">
@@ -100,11 +93,21 @@ usePolling(refresh, 3000);
 					<span>WebUI {{ status.server.webPort }}</span>
 				</div>
 			</div>
-			<div class="service-action" aria-hidden="true">
-				<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-					<path d="M18.36 6.64a9 9 0 1 1-12.73 0"/>
-					<line x1="12" y1="2" x2="12" y2="12"/>
+			<div class="service-toggle" aria-hidden="true">
+				<svg class="service-petal" viewBox="0 0 120 120">
+					<g fill="currentColor">
+						<circle cx="60" cy="34" r="27"/>
+						<circle cx="60" cy="34" r="27" transform="rotate(90 60 60)"/>
+						<circle cx="60" cy="34" r="27" transform="rotate(180 60 60)"/>
+						<circle cx="60" cy="34" r="27" transform="rotate(270 60 60)"/>
+					</g>
 				</svg>
+				<div class="service-action">
+					<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+						<path d="M18.36 6.64a9 9 0 1 1-12.73 0"/>
+						<line x1="12" y1="2" x2="12" y2="12"/>
+					</svg>
+				</div>
 			</div>
 		</div>
 
@@ -223,7 +226,7 @@ usePolling(refresh, 3000);
 	display: flex;
 	align-items: center;
 	gap: 18px;
-	padding: 20px 22px;
+	padding: 28px 22px;
 	margin-bottom: 16px;
 	border: 1px solid var(--glass-border);
 	border-radius: 18px;
@@ -234,6 +237,9 @@ usePolling(refresh, 3000);
 	overflow: hidden;
 	isolation: isolate;
 	cursor: pointer;
+	-webkit-tap-highlight-color: transparent;
+	user-select: none;
+	touch-action: manipulation;
 	transition: transform var(--dur-base) var(--ease-out), box-shadow var(--dur-base) var(--ease-out);
 }
 
@@ -247,29 +253,58 @@ usePolling(refresh, 3000);
 	z-index: -1;
 }
 
-.service-card:hover {
-	transform: translateY(-2px);
-	box-shadow: 0 18px 42px rgba(0, 0, 0, 0.10);
+.service-card.busy {
+	cursor: wait;
+	opacity: 0.85;
 }
 
-.service-card.running:hover {
-	box-shadow: 0 22px 55px rgba(96, 165, 250, 0.18);
+.service-card:active {
+	transform: scale(0.995);
+	transition-duration: 80ms;
+}
+
+@media (hover: hover) {
+	.service-card:hover {
+		transform: translateY(-2px);
+		box-shadow: 0 18px 42px rgba(0, 0, 0, 0.10);
+	}
+
+	.service-card.running:hover {
+		box-shadow: 0 22px 55px rgba(96, 165, 250, 0.18);
+	}
 }
 
 .service-card:focus-visible {
-	outline: 2px solid var(--primary);
+	outline: 2px solid var(--text-muted);
 	outline-offset: 2px;
+}
+
+.service-toggle {
+	position: relative;
+	width: 76px;
+	height: 76px;
+	flex-shrink: 0;
+	display: grid;
+	place-items: center;
 }
 
 .service-petal {
 	position: absolute;
-	top: -44px;
-	left: -36px;
-	width: 142px;
-	height: 142px;
+	top: 50%;
+	left: 50%;
+	width: 140px;
+	height: 140px;
 	color: var(--petal);
+	transform: translate(-50%, -50%);
+	transform-origin: center;
 	pointer-events: none;
-	z-index: -1;
+	z-index: 0;
+	transition: color var(--dur-base) var(--ease-out);
+}
+
+.service-card.running .service-petal {
+	color: var(--petal-active);
+	animation: petal-sway 7s ease-in-out infinite;
 }
 
 .service-copy {
@@ -293,6 +328,7 @@ usePolling(refresh, 3000);
 	height: 6px;
 	border-radius: 50%;
 	background: var(--text-muted);
+	transition: background var(--dur-base) var(--ease-out);
 }
 
 .service-card.running .service-dot {
@@ -305,6 +341,7 @@ usePolling(refresh, 3000);
 	font-weight: 700;
 	letter-spacing: -0.03em;
 	color: var(--text);
+	transition: color var(--dur-base) var(--ease-out);
 }
 
 .service-card.running .service-value {
@@ -321,9 +358,10 @@ usePolling(refresh, 3000);
 }
 
 .service-action {
+	position: relative;
+	z-index: 1;
 	width: 42px;
 	height: 42px;
-	flex-shrink: 0;
 	display: flex;
 	align-items: center;
 	justify-content: center;
@@ -344,7 +382,19 @@ usePolling(refresh, 3000);
 	height: 18px;
 }
 
+@keyframes petal-sway {
+	0%, 100% { transform: translate(-50%, -50%) rotate(0deg) scale(1); }
+	50% { transform: translate(-50%, -50%) rotate(1.5deg) scale(1.015); }
+}
+
 @media (prefers-reduced-motion: reduce) {
-	.service-card { transition: none; }
+	.service-card,
+	.service-petal,
+	.service-dot,
+	.service-value,
+	.service-action { transition: none; }
+	.service-card.running .service-petal { animation: none; }
+	.service-card:hover,
+	.service-card:active { transform: none; }
 }
 </style>

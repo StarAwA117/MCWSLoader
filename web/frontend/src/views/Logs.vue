@@ -24,7 +24,7 @@ async function refresh() {
 
 function setLogType(type: "app" | "message"): void {
 	logType.value = type;
-	refresh();
+	void refresh().catch(() => {});
 }
 
 function lineClass(line: string): string {

@@ -17,14 +17,20 @@ export function usePolling(
 ): { refresh: () => Promise<void> } {
 	const { immediate = true } = options;
 	let timer: ReturnType<typeof setInterval> | null = null;
+	let inFlight = false;
 
 	async function tick(): Promise<void> {
 		// 页面在后台时不轮询，减少无意义的 API/日志请求
 		if (typeof document !== "undefined" && document.hidden) return;
+		// Do not stack requests when the server or network is slower than the interval.
+		if (inFlight) return;
+		inFlight = true;
 		try {
 			await fn();
 		} catch {
 			// 忽略单次轮询错误，等待下一轮
+		} finally {
+			inFlight = false;
 		}
 	}
 

@@ -49,7 +49,8 @@
 	--glass-border: rgba(255,255,255,0.72);
 	--glass-shadow: 0 18px 45px rgba(96, 165, 250, 0.13), inset 0 1px 0 rgba(255, 255, 255, 0.92);
 	--glass-blur: 22px;
-	--petal: #bfdbfe;
+	--petal: #d8dee9;
+	--petal-active: #bfdbfe;
 
 	/* Motion */
 	--dur-fast: 120ms;
@@ -117,7 +118,8 @@
 	--glass-border: rgba(205, 214, 244, 0.16);
 	--glass-shadow: 0 18px 45px rgba(0, 0, 0, 0.38), inset 0 1px 0 rgba(205, 214, 244, 0.10);
 	--glass-blur: 24px;
-	--petal: rgba(137, 180, 250, 0.24);
+	--petal: rgba(186, 194, 222, 0.18);
+	--petal-active: rgba(137, 180, 250, 0.30);
 	color-scheme: dark;
 }
 
@@ -479,6 +481,12 @@ body::after {
 .stats-grid .stat-card:nth-child(6n+6) .value:not(.blue) { color: var(--accent-6, var(--text)); }
 .stat-card .value.red { color: var(--danger); }
 
+/* Glass cards create stacking contexts; lift the card that owns an open dropdown. */
+.card:has(.select-menu.open) {
+	position: relative;
+	z-index: 60;
+}
+
 /* ===== Forms ===== */
 .form-group { margin-bottom: 14px; }
 .form-group label { display: block; font-size: 13px; color: var(--text-secondary); margin-bottom: 5px; font-weight: 500; }
@@ -729,7 +737,7 @@ input[type="range"]::-moz-range-thumb {
 }
 /* backdrop-filter fallback */
 @supports not ((backdrop-filter: blur(10px)) or (-webkit-backdrop-filter: blur(10px))) {
-	.card, .stat-card, .top-bar, .sidebar, .hamburger, .modal { background: var(--bg-card); }
+	.card, .stat-card, .top-bar, .sidebar, .hamburger, .modal, .login-card { background: var(--bg-card); }
 }
 
 /* ===== Language switcher ===== */
