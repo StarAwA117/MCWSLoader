@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 import 'api.dart';
 import 'local_server.dart';
@@ -41,14 +40,6 @@ class _StandaloneAppState extends State<StandaloneApp> with WidgetsBindingObserv
     if (state == AppLifecycleState.detached && !Platform.isAndroid) {
       unawaited(_server.stop());
     }
-  }
-
-  @override
-  Future<AppExitResponse> didRequestAppExit() async {
-    // Desktop versions own the Node sidecar. Stop it before the window closes
-    // so the API port is released and no orphan process remains.
-    if (!Platform.isAndroid) await _server.stop();
-    return AppExitResponse.exit;
   }
 
   Future<void> _boot() async {
