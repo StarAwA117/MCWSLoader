@@ -461,3 +461,14 @@ webui.websocketUnavailable=目前模式不支援啟動 WebSocket 服務
 webui.websocketStartFailed=啟動 WebSocket 服務失敗，請檢查連接埠占用或查看日誌
 webui.offNotice=WebSocket 服務未啟動，此功能暫時不可用。請先在儀表板啟動服務。
 webui.goDashboard=前往儀表板
+
+# Main client errors
+webui.noMainClient=主客戶端未連線，請先在遊戲內連線並批准客戶端
+webui.emptyCommand=命令不能為空
+webui.emptyMessage=訊息內容不能為空
+
+# Stop state
+dashboard.serverStopping=正在停止...
+dashboard.webuiPort=WebUI 連接埠
+dashboard.serverStopFailed=停止 WebSocket 服務失敗
+webui.websocketStopFailed=停止 WebSocket 服務失敗，請稍後重試

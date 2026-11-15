@@ -21,15 +21,15 @@ const { t } = useI18n();
 	flex-wrap: wrap;
 	padding: 10px 14px;
 	margin-bottom: 14px;
-	border: 1px solid var(--primary-dim);
+	border: 1px solid var(--border);
 	border-radius: var(--radius);
-	background: var(--primary-glow);
+	background: var(--bg-input);
 	color: var(--text-secondary);
 	font-size: 13px;
 }
 
 .server-off-notice a {
-	color: var(--primary);
+	color: var(--text);
 	font-weight: 600;
 	white-space: nowrap;
 }

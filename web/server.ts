@@ -46,6 +46,7 @@ let temporaryPassword: string | null = null;
 // 由 ws.ts 注入的进程关闭钩子（/api/system/restart 使用）
 let shutdownHandler: (() => Promise<void>) | null = null;
 let startWebSocketHandler: (() => Promise<void>) | null = null;
+let stopWebSocketHandler: (() => Promise<void>) | null = null;
 let webSocketRunningHandler: (() => boolean) | null = null;
 // 请求体上限：防止异常客户端一次占满内存（Mod 导入单独限制）
 const MAX_BODY_BYTES = 2 * 1024 * 1024;
@@ -938,8 +939,8 @@ async function handleAPI(req: IncomingMessage, res: ServerResponse, url: URL): P
 			const payload = await readJson(req, res);
 			if (!payload) return;
 			const { command } = payload;
-			if (!command) throw new Error("Command cannot be empty");
-			if (!Current.client) throw new Error("Main client not connected");
+			if (!command) return json(res, { ok: false, code: "EMPTY_COMMAND", message: tr("webui.emptyCommand") }, 400);
+			if (!Current.client) return json(res, { ok: false, code: "NO_MAIN_CLIENT", message: tr("webui.noMainClient") }, 409);
 			const result = await Current.client.runCommand(command);
 			return json(res, { ok: true, result });
 		}
@@ -1068,13 +1069,23 @@ async function handleAPI(req: IncomingMessage, res: ServerResponse, url: URL): P
 			const payload = await readJson(req, res);
 			if (!payload) return;
 			const { message } = payload;
-			if (typeof message !== "string" || !message) return json(res, { ok: false, message: "Message is required" }, 400);
-			if (!Current.client) throw new Error("Main client not connected");
+			if (typeof message !== "string" || !message) return json(res, { ok: false, message: tr("webui.emptyMessage") }, 400);
+			if (!Current.client) return json(res, { ok: false, code: "NO_MAIN_CLIENT", message: tr("webui.noMainClient") }, 409);
 			Current.client.tellAll(message);
 			return json(res, { ok: true });
 		}
 
 		// System
+		if (pathname === "/api/system/stop-websocket" && method === "POST") {
+			if (!stopWebSocketHandler) return json(res, { ok: false, message: tr("webui.websocketUnavailable") }, 503);
+			try {
+				await stopWebSocketHandler();
+				return json(res, { ok: true, running: isWebSocketRunning() });
+			} catch (e) {
+				logger.error(`WebSocket stop failed: ${errorDetail(e)}`);
+				return json(res, { ok: false, message: tr("webui.websocketStopFailed") }, 500);
+			}
+		}
 		if (pathname === "/api/system/start-websocket" && method === "POST") {
 			if (isWebSocketRunning()) return json(res, { ok: true, running: true });
 			if (!startWebSocketHandler) return json(res, { ok: false, message: tr("webui.websocketUnavailable") }, 503);
@@ -1183,6 +1194,7 @@ const server = http.createServer((req, res) => {
 
 export interface WebServerRuntime {
 	startWebSocket?: () => Promise<void>;
+	stopWebSocket?: () => Promise<void>;
 	isWebSocketRunning?: () => boolean;
 }
 
@@ -1192,6 +1204,7 @@ export function startWebServer(
 ): Promise<void> {
 	if (typeof onShutdown === "function") shutdownHandler = onShutdown;
 	startWebSocketHandler = runtime.startWebSocket ?? null;
+	stopWebSocketHandler = runtime.stopWebSocket ?? null;
 	webSocketRunningHandler = runtime.isWebSocketRunning ?? null;
 	return new Promise<void>((resolve, reject) => {
 		const onError = (err: Error): void => {

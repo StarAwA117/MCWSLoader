@@ -14,6 +14,7 @@ const { t } = useI18n();
 const status = ref<ServerStatus | null>(null);
 const process = ref<ProcessInfo | null>(null);
 const startingWebSocket = ref(false);
+const stoppingWebSocket = ref(false);
 
 const wsRunning = computed(() => status.value?.server.websocketRunning !== false);
 
@@ -27,17 +28,25 @@ async function refresh() {
 	} catch {}
 }
 
-async function startWebSocket(): Promise<void> {
-	if (startingWebSocket.value || wsRunning.value) return;
+async function toggleWebSocket(): Promise<void> {
+	if (startingWebSocket.value || stoppingWebSocket.value) return;
+	if (wsRunning.value) {
+		stoppingWebSocket.value = true;
+		try {
+			const res = await api.stopWebSocket();
+			if (!res.ok) await notify(res.message || t("dashboard.serverStopFailed"));
+			await refresh();
+		} catch (e) {
+			await notify(userErrorText(e));
+		}
+		stoppingWebSocket.value = false;
+		return;
+	}
 	startingWebSocket.value = true;
 	try {
 		const res = await api.startWebSocket();
-		if (res.ok) {
-			await refresh();
-			await notify(t("dashboard.serverStarted"));
-		} else {
-			await notify(res.message || t("dashboard.serverStartFailed"));
-		}
+		if (!res.ok) await notify(res.message || t("dashboard.serverStartFailed"));
+		await refresh();
 	} catch (e) {
 		await notify(userErrorText(e));
 	}
@@ -64,38 +73,37 @@ usePolling(refresh, 3000);
 <template>
 	<div v-if="status">
 		<div class="stats-grid">
-			<div class="stat-card" :class="{ clickable: !wsRunning, off: !wsRunning }" @click="!wsRunning && startWebSocket()">
+			<div class="stat-card toggle-card" @click="toggleWebSocket">
 				<div class="label">{{ t('dashboard.serverStatus') }}</div>
-				<div class="value" :class="wsRunning ? 'blue' : 'off'">{{ wsRunning ? t('dashboard.running') : startingWebSocket ? t('dashboard.serverStarting') : t('dashboard.serverStopped') }}</div>
-				<div v-if="!wsRunning" class="stat-hint">{{ t('dashboard.serverStartHint') }}</div>
+				<div class="value" :class="wsRunning ? 'blue' : 'off'">{{ wsRunning ? t('dashboard.running') : startingWebSocket ? t('dashboard.serverStarting') : stoppingWebSocket ? t('dashboard.serverStopping') : t('dashboard.serverStopped') }}</div>
 			</div>
-			<div class="stat-card">
-				<div class="label">{{ t('dashboard.uptime') }}</div>
-				<div class="value blue">{{ formatUptime(status.server.uptime) }}</div>
-			</div>
-			<div class="stat-card">
-				<div class="label">{{ t('dashboard.connectedClients') }}</div>
-				<div class="value">{{ status.connections.count }}</div>
-			</div>
-			<div class="stat-card">
-				<div class="label">{{ t('dashboard.wsPort') }}</div>
-				<div class="value">{{ status.server.wsPort }}</div>
+			<template v-if="wsRunning">
+				<div class="stat-card">
+					<div class="label">{{ t('dashboard.uptime') }}</div>
+					<div class="value blue">{{ formatUptime(status.server.uptime) }}</div>
+				</div>
+				<div class="stat-card">
+					<div class="label">{{ t('dashboard.connectedClients') }}</div>
+					<div class="value">{{ status.connections.count }}</div>
+				</div>
+				<div class="stat-card">
+					<div class="label">{{ t('dashboard.wsPort') }}</div>
+					<div class="value">{{ status.server.wsPort }}</div>
+				</div>
+			</template>
+			<div v-else class="stat-card">
+				<div class="label">{{ t('dashboard.webuiPort') }}</div>
+				<div class="value">{{ status.server.webPort }}</div>
 			</div>
 		</div>
 
-		<div v-if="!wsRunning" class="server-off-note">
-			<strong>{{ t('dashboard.serverOffTitle') }}</strong>
-			<p>{{ t('dashboard.serverOffDesc') }}</p>
-			<p>{{ t('dashboard.serverOffNote') }}</p>
-		</div>
-
-		<div class="card">
+		<div v-if="wsRunning" class="card">
 			<div class="card-header">
 				<h2>{{ t('dashboard.connectedClientsTitle') }}</h2>
 				<span class="badge">{{ status.connections.count }} {{ t('dashboard.count') }}</span>
 			</div>
 			<div v-if="status.connections.clients.length === 0" class="empty-state">
-				<p>{{ wsRunning ? t('dashboard.noClients') : t('dashboard.serverOffNoClients') }}</p>
+				<p>{{ t('dashboard.noClients') }}</p>
 			</div>
 			<div v-else class="table-wrap">
 				<table>
@@ -184,45 +192,11 @@ usePolling(refresh, 3000);
 </template>
 
 <style scoped>
-.stat-card.clickable {
+.toggle-card {
 	cursor: pointer;
-	border-color: var(--primary);
-}
-
-.stat-card.clickable:hover {
-	transform: translateY(-2px);
-	box-shadow: 0 8px 22px rgba(0, 0, 0, 0.06);
 }
 
 .stat-card .value.off {
-	color: var(--danger);
-}
-
-.stat-hint {
-	margin-top: 4px;
-	font-size: 12px;
-	color: var(--primary);
-}
-
-.server-off-note {
-	background: var(--primary-glow);
-	border: 1px solid var(--primary-dim);
-	border-radius: var(--radius);
-	padding: 16px 18px;
-	margin-bottom: 16px;
-}
-
-.server-off-note strong {
-	display: block;
-	font-size: 14px;
-	color: var(--text);
-	margin-bottom: 4px;
-}
-
-.server-off-note p {
-	font-size: 13px;
 	color: var(--text-secondary);
-	line-height: 1.6;
-	margin-top: 4px;
 }
 </style>

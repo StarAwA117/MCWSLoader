@@ -63,9 +63,10 @@ Most values are reloaded when saved from the WebUI. Listener settings
 | `websocket` | Start WebSocket only, without the WebUI |
 
 The mode is read at startup. Changing it in **Settings → System** requires a
-restart. In `webui` mode the dashboard shows a **Service off** card. Clicking it
-starts the WebSocket service. Mods, logs and settings remain available while the
-service is off.
+restart. In `webui` mode the dashboard shows a **Service off** status card.
+Clicking it starts the WebSocket service. Once running, clicking the same status
+card stops it again. Mods, logs and settings remain available while the service
+is off.
 
 ## WebSocket
 

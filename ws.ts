@@ -174,6 +174,22 @@ async function startWebSocketServer(): Promise<void> {
 	});
 }
 
+async function stopWebSocketServer(): Promise<void> {
+	const current = server;
+	if (!current) return;
+	server = null;
+	for (const client of current.clients) {
+		try { client.terminate(); } catch { /* ignore */ }
+	}
+	await new Promise<void>((resolve) => {
+		const timer = setTimeout(resolve, 1500);
+		current.close(() => {
+			clearTimeout(timer);
+			resolve();
+		});
+	});
+}
+
 function isWebSocketRunning(): boolean {
 	return server !== null;
 }
@@ -189,7 +205,7 @@ if (MODE !== "webui") {
 }
 
 if (MODE !== "websocket") {
-	startWebServer(destroy, { startWebSocket: startWebSocketServer, isWebSocketRunning }).catch((e: Error) => {
+	startWebServer(destroy, { startWebSocket: startWebSocketServer, stopWebSocket: stopWebSocketServer, isWebSocketRunning }).catch((e: Error) => {
 		logger.error(tr("terminal.ws.webuiFailed"));
 		logger.debug(errorDetail(e));
 	});

@@ -461,3 +461,14 @@ webui.websocketUnavailable=The current mode does not support starting the WebSoc
 webui.websocketStartFailed=Failed to start the WebSocket service. Check the port or logs.
 webui.offNotice=The WebSocket service is off, so this feature is unavailable. Start it from the dashboard.
 webui.goDashboard=Open dashboard
+
+# Main client errors
+webui.noMainClient=Main client is not connected. Connect and approve it in-game first.
+webui.emptyCommand=Command cannot be empty
+webui.emptyMessage=Message cannot be empty
+
+# Stop state
+dashboard.serverStopping=Stopping...
+dashboard.webuiPort=WebUI port
+dashboard.serverStopFailed=Failed to stop the WebSocket service
+webui.websocketStopFailed=Failed to stop the WebSocket service. Try again.

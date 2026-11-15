@@ -141,17 +141,25 @@ export function collectCommands(
 
 /** 启动终端交互监听 */
 export function start(): void {
-	if (rl) return;
-	rl = readline.createInterface({ input: process.stdin, output: process.stdout });
-	rl.on("line", onLine);
+	if (rl || !process.stdin.isTTY) return;
+	const current = readline.createInterface({ input: process.stdin, output: process.stdout });
+	current.on("line", onLine);
+	// Some terminals detach stdin during shutdown and close() tries to restore
+	// raw mode. Keep the readline error local instead of crashing the process.
+	current.on("error", (error: NodeJS.ErrnoException) => {
+		if (error.code !== "EIO") logger.debug(`Terminal input error: ${error.message}`);
+	});
+	rl = current;
 }
 
 /** 停止终端交互 */
 export function stop(): void {
 	if (!rl) return;
-	rl.close();
-	rl.removeAllListeners();
+	const current = rl;
 	rl = null;
+	current.removeAllListeners("line");
+	current.on("error", () => { /* stdin may already be detached */ });
+	try { current.close(); } catch { /* ignore shutdown errors */ }
 }
 
 /** 执行命令列表（返回 true 表示未匹配到任何命令） */
