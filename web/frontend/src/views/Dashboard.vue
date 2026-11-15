@@ -82,9 +82,16 @@ usePolling(refresh, 3000);
 			@keydown.enter.prevent="toggleWebSocket"
 			@keydown.space.prevent="toggleWebSocket"
 		>
-			<div class="service-orb" aria-hidden="true"></div>
+			<svg class="service-petal" viewBox="0 0 120 120" aria-hidden="true">
+				<g fill="currentColor">
+					<path d="M60 7c12 0 22 10 22 22 0 13-10 24-22 33-12-9-22-20-22-33 0-12 10-22 22-22Z"/>
+					<path d="M60 7c12 0 22 10 22 22 0 13-10 24-22 33-12-9-22-20-22-33 0-12 10-22 22-22Z" transform="rotate(90 60 60)"/>
+					<path d="M60 7c12 0 22 10 22 22 0 13-10 24-22 33-12-9-22-20-22-33 0-12 10-22 22-22Z" transform="rotate(180 60 60)"/>
+					<path d="M60 7c12 0 22 10 22 22 0 13-10 24-22 33-12-9-22-20-22-33 0-12 10-22 22-22Z" transform="rotate(270 60 60)"/>
+				</g>
+			</svg>
 			<div class="service-copy">
-				<div class="service-label">{{ t('dashboard.serverStatus') }}</div>
+				<div class="service-label"><span class="service-dot"></span>{{ t('dashboard.serverStatus') }}</div>
 				<div class="service-value">
 					{{ wsRunning ? t('dashboard.running') : startingWebSocket ? t('dashboard.serverStarting') : stoppingWebSocket ? t('dashboard.serverStopping') : t('dashboard.serverStopped') }}
 				</div>
@@ -240,25 +247,6 @@ usePolling(refresh, 3000);
 	z-index: -1;
 }
 
-.service-card::after {
-	content: "";
-	position: absolute;
-	width: 280px;
-	height: 280px;
-	right: -90px;
-	top: -150px;
-	border-radius: 50%;
-	background: radial-gradient(circle, rgba(148, 163, 184, 0.16), transparent 70%);
-	filter: blur(18px);
-	pointer-events: none;
-	z-index: -1;
-	animation: liquid-drift 9s ease-in-out infinite alternate;
-}
-
-.service-card.running::after {
-	background: radial-gradient(circle, var(--primary-dim), transparent 70%);
-}
-
 .service-card:hover {
 	transform: translateY(-2px);
 	box-shadow: 0 18px 42px rgba(0, 0, 0, 0.10);
@@ -273,20 +261,15 @@ usePolling(refresh, 3000);
 	outline-offset: 2px;
 }
 
-.service-orb {
-	width: 54px;
-	height: 54px;
-	flex-shrink: 0;
-	border-radius: 50%;
-	background: var(--glass-orb-off);
-	box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.85), 0 8px 18px rgba(30, 41, 59, 0.10);
-	transition: background var(--dur-base), box-shadow var(--dur-base);
-}
-
-.service-card.running .service-orb {
-	background: var(--glass-orb-on);
-	box-shadow: 0 0 0 8px var(--primary-dim), 0 0 24px var(--primary-dim), inset 0 1px 2px rgba(255, 255, 255, 0.85);
-	animation: orb-breathe 3.8s ease-in-out infinite;
+.service-petal {
+	position: absolute;
+	top: -44px;
+	left: -36px;
+	width: 142px;
+	height: 142px;
+	color: var(--petal);
+	pointer-events: none;
+	z-index: -1;
 }
 
 .service-copy {
@@ -295,11 +278,25 @@ usePolling(refresh, 3000);
 }
 
 .service-label {
+	display: flex;
+	align-items: center;
+	gap: 7px;
 	font-size: 11px;
 	font-weight: 650;
 	letter-spacing: 0.08em;
 	text-transform: uppercase;
 	color: var(--text-muted);
+}
+
+.service-dot {
+	width: 6px;
+	height: 6px;
+	border-radius: 50%;
+	background: var(--text-muted);
+}
+
+.service-card.running .service-dot {
+	background: var(--primary);
 }
 
 .service-value {
@@ -347,18 +344,7 @@ usePolling(refresh, 3000);
 	height: 18px;
 }
 
-@keyframes liquid-drift {
-	from { transform: translate3d(0, 0, 0) scale(1); }
-	to { transform: translate3d(-24px, 18px, 0) scale(1.12); }
-}
-
-@keyframes orb-breathe {
-	50% { transform: scale(1.04); }
-}
-
 @media (prefers-reduced-motion: reduce) {
-	.service-card::after,
-	.service-card.running .service-orb { animation: none; }
 	.service-card { transition: none; }
 }
 </style>
