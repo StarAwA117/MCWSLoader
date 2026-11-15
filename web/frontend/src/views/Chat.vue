@@ -18,10 +18,14 @@ const input = ref("");
 const chatRef = ref<InstanceType<typeof LogOutput> | null>(null);
 
 async function refresh() {
+	const el = chatRef.value?.el as HTMLElement | null | undefined;
+	const follow = !el || el.scrollHeight - el.scrollTop - el.clientHeight < 48;
 	const res = await api.getChatLog();
 	messages.value = Array.isArray(res.lines) ? (res.lines as string[]) : [];
-	await nextTick();
-	chatRef.value?.scrollToBottom();
+	if (follow) {
+		await nextTick();
+		chatRef.value?.scrollToBottom();
+	}
 }
 
 async function send() {

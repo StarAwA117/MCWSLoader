@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import { onMounted, onBeforeUnmount } from "vue";
+import { useScrollLock } from "../composables/useScrollLock";
+
 defineOptions({ name: "ModalShell" });
 
 defineProps({
@@ -6,11 +9,29 @@ defineProps({
 });
 
 const emit = defineEmits(["close"]);
+const { lock, unlock } = useScrollLock();
+
+function onKeydown(event: KeyboardEvent): void {
+	if (event.key === "Escape") {
+		event.preventDefault();
+		emit("close");
+	}
+}
+
+onMounted(() => {
+	lock();
+	document.addEventListener("keydown", onKeydown);
+});
+
+onBeforeUnmount(() => {
+	document.removeEventListener("keydown", onKeydown);
+	unlock();
+});
 </script>
 
 <template>
 	<div class="modal-overlay" @click.self="emit('close')">
-		<div class="modal" :style="maxWidth ? { maxWidth } : null">
+		<div class="modal" role="dialog" aria-modal="true" :style="maxWidth ? { maxWidth } : null">
 			<div class="modal-header">
 				<h3><slot name="title" /></h3>
 				<button class="modal-close" @click="emit('close')">×</button>

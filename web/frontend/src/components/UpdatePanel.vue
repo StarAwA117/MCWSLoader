@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from "vue";
+import { ref, computed, onMounted } from "vue";
 import { api } from "../api";
 import { useModal } from "../composables/useModal";
 import { useI18n } from "../composables/useI18n";
@@ -10,7 +10,12 @@ import type { TagInfo } from "../types";
 const { ask, choose, notify } = useModal();
 const { t } = useI18n();
 
-const currentVersion = ref("加载中...");
+const currentVersion = ref(t("update.loadingVersion"));
+const currentVersionLabel = computed(() => {
+	const value = currentVersion.value;
+	if (value === t("update.loadingVersion") || value === t("update.unknownVersion")) return value;
+	return `v${value}`;
+});
 const latestVersion = ref<string | null>(null);
 const tags = ref<TagInfo[]>([]);
 const checking = ref(false);
@@ -19,9 +24,9 @@ const actionStatus = ref({ loading: false, message: "" });
 async function loadCurrentVersion() {
 	try {
 		const p = await api.getProcess();
-		currentVersion.value = (p.version as string) || "未知";
+		currentVersion.value = (p.version as string) || t("update.unknownVersion");
 	} catch {
-		currentVersion.value = "未知";
+		currentVersion.value = t("update.unknownVersion");
 	}
 }
 
@@ -115,7 +120,7 @@ onMounted(() => {
 		<div class="stats-grid">
 			<div class="stat-card">
 				<div class="label">{{ t('update.currentVersion') }}</div>
-				<div class="value">v{{ currentVersion }}</div>
+				<div class="value">{{ currentVersionLabel }}</div>
 			</div>
 			<div class="stat-card">
 				<div class="label">{{ t('update.latestVersion') }}</div>

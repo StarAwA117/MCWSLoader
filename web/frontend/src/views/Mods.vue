@@ -221,9 +221,11 @@ async function openSettings(mod: ModInfo): Promise<void> {
 	try {
 		const res = await api.getModConfig(mod.name);
 		if (res.ok) {
-			modal.value.config = JSON.parse(JSON.stringify(res.config)) as Record<string, any>;
-			modal.value.fields = buildFields(res.config, "");
+			modal.value.config = JSON.parse(JSON.stringify(res.config ?? {})) as Record<string, any>;
+			modal.value.fields = buildFields(res.config ?? {}, "");
 			modal.value.labels = (res.labels && typeof res.labels === "object") ? res.labels as Record<string, string> : {};
+		} else {
+			modal.value.message = res.message || t("mods.loadFailed");
 		}
 	} catch { modal.value.message = t("mods.loadFailed"); }
 }
@@ -234,6 +236,7 @@ async function openManifest(mod: ModInfo): Promise<void> {
 	try {
 		const res = await api.getModManifest(mod.name);
 		if (res.ok) modal.value.manifest = (res.manifest as ModManifest) ?? null;
+		else modal.value.message = res.message || t("mods.loadFailed");
 	} catch { modal.value.message = t("mods.loadFailed"); }
 }
 

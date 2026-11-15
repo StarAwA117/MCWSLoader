@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import { ref } from "vue";
+import { useI18n } from "../composables/useI18n";
+
 defineOptions({ name: "ConfigField" });
 interface FieldNode {
 	path: string;
@@ -6,6 +9,9 @@ interface FieldNode {
 	type: string;
 	children?: FieldNode[];
 }
+
+const { t } = useI18n();
+const jsonError = ref("");
 
 const props = defineProps<{
 	field: FieldNode;
@@ -40,7 +46,12 @@ function toText(val: unknown): string {
 }
 
 function fromText(path: string, raw: string): void {
-	try { setVal(props.config, path, JSON.parse(raw)); } catch { /* ignore invalid json */ }
+	try {
+		setVal(props.config, path, JSON.parse(raw));
+		jsonError.value = "";
+	} catch {
+		jsonError.value = t("mods.invalidJson");
+	}
 }
 </script>
 
@@ -65,6 +76,7 @@ function fromText(path: string, raw: string): void {
 	<div v-else-if="field.type === 'json' || field.type === 'array'" class="cfg-field" :style="{ marginLeft: depth > 0 ? '12px' : '0' }">
 		<label>{{ lbl(field.path, field.key) }}</label>
 		<textarea :value="toText(getVal(config, field.path))" @blur="fromText(field.path, ($event.target as HTMLInputElement).value)" rows="4" spellcheck="false"></textarea>
+		<p v-if="jsonError" class="cfg-error">{{ jsonError }}</p>
 	</div>
 	<div v-else class="cfg-field" :style="{ marginLeft: depth > 0 ? '12px' : '0' }">
 		<label>{{ lbl(field.path, field.key) }}</label>
@@ -88,6 +100,12 @@ function fromText(path: string, raw: string): void {
 	background: var(--bg-input); color: var(--text); font-size: 13px;
 }
 .cfg-field input[type="checkbox"], .cfg-cell input[type="checkbox"] { width: 16px; height: 16px; }
+.cfg-error {
+	margin-top: 4px;
+	font-size: 12px;
+	color: var(--danger);
+}
+
 .cfg-field textarea {
 	width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: 6px;
 	background: var(--bg-input); color: var(--text); font-family: "Cascadia Code", "Fira Code", monospace;
