@@ -53,7 +53,7 @@ jobs:
           if [[ "${{ matrix.server_target }}" == "android" ]]; then
             node scripts/build-standalone.mjs --target android
           else
-            node scripts/build-standalone.mjs --target desktop --node "$(command -v node)"
+            node scripts/build-standalone.mjs --target desktop
           fi
 
       - uses: subosito/flutter-action@v2
@@ -89,13 +89,24 @@ jobs:
         shell: bash
         run: |
           ZIP="$RUNNER_TEMP/nodejs-mobile.zip"
-          curl -L --fail -o "$ZIP" https://github.com/nodejs-mobile/nodejs-mobile/releases/download/v18.20.4/nodejs-mobile-v18.20.4-android.zip
+          curl -L --fail -o "$ZIP" https://github.com/gmaclennan/nodejs-mobile/releases/download/v24.18.0-0/nodejs-mobile-android-24.18.0-0.zip
           PLUGIN=$(find "$HOME/.pub-cache/hosted/pub.dev" -maxdepth 1 -type d -name 'node_flutter-*' | head -1)
           echo "node_flutter plugin: $PLUGIN"
           rm -rf "$PLUGIN/android/libnode"
           mkdir -p "$PLUGIN/android/libnode" "$PLUGIN/android/libs/bin"
           unzip -q "$ZIP" -d "$PLUGIN/android/libnode"
           cp -R "$PLUGIN/android/libnode/bin/." "$PLUGIN/android/libs/bin/"
+
+      - name: Patch Linux WebView plugin for older GLib
+        if: matrix.target == 'linux'
+        shell: bash
+        run: |
+          PLUGIN=$(find "$HOME/.pub-cache/hosted/pub.dev" -maxdepth 1 -type d -name 'webview_all_linux-*' | head -1)
+          echo "webview plugin: $PLUGIN"
+          grep -RIl 'G_REGEX_DEFAULT\|G_REGEX_MATCH_DEFAULT\|G_CONNECT_DEFAULT' "$PLUGIN/linux/src" | while read -r file; do
+            sed -i 's/G_REGEX_DEFAULT/G_REGEX_NONE/g; s/G_REGEX_MATCH_DEFAULT/G_REGEX_MATCH_NONE/g; s/G_CONNECT_DEFAULT/G_CONNECT_AFTER/g' "$file"
+          done
+          printf '\nset(CMAKE_CXX_STANDARD 17)\nset(CMAKE_CXX_STANDARD_REQUIRED ON)\n' >> build/flutter_app/linux/CMakeLists.txt
 
       - name: Install Linux desktop libraries
         if: matrix.target == 'linux'

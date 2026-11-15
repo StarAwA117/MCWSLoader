@@ -41,7 +41,14 @@ function parseArgs() {
 
 function run(command, args, options = {}) {
 	console.log(`> ${command} ${args.join(" ")}`);
-	execFileSync(command, args, { stdio: "inherit", cwd: ROOT, ...options });
+	execFileSync(command, args, {
+		stdio: "inherit",
+		cwd: ROOT,
+		// npm/npx/tar are .cmd shims on Windows; execFileSync cannot launch
+		// those directly without a shell.
+		shell: process.platform === "win32" && !path.isAbsolute(command),
+		...options
+	});
 }
 
 function copyDir(src, dest, filter = null) {
@@ -115,8 +122,9 @@ function prepareServer() {
 	fs.rmSync(BUILD, { recursive: true, force: true });
 	fs.mkdirSync(SERVER, { recursive: true });
 
-	run(process.platform === "win32" ? "npx.cmd" : "npx", ["tsc", "-p", "tsconfig.standalone.json"]);
-	run(process.platform === "win32" ? "npx.cmd" : "npx", ["tsc", "-p", "tsconfig.standalone.mods.json"]);
+	const tsc = path.join(ROOT, "node_modules", "typescript", "bin", "tsc");
+	run(process.execPath, [tsc, "-p", "tsconfig.standalone.json"]);
+	run(process.execPath, [tsc, "-p", "tsconfig.standalone.mods.json"]);
 
 	copyDir(path.join(MODS_OUT), path.join(SERVER, "mods"));
 	// Copy non-TypeScript Mod assets while skipping local secrets and build output.
@@ -154,7 +162,10 @@ function prepareServer() {
 	fs.writeFileSync(path.join(SERVER, "package.json"), JSON.stringify(pkg, null, "\t") + "\n");
 
 	console.log("> npm ci --omit=dev");
-	run(process.platform === "win32" ? "npm.cmd" : "npm", ["ci", "--omit=dev", "--ignore-scripts", "--no-audit", "--no-fund"], { cwd: SERVER });
+	run("npm", ["ci", "--omit=dev", "--ignore-scripts", "--no-audit", "--no-fund"], {
+		cwd: SERVER,
+		shell: process.platform === "win32"
+	});
 }
 
 function createDesktopAssets(nodePath) {
@@ -191,5 +202,5 @@ function createAndroidProject() {
 const args = parseArgs();
 prepareServer();
 if (args.target === "android") createAndroidProject();
-else createDesktopAssets(args.node);
+else createDesktopAssets(args.node || process.execPath);
 console.log("Standalone server build complete.");
