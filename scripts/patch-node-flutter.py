@@ -94,6 +94,22 @@ s = s.replace(
     '    // Register the filesDir as the Node data dir.\n    registerNodeDataDirPath(filesDirPath)\n',
     '',
 )
+# A second onAttachedToEngine / activity recreation must not start a second
+# copy while the first one is still writing the project directory.
+s = s.replace(
+    '  private var initCompleted = false\n',
+    '  private var initCompleted = false\n  private var copyStarted = false\n',
+)
+s = s.replace(
+    '  private fun asyncInit() {\n    if (wasAPKUpdated()) {',
+    '  private fun asyncInit() {\n    if (initCompleted || copyStarted) return\n    copyStarted = true\n    if (wasAPKUpdated()) {',
+)
+# Defensive parent creation: a second caller or an interrupted copy must not
+# make createNewFile fail for every subsequent file.
+s = s.replace(
+    '      input = assetManager.open(fromAssetPath)\n      File(toPath).createNewFile()\n',
+    '      input = assetManager.open(fromAssetPath)\n      File(toPath).parentFile?.mkdirs()\n      File(toPath).createNewFile()\n',
+)
 # Never leave waitForInit blocked forever if copying one asset fails. The old
 # code threw from the copy thread without releasing the semaphore.
 s = s.replace(

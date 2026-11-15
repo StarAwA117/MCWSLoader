@@ -22,6 +22,28 @@ if [[ "$TARGET" == "android" ]]; then
   mkdir -p "$APP/android/app/src/main/assets"
   cp -R "$ROOT/build/standalone/android/nodejs-project" "$APP/android/app/src/main/assets/nodejs-project"
 
+  # node_flutter otherwise recursively calls AssetManager.list for every
+  # directory. Precompute the list so first launch copies 1000+ files without
+  # hundreds of slow directory listings.
+  python3 - "$APP/android/app/src/main/assets" <<'PY'
+import sys
+from pathlib import Path
+
+assets = Path(sys.argv[1])
+project = assets / "nodejs-project"
+dirs = ["nodejs-project"]
+files = []
+for path in project.rglob("*"):
+    rel = path.relative_to(assets).as_posix()
+    if path.is_dir():
+        dirs.append(rel)
+    elif path.is_file() and "/.bin/" not in f"/{rel}":
+        files.append(rel)
+(assets / "dir.list").write_text("\n".join(dirs) + "\n")
+(assets / "file.list").write_text("\n".join(files) + "\n")
+print(f"nodejs assets: {len(dirs)} dirs, {len(files)} files")
+PY
+
   MANIFEST="$APP/android/app/src/main/AndroidManifest.xml"
   python3 - "$MANIFEST" "$APP/android/app/src/main/kotlin" <<'PY'
 import re
