@@ -3,6 +3,7 @@ config.json
 permission.json
 mods/**/config.json
 mods/mods_config.json
+mods/mods_config.json.tmp
 
 # Notes
 notes.md

@@ -51,6 +51,7 @@ export interface I18n {
 	messages: ComputedRef<Messages>;
 	t: (key: string, params?: Record<string, unknown>) => string;
 	setLocale: (locale: string) => void;
+	applyLocale: (locale: string) => void;
 	availableLocales: Locale[];
 }
 
@@ -74,7 +75,7 @@ export function useI18n(): I18n {
 		return text;
 	};
 
-	const setLocale = (locale: string): void => {
+	const applyLocale = (locale: string): void => {
 		const messages = locales[locale];
 		if (!messages) return;
 
@@ -83,9 +84,14 @@ export function useI18n(): I18n {
 		if (typeof window === "undefined") return;
 
 		window.localStorage.setItem("locale", locale);
-		const previousLanguage = document.documentElement.dataset.language;
 		document.documentElement.dataset.language = locale;
-		if (previousLanguage === locale) return;
+	};
+
+	const setLocale = (locale: string): void => {
+		if (!locales[locale]) return;
+		const previousLanguage = typeof document !== "undefined" ? document.documentElement.dataset.language : null;
+		applyLocale(locale);
+		if (typeof window === "undefined" || previousLanguage === locale) return;
 
 		fetch("/api/language", {
 			method: "POST",
@@ -106,6 +112,7 @@ export function useI18n(): I18n {
 		messages: computed(() => state.messages),
 		t,
 		setLocale,
+		applyLocale,
 		availableLocales: ["zh-CN", "zh-TW", "en"]
 	};
 }

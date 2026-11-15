@@ -12,7 +12,7 @@ import { useTheme } from "../composables/useTheme";
 import { THEME_DEFINITIONS } from "../theme";
 import { userErrorText } from "../utils/errors";
 
-const { t, setLocale, locale, availableLocales } = useI18n();
+const { t, applyLocale, availableLocales } = useI18n();
 const { setTheme } = useTheme();
 const { resetPassword } = useModal();
 const route = useRoute();
@@ -57,7 +57,10 @@ const tabs: Array<{ key: "server" | "webui" | "system"; labelKey: string; icon: 
 async function refresh() {
 	const data = await api.getConfig();
 	config.value = data && typeof data === "object" && "ws" in data ? data : null;
-	if (config.value) setTheme(config.value.web?.ui?.theme ?? "star");
+	if (config.value) {
+		setTheme(config.value.web?.ui?.theme ?? "star");
+		applyLocale(config.value.language ?? "zh-CN");
+	}
 }
 
 const logLevels = computed(() => ["debug", "info", "warning", "error"].map((value) => ({
@@ -79,6 +82,7 @@ async function save() {
 		const res = await api.saveConfig(config.value);
 		if (res.ok) {
 			setTheme(config.value?.web?.ui?.theme ?? "star");
+			applyLocale(config.value?.language ?? "zh-CN");
 			message.value = t("common.saveSuccess");
 		} else {
 			message.value = res.message || t("common.saveFailed");
@@ -112,7 +116,6 @@ async function handleResetPassword() {
 }
 
 function selectLocale(loc: string): void {
-	setLocale(loc);
 	if (config.value) config.value.language = loc;
 }
 
@@ -363,7 +366,7 @@ onMounted(refresh);
 								v-for="loc in availableLocales"
 								:key="loc"
 								class="locale-btn"
-								:class="{ active: locale === loc }"
+								:class="{ active: config.language === loc }"
 								@click="selectLocale(loc)"
 							>
 								{{ localeLabels[loc] ?? loc }}

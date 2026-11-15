@@ -18,7 +18,7 @@ import type { Client } from "../lib/types/client.js";
 import type { ModEntry } from "../lib/types/mod.js";
 import { CURRENT_VERSION, checkForUpdate, latestRelease, listReleases } from "../lib/update.js";
 import { errorDetail, toUserError } from "../lib/errors.js";
-import { modConfigLabels, tForMod } from "../lib/texts.js";
+import { isTranslationKey, modConfigLabels, tForMod } from "../lib/texts.js";
 
 type AnyRecord = Record<string, any>;
 interface AuthState {
@@ -414,9 +414,8 @@ async function checkoutTag(tag: string): Promise<void> {
 	}
 	const opts = { cwd: REPO_ROOT, maxBuffer: 10 * 1024 * 1024, timeout: 120000 };
 	await execAsync("git fetch --all", opts);
-	await execAsync("git reset --hard HEAD", opts);
 	await execFileAsync("git", ["checkout", "-f", tag], opts);
-	await execAsync("npm install", { ...opts, timeout: 300000 });
+	await execAsync("npm install --ignore-scripts", { ...opts, timeout: 300000 });
 }
 
 // 主客户端切换：同时通知服务端 Mod 并重新挂载 SAPI
@@ -704,9 +703,12 @@ async function handleAPI(req: IncomingMessage, res: ServerResponse, url: URL): P
 				existingEntry = modRegistry.getByName(manifest.name) || null;
 
 				// 已有同名模组时目标目录取它原来的目录，避免同名模组被安装成两份
+				const manifestFolder = isTranslationKey(manifest.name)
+					? manifest.uuid || "mod"
+					: manifest.name;
 				folderName = existingEntry
 					? path.basename(existingEntry.path)
-					: sanitizeFolderName(resolved.folderName || manifest.name);
+					: sanitizeFolderName(resolved.folderName || manifestFolder || "mod");
 				const targetDir = path.join(modDir, folderName);
 				const targetExists = fs.existsSync(targetDir);
 

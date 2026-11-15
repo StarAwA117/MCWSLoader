@@ -248,7 +248,10 @@ class ModRegistry {
 		for (const [name, { enabled }] of configMap) {
 			arr.push({ name, enabled });
 		}
-		fs.writeFileSync(MODS_CONFIG_PATH, JSON.stringify(arr, null, "\t") + "\n", "utf-8");
+		const temporary = `${MODS_CONFIG_PATH}.tmp`;
+		fs.writeFileSync(temporary, JSON.stringify(arr, null, "\t") + "\n", { encoding: "utf-8", mode: 0o600 });
+		fs.renameSync(temporary, MODS_CONFIG_PATH);
+		try { fs.chmodSync(MODS_CONFIG_PATH, 0o600); } catch { /* ignore */ }
 	}
 
 	_ensureModInConfig(configMap: ModsConfigMap, modId: string): boolean {
