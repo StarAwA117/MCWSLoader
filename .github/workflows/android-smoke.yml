@@ -64,7 +64,7 @@ jobs:
           script: |
             adb install -r build/flutter_app/build/app/outputs/flutter-apk/app-debug.apk
             adb shell am start -n com.mcwsloader.mcwsloader/.MainActivity
-            sleep 60
+            sleep 150
             adb shell pidof com.mcwsloader.mcwsloader || true
             adb shell dumpsys activity services com.mcwsloader.mcwsloader | head -80 || true
             adb logcat -d > /tmp/logcat.txt
