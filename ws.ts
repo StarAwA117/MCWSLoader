@@ -152,42 +152,70 @@ function createServer(): WebSocketServer {
 }
 
 const MODE = config.mode ?? "both";
+let startingServer: Promise<void> | null = null;
+let stoppingServer: Promise<void> | null = null;
 
 async function startWebSocketServer(): Promise<void> {
 	if (server) return;
-	const wsServer = createServer();
-	wsServer.on("connection", handleConnection);
-	await new Promise<void>((resolve, reject) => {
-		const onError = (error: Error): void => {
-			wsServer.off("listening", onListening);
-			try { wsServer.close(); } catch { /* ignore */ }
-			reject(error);
-		};
-		const onListening = (): void => {
-			wsServer.off("error", onError);
-			server = wsServer;
-			logger.info(tr("terminal.ws.started", { port: config.ws.port }));
-			resolve();
-		};
-		wsServer.once("error", onError);
-		wsServer.once("listening", onListening);
-	});
+	if (stoppingServer) await stoppingServer;
+	if (server) return;
+	if (startingServer) return startingServer;
+
+	const task = (async (): Promise<void> => {
+		const wsServer = createServer();
+		wsServer.on("connection", handleConnection);
+		await new Promise<void>((resolve, reject) => {
+			const onError = (error: Error): void => {
+				wsServer.off("listening", onListening);
+				try { wsServer.close(); } catch { /* ignore */ }
+				reject(error);
+			};
+			const onListening = (): void => {
+				wsServer.off("error", onError);
+				server = wsServer;
+				logger.info(tr("terminal.ws.started", { port: config.ws.port }));
+				resolve();
+			};
+			wsServer.once("error", onError);
+			wsServer.once("listening", onListening);
+		});
+	})();
+
+	startingServer = task;
+	try {
+		await task;
+	} finally {
+		if (startingServer === task) startingServer = null;
+	}
 }
 
 async function stopWebSocketServer(): Promise<void> {
-	const current = server;
-	if (!current) return;
-	server = null;
-	for (const client of current.clients) {
-		try { client.terminate(); } catch { /* ignore */ }
-	}
-	await new Promise<void>((resolve) => {
-		const timer = setTimeout(resolve, 1500);
-		current.close(() => {
-			clearTimeout(timer);
-			resolve();
+	if (stoppingServer) return stoppingServer;
+	const task = (async (): Promise<void> => {
+		if (startingServer) {
+			try { await startingServer; } catch { /* start failed; nothing to stop */ }
+		}
+		const current = server;
+		if (!current) return;
+		server = null;
+		for (const client of current.clients) {
+			try { client.terminate(); } catch { /* ignore */ }
+		}
+		await new Promise<void>((resolve) => {
+			const timer = setTimeout(resolve, 1500);
+			current.close(() => {
+				clearTimeout(timer);
+				resolve();
+			});
 		});
-	});
+	})();
+
+	stoppingServer = task;
+	try {
+		await task;
+	} finally {
+		if (stoppingServer === task) stoppingServer = null;
+	}
 }
 
 function isWebSocketRunning(): boolean {

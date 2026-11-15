@@ -55,6 +55,7 @@ this.Command.create("f:stop", this.rawtext("command.fStop"))
 	// deep: 当前嵌套深度（防止无限递归，上限 16）
 	// commands: 已加载的指令数组（首次调用时为 null，内部加载）
 	async run(fileName, deep = 0, commands = null) {
+		if (!this.client) return;
 		if (!commands) {
 			commands = await this.load(fileName);
 
@@ -91,6 +92,7 @@ this.Command.create("f:stop", this.rawtext("command.fStop"))
 	// loopName: 循环标识名称
 	// loopInterval: 循环间隔（秒），未指定则默认 50ms（1 游戏刻）
 	async loop(fileName, loopName = null,  loopInterval = null) {
+		if (!this.client) return;
 		// 未指定名称时使用文件名作为循环名
 		if (!loopName) loopName = fileName;
 
@@ -116,10 +118,20 @@ this.Command.create("f:stop", this.rawtext("command.fStop"))
 
 		this.client.tellAll(`§eMCFunc | §fLoop > §i${this.rawtext("mcfunc.loopStarted", { name: loopName })}`);
 
-		// 创建定时器循环执行
-		this.loops.set(loopName, setInterval(async () => {
-			await this.run(fileName, 0, commands);
-		}, loopInterval));
+		// 创建定时器循环执行；上一轮未结束时跳过本轮，避免慢脚本堆积
+		const entry = { timer: null, running: false };
+		entry.timer = setInterval(async () => {
+			if (!this.client || entry.running) return;
+			entry.running = true;
+			try {
+				await this.run(fileName, 0, commands);
+			} catch (e) {
+				this.logger.error(`MCFunc loop ${loopName} failed: ${e?.stack ?? e?.message ?? e}`);
+			} finally {
+				entry.running = false;
+			}
+		}, loopInterval);
+		this.loops.set(loopName, entry);
 	}
 
 	// 停止循环
@@ -127,8 +139,8 @@ this.Command.create("f:stop", this.rawtext("command.fStop"))
 	stop(loopName = null) {
 		if (loopName === null || loopName === undefined) {
 			// 停止所有循环
-			for (let loop of this.loops.values()) {
-				clearInterval(loop);
+			for (const loop of this.loops.values()) {
+				clearInterval(loop.timer);
 			}
 
 			this.loops.clear();
@@ -137,8 +149,8 @@ this.Command.create("f:stop", this.rawtext("command.fStop"))
 		}
 
 		if (this.loops.has(loopName)) {
-			let loop = this.loops.get(loopName);
-			clearInterval(loop);
+			const loop = this.loops.get(loopName);
+			clearInterval(loop.timer);
 			this.loops.delete(loopName);
 
 			this.client.tellAll(`§eMCFunc | §fLoop > §i${this.rawtext("mcfunc.loopStopped", { name: loopName })}`);

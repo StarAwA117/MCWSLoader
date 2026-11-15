@@ -25,3 +25,4 @@ pack.description=Provides spam, advertisement and attack services
 
 # Command parameter labels
 spam.param.eb9f14e9a0=Spam content
+spam.byeMessage=Trying to leave... leave failed

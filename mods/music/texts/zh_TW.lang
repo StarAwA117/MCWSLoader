@@ -59,3 +59,6 @@ music.param.983770e129=音樂檔名
 
 # Command parameter labels
 music.param.5012ab48b2=歌名 ：僅 single 模式有效
+music.mode.next=順序循環
+music.mode.random=隨機循環
+music.mode.single=單曲循環

@@ -240,12 +240,6 @@ export default class AIHelper extends ModBase {
 		}
 	}
 
-	// 销毁（服务端关闭时调用）
-	static onDestroy() {
-		AIHelper.stopCleanup();
-		AIHelper.playerData.clear();
-	}
-
 	// 获取或创建玩家数据
 	static getPlayerData(name: string) {
 		if (!AIHelper.playerData.has(name)) {
@@ -344,6 +338,7 @@ export default class AIHelper extends ModBase {
 	constructor(client: any) {
 		super();
 		this.client = client;
+		this.isServer = !client;
 		AIHelper.startCleanup();
 	}
 
@@ -480,9 +475,12 @@ export default class AIHelper extends ModBase {
 		data.AICommandContents = [];
 	}
 
-	// 销毁方法
+	// 销毁方法：客户端断开不应停止服务端共享的清理定时器
 	onDestroy() {
-		AIHelper.stopCleanup();
+		if (this.isServer) {
+			AIHelper.stopCleanup();
+			AIHelper.playerData.clear();
+		}
 		this.client = null;
 	}
 }

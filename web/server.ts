@@ -697,7 +697,7 @@ async function handleAPI(req: IncomingMessage, res: ServerResponse, url: URL): P
 			const clientResult = await ClientModManager.reloadAllClients();
 			collectTerminalCommands(ServerModManager, ClientModManager);
 			return json(res, {
-				ok: true,
+				ok: serverResult.failed.length === 0 && clientResult.failed.length === 0,
 				server: { success: serverResult.success, failed: serverResult.failed },
 				client: { success: clientResult.success.length, failed: clientResult.failed }
 			});

@@ -490,8 +490,7 @@ this.Command.create("m:stop", this.rawtext("music.msg.a0b1c82732"))
 		}
 
 		const intTime = Number(time) * 1000;
-		const modeLabels = { next: "顺序循环", random: "随机循环", single: "单曲循环" };
-		const modeLabel = modeLabels[mode];
+		const modeLabel = this.rawtext(`music.mode.${mode}`);
 		const displayTitle = mode === "single" ? ` ${this.title}` : "";
 		this.client.tell(this.rawtext("music.msg.09f7b2e7a8", { p0: modeLabel, p1: displayTitle }));
 

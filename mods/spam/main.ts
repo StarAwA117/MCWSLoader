@@ -52,7 +52,7 @@ export default class Spam extends ModBase {
 							console.log(`< ${this.rawtext("terminal.spam.noMain")}`);
 							return;
 						}
-						Current.client.utils.sendCommandUnsafe("/me 正在尝试退出...".repeat(100) + "退出失败");
+						Current.client.utils.sendCommandUnsafe(`/me ${this.rawtext("spam.byeMessage")}`);
 					}),
 
 				this.Command.create("c:attack", this.rawtext("command.cAttack"))

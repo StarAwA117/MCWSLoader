@@ -153,13 +153,18 @@ export class SAPIMessageHandler {
 	}
 
 	stop(): void {
-		if (!this.polling) return;
+		const wasPolling = this.polling;
 		this.polling = false;
 		if (this.pollTimer) {
 			clearTimeout(this.pollTimer);
 			this.pollTimer = null;
 		}
-		logger.debug("SAPI stop polling");
+		// A retry must not revive a bridge that was explicitly stopped.
+		if (this.retryTimer) {
+			clearTimeout(this.retryTimer);
+			this.retryTimer = null;
+		}
+		if (wasPolling) logger.debug("SAPI stop polling");
 	}
 
 	async _poll(): Promise<void> {
