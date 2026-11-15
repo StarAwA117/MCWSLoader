@@ -16,6 +16,7 @@ dependencies:
   archive: ^4.0.2
   path: ^1.9.0
   path_provider: ^2.1.5
+  permission_handler: ^13.0.2
   http: ^1.2.2
 
 dev_dependencies:
@@ -40,3 +41,6 @@ flutter_launcher_icons:
     generate: true
     image_path: "assets/icon.png"
     icon_size: 256
+  macos:
+    generate: true
+    image_path: "assets/icon.png"

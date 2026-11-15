@@ -30,6 +30,10 @@ jobs:
             os: ubuntu-22.04
             target: linux
             server_target: desktop
+          - name: macOS
+            os: macos-latest
+            target: macos
+            server_target: desktop
     steps:
       - uses: actions/checkout@v5
 
@@ -63,7 +67,7 @@ jobs:
           cache: true
 
       - name: Enable Flutter desktop
-        run: flutter config --enable-windows-desktop --enable-linux-desktop
+        run: flutter config --enable-windows-desktop --enable-linux-desktop --enable-macos-desktop
 
       - name: Install Java
         if: matrix.target == 'android'
@@ -104,7 +108,12 @@ jobs:
           p = Path(sys.argv[1]) / "android/src/main/kotlin/org/binbard/node_flutter/NodeFlutterPlugin.kt"
           s = p.read_text()
           s = s.replace('arrayOf("node", "$nodeJsProjectPath/$mainFileName")', 'arrayOf("node", "--max-old-space-size=128", "$nodeJsProjectPath/$mainFileName")')
+          s = s.replace('val title = options?.get("title") as? String ?: "Node Service"', 'waitForInit()\n          val title = options?.get("title") as? String ?: "Node Service"', 1)
           p.write_text(s)
+          service = p.parent / "NodeService.kt"
+          ss = service.read_text()
+          ss = ss.replace('arrayOf("node", "$nodeJsProjectPath/$mainFileName")', 'arrayOf("node", "--max-old-space-size=128", "$nodeJsProjectPath/$mainFileName")')
+          service.write_text(ss)
           PY
 
       - name: Install Linux desktop libraries
@@ -128,6 +137,11 @@ jobs:
         working-directory: build/flutter_app
         run: flutter build linux --release
 
+      - name: Build macOS app
+        if: matrix.target == 'macos'
+        working-directory: build/flutter_app
+        run: flutter build macos --release
+
       - name: Package Android APK
         if: matrix.target == 'android'
         shell: bash
@@ -149,6 +163,13 @@ jobs:
         run: |
           mkdir -p dist
           tar -C build/flutter_app/build/linux/x64/release/bundle -czf "dist/MCWSLoader-${GITHUB_REF_NAME:-dev}-linux-x64.tar.gz" .
+
+      - name: Package macOS
+        if: matrix.target == 'macos'
+        shell: bash
+        run: |
+          mkdir -p dist
+          ditto -c -k --sequesterRsrc --keepParent build/flutter_app/build/macos/Build/Products/Release/mcwsloader.app "dist/MCWSLoader-${GITHUB_REF_NAME:-dev}-macos.zip"
 
       - uses: actions/upload-artifact@v4
         with:
