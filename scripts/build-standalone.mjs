@@ -243,7 +243,10 @@ function copyWebuiAssets() {
 		// script at the end of <body>. A classic inline script in <head> would
 		// execute before #app exists and Vue would mount nothing.
 		html = html.replace(/<script[^>]*src="\.\/assets\/app\.js"[^>]*><\/script>\n?/, "");
-		html = html.replace("</body>", `<script>${app}</script>\n</body>`);
+		// Use a function replacement: the minified bundle contains "$&" and
+		// other replacement patterns, which String.replace would expand into
+		// the matched </body> text and break the script.
+		html = html.replace("</body>", () => `<script>${app}</script>\n</body>`);
 		html = html.replace(/<link rel="icon"[^>]*>\n?/g, "");
 	}
 	fs.writeFileSync(indexPath, html);
