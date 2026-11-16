@@ -180,6 +180,12 @@ ss = ss.replace(
     'arrayOf("node", "$nodeJsProjectPath/$mainFileName")',
     'arrayOf("node", "--max-old-space-size=128", "$nodeJsProjectPath/$mainFileName")',
 )
+# Starting the service twice must not reset the guard and invoke node::Start
+# twice in one process; Node aborts with "!init_called.exchange(true)".
+ss = ss.replace('        startedNodeAlready = false\n\n        val channelId', '        val channelId')
+# START_STICKY restarts the service with a null intent after a crash, losing
+# mainFileName/project paths. Do not create a crash loop.
+ss = ss.replace('        return START_STICKY', '        return START_NOT_STICKY')
 service.write_text(ss)
 # The upstream asset copier uses a 1 KB buffer. The standalone project contains
 # a ~20 MB node_modules tree, so use a larger buffer to keep first launch fast.

@@ -42,7 +42,7 @@ for path in project.rglob("*"):
     rel = path.relative_to(assets).as_posix()
     if path.is_dir():
         dirs.append(rel)
-    elif path.is_file():
+    elif path.is_file() and path.suffix not in (".ts", ".tsx"):
         files.append(rel)
 (assets / "dir.list").write_text("\n".join(dirs) + "\n")
 (assets / "file.list").write_text("\n".join(files) + "\n")
