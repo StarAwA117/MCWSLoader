@@ -233,6 +233,18 @@ function copyWebuiAssets() {
 	html = html.replace(/<script type="module" crossorigin src=/g, "<script src=");
 	html = html.replace(/<script type="module" src=/g, "<script src=");
 	html = html.replace(/<link rel="modulepreload"[^>]*>\n?/g, "");
+	// Android WebView blocks file-to-file script requests by default. Inline the
+	// single generated bundle so the page works from file:// without enabling
+	// universal file access.
+	const appPath = path.join(target, "assets", "app.js");
+	if (fs.existsSync(appPath)) {
+		const app = fs.readFileSync(appPath, "utf-8").replace(/<\/script/gi, "<\\/script");
+		html = html.replace(
+			/<script[^>]*src="\.\/assets\/app\.js"[^>]*><\/script>/,
+			`<script>${app}</script>`,
+		);
+		html = html.replace(/<link rel="icon"[^>]*>\n?/g, "");
+	}
 	fs.writeFileSync(indexPath, html);
 	console.log(`WebUI assets: ${target}`);
 }
