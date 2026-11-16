@@ -239,10 +239,11 @@ function copyWebuiAssets() {
 	const appPath = path.join(target, "assets", "app.js");
 	if (fs.existsSync(appPath)) {
 		const app = fs.readFileSync(appPath, "utf-8").replace(/<\/script/gi, "<\\/script");
-		html = html.replace(
-			/<script[^>]*src="\.\/assets\/app\.js"[^>]*><\/script>/,
-			`<script>${app}</script>`,
-		);
+		// Remove the deferred script tag from <head> and insert a classic inline
+		// script at the end of <body>. A classic inline script in <head> would
+		// execute before #app exists and Vue would mount nothing.
+		html = html.replace(/<script[^>]*src="\.\/assets\/app\.js"[^>]*><\/script>\n?/, "");
+		html = html.replace("</body>", `<script>${app}</script>\n</body>`);
 		html = html.replace(/<link rel="icon"[^>]*>\n?/g, "");
 	}
 	fs.writeFileSync(indexPath, html);
