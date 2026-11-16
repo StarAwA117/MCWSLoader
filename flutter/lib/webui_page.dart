@@ -59,7 +59,11 @@ class _WebUiPageState extends State<WebUiPage> {
   Future<void> _load() async {
     setState(() => _error = null);
     try {
-      await _controller.loadFlutterAsset('assets/webui/index.html');
+      // Give the inline document an HTTP loopback origin so API requests are
+      // same-origin. No static page server is involved: the HTML comes from
+      // the Flutter asset bundle and the Node server only handles /api/*.
+      final html = await rootBundle.loadString('assets/webui/index.html');
+      await _controller.loadHtmlString(html, baseUrl: 'http://127.0.0.1:50100/');
     } catch (e) {
       if (!mounted) return;
       setState(() {
