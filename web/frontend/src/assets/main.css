@@ -925,3 +925,55 @@ body::after { animation: glowDriftB 36s var(--ease-in-out) infinite alternate; }
 		scroll-behavior: auto !important;
 	}
 }
+
+/* ===== Mobile WebView performance mode =====
+ * Large blurred glows, backdrop filters and infinite decorative animations
+ * are expensive in Android WebView. Keep the layout and palette, but use
+ * opaque surfaces and skip non-essential motion on phones. */
+:root[data-mobile="true"] {
+	--glass-bg: var(--bg-card-solid);
+	--glass-border: var(--border);
+	--glass-shadow: var(--shadow);
+	--glass-blur: 0px;
+}
+
+:root[data-mobile="true"] body::before,
+:root[data-mobile="true"] body::after {
+	display: none;
+}
+
+:root[data-mobile="true"] .top-bar,
+:root[data-mobile="true"] .sidebar,
+:root[data-mobile="true"] .service-card,
+:root[data-mobile="true"] .modal,
+:root[data-mobile="true"] .modal-overlay,
+:root[data-mobile="true"] .login-card {
+	backdrop-filter: none !important;
+	-webkit-backdrop-filter: none !important;
+}
+
+:root[data-mobile="true"] .service-card,
+:root[data-mobile="true"] .card,
+:root[data-mobile="true"] .stat-card,
+:root[data-mobile="true"] .client-card,
+:root[data-mobile="true"] .login-card {
+	animation: none !important;
+}
+
+:root[data-mobile="true"] .service-card.running .service-badge {
+	animation: none !important;
+}
+
+:root[data-mobile="true"] .page-enter-active,
+:root[data-mobile="true"] .page-leave-active {
+	transition: none !important;
+}
+
+:root[data-mobile="true"] .modal-pop-enter-active,
+:root[data-mobile="true"] .modal-pop-leave-active {
+	transition-duration: 100ms !important;
+}
+
+:root[data-mobile="true"] .sidebar-overlay.open {
+	animation: none !important;
+}

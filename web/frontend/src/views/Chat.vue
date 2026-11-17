@@ -46,7 +46,7 @@ async function send() {
 	}
 }
 
-usePolling(refresh, 2000);
+usePolling(refresh, 3000);
 </script>
 
 <template>
