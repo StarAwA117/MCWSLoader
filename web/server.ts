@@ -11,7 +11,7 @@ import Current from "../lib/current.js";
 import PermissionManager from "../lib/permission.js";
 import Command from "../lib/command.js";
 import { logger } from "../lib/logger.js";
-import { collectCommands as collectTerminalCommands } from "../lib/readline.js";
+import { collectCommands as collectTerminalCommands, executeTerminalCommand } from "../lib/readline.js";
 import { parseMultipartBody } from "../lib/multipart.js";
 import { resolveCaseInsensitivePath } from "../lib/paths.js";
 import { extractZip, resolveModRoot, readManifest, copyMerge, removeDir, sanitizeFolderName, installDependencies, makeTempDir, makeTempPath, moveDir } from "../lib/modinstall.js";
@@ -1005,6 +1005,26 @@ async function handleAPI(req: IncomingMessage, res: ServerResponse, url: URL): P
 			}
 		}
 
+		// Server-side terminal command (Mod commands such as $c:attack)
+		if (pathname === "/api/terminal" && method === "POST") {
+			const payload = await readJson(req, res);
+			if (!payload) return;
+			const { command } = payload;
+			if (typeof command !== "string" || !command.trim()) {
+				return json(res, { ok: false, code: "EMPTY_COMMAND", message: tr("webui.terminalEmpty") }, 400);
+			}
+			if (command.length > 4096) {
+				return json(res, { ok: false, code: "COMMAND_TOO_LONG", message: tr("webui.terminalTooLong") }, 400);
+			}
+			try {
+				const result = await executeTerminalCommand(command);
+				return json(res, result);
+			} catch (e) {
+				logger.error(`Terminal command failed: ${errorDetail(e)}`);
+				return json(res, { ok: false, output: [], message: tr("webui.terminalFailed") }, 500);
+			}
+		}
+
 		// Commands
 		if (pathname === "/api/commands" && method === "GET") {
 			const cmds = [];
@@ -1191,7 +1211,7 @@ async function handleAPI(req: IncomingMessage, res: ServerResponse, url: URL): P
 		}
 		if (pathname === "/api/system/process" && method === "GET") {
 			const mem = process.memoryUsage();
-			return json(res, { pid: process.pid, uptime: process.uptime(), memory: { rss: mem.rss, heapUsed: mem.heapUsed, heapTotal: mem.heapTotal }, nodeVersion: process.version, platform: process.platform, version: CURRENT_VERSION });
+			return json(res, { pid: process.pid, uptime: process.uptime(), memory: { rss: mem.rss, heapUsed: mem.heapUsed, heapTotal: mem.heapTotal }, nodeVersion: process.version, platform: process.platform, version: CURRENT_VERSION, dataRoot: process.cwd() });
 		}
 
 		// Update

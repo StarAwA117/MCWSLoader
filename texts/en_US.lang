@@ -529,3 +529,15 @@ about.builtWith=Built with Vue, TypeScript, Node.js and Flutter WebView
 settings.background=Background
 settings.backgroundPermissions=Open background permission settings
 settings.backgroundHint=Android can ignore battery optimizations and keep the local service alive with a foreground service
+
+# Terminal commands in Logs
+webui.terminalEmpty=Terminal command cannot be empty
+webui.terminalTooLong=Terminal command is too long
+webui.terminalFailed=Terminal command failed
+webui.terminalUnknown=Unknown command: {command}
+webui.terminalNotCommand=Enter a server command starting with {prefix}
+logs.terminalPlaceholder=Enter a server command, for example $c:attack
+logs.terminalSend=Run
+logs.terminalFailed=Terminal command failed
+
+mods.pathRoot=Relative paths starting with ./ resolve under: {path}

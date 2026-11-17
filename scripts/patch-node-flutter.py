@@ -186,6 +186,25 @@ ss = ss.replace('        startedNodeAlready = false\n\n        val channelId', '
 # START_STICKY restarts the service with a null intent after a crash, losing
 # mainFileName/project paths. Do not create a crash loop.
 ss = ss.replace('        return START_STICKY', '        return START_NOT_STICKY')
+
+# Mod path fields use "./" for a writable root. Android should use
+# /sdcard/games/mcwsloader when all-files access is granted.
+needle = '        try {\n            Log.d("NodeService", "Starting Node.js from NodeService")\n'
+replacement = '''        try {
+            val root = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R && android.os.Environment.isExternalStorageManager()) {
+                java.io.File(android.os.Environment.getExternalStorageDirectory(), "games/mcwsloader")
+            } else {
+                java.io.File(getExternalFilesDir(null) ?: filesDir, "mcwsloader")
+            }
+            root.mkdirs()
+            android.system.Os.setenv("MCWS_DATA_ROOT", root.absolutePath, true)
+            android.system.Os.chdir(root.absolutePath)
+            Log.d("NodeService", "Data root: ${root.absolutePath}")
+            Log.d("NodeService", "Starting Node.js from NodeService")
+'''
+if needle not in ss:
+    raise SystemExit("NodeService start marker missing")
+ss = ss.replace(needle, replacement, 1)
 service.write_text(ss)
 # The upstream asset copier uses a 1 KB buffer. The standalone project contains
 # a ~20 MB node_modules tree, so use a larger buffer to keep first launch fast.

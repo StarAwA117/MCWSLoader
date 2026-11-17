@@ -123,6 +123,8 @@ export const api = {
 	getModManifest: (name: string) => request(`/mods/${encodeURIComponent(name)}/manifest`),
 	getModReadme: (name: string) => request(`/mods/${encodeURIComponent(name)}/readme`),
 	getCommands: () => request("/commands"),
+	runTerminalCommand: (command: string) =>
+		request("/terminal", { method: "POST", body: JSON.stringify({ command }) }),
 	execCommand: (command: string) => request("/command", { method: "POST", body: JSON.stringify({ command }) }),
 	getClients: () => request("/clients"),
 	tellClient: (id: string, message: string) =>

@@ -33,6 +33,7 @@ const mods = ref<ModInfo[]>([]);
 const loading = ref(false);
 const reloading = ref<Record<string, boolean>>({});
 const importing = ref(false);
+const dataRoot = ref("");
 const modal = ref<ModModalState>({
 	open: false,
 	type: "",
@@ -267,7 +268,14 @@ function modType(m: ModInfo | null): string {
 	return t("mods.typeClient");
 }
 
-onMounted(() => { refresh().catch(() => {}); });
+onMounted(() => {
+	refresh().catch(() => {});
+	api.getProcess()
+		.then((info) => {
+			if (typeof info?.dataRoot === "string") dataRoot.value = info.dataRoot;
+		})
+		.catch(() => {});
+});
 onBeforeUnmount(unlockScroll);
 </script>
 
@@ -316,6 +324,7 @@ onBeforeUnmount(unlockScroll);
 	<ModalShell v-if="modal.open" @close="closeModal">
 		<template #title>{{ modal.mod?.displayName || modal.modName }}{{ modal.type === "settings" ? " - " + t('mods.config') : modal.type === "manifest" ? " - " + t('mods.manifest') : " - " + t('mods.readme') }}</template>
 		<div v-if="modal.type === 'settings'">
+			<p v-if="dataRoot" class="config-root">{{ t('mods.pathRoot', { path: dataRoot }) }}</p>
 			<div v-if="!modal.config" class="empty-state"><p>{{ modal.message || t('common.loading') }}</p></div>
 			<ConfigField v-else v-for="f in modal.fields" :key="f.path" :field="f" :config="modal.config" :depth="0" :labels="modal.labels" />
 		</div>
@@ -377,6 +386,19 @@ onBeforeUnmount(unlockScroll);
 /* SwitchToggle 在 Mods 列表中的既有动效（比设置页稍慢并带投影） */
 .mod-card :deep(.slider) { transition: background-color var(--dur-base) var(--ease-in-out); }
 .mod-card :deep(.slider)::before { transition: transform 260ms var(--ease-spring); box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15); }
+
+.config-root {
+	margin: 0 0 14px;
+	padding: 8px 10px;
+	border: 1px solid var(--border);
+	border-radius: 8px;
+	background: var(--bg-input);
+	color: var(--text-secondary);
+	font-family: "Cascadia Code", "Fira Code", monospace;
+	font-size: 11px;
+	line-height: 1.5;
+	overflow-wrap: anywhere;
+}
 
 .manifest-info p { margin: 6px 0; font-size: 14px; }
 .manifest-info b { color: var(--text-secondary); }

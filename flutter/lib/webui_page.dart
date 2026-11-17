@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -32,6 +33,17 @@ class _WebUiPageState extends State<WebUiPage> {
         onMessageReceived: (JavaScriptMessage message) {
           if (message.message == 'requestBackgroundPermissions' && Platform.isAndroid) {
             const MethodChannel('mcws/standalone').invokeMethod<void>('requestBackgroundPermissions');
+            return;
+          }
+          if (message.message.startsWith('{')) {
+            try {
+              final data = jsonDecode(message.message) as Map<String, dynamic>;
+              if (data['type'] == 'theme') {
+                _applyNativeTheme(data['color'] as String?, data['dark'] == true);
+              }
+            } catch (_) {
+              // Ignore malformed bridge messages.
+            }
           }
         },
       )
@@ -71,6 +83,27 @@ class _WebUiPageState extends State<WebUiPage> {
         _error = e.toString();
       });
     }
+  }
+
+  void _applyNativeTheme(String? colorText, bool dark) {
+    final color = _parseColor(colorText) ?? const Color(0xFFF0F7FF);
+    final brightness = dark ? Brightness.light : Brightness.dark;
+    SystemChrome.setSystemUIOverlayStyle(
+      SystemUiOverlayStyle(
+        statusBarColor: color,
+        statusBarIconBrightness: brightness,
+        statusBarBrightness: dark ? Brightness.dark : Brightness.light,
+        systemNavigationBarColor: color,
+        systemNavigationBarIconBrightness: brightness,
+      ),
+    );
+  }
+
+  Color? _parseColor(String? value) {
+    final text = value?.trim();
+    if (text == null || !text.startsWith('#') || text.length != 7) return null;
+    final parsed = int.tryParse(text.substring(1), radix: 16);
+    return parsed == null ? null : Color(0xFF000000 | parsed);
   }
 
   @override

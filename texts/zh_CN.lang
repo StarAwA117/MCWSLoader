@@ -529,3 +529,15 @@ about.builtWith=使用 Vue、TypeScript、Node.js 与 Flutter WebView 构建
 settings.background=后台运行
 settings.backgroundPermissions=打开后台权限设置
 settings.backgroundHint=Android 上可申请忽略电池优化并使用前台服务保持本地服务运行
+
+# Terminal commands in Logs
+webui.terminalEmpty=终端命令不能为空
+webui.terminalTooLong=终端命令过长
+webui.terminalFailed=终端命令执行失败
+webui.terminalUnknown=未知命令：{command}
+webui.terminalNotCommand=请输入以 {prefix} 开头的服务端命令
+logs.terminalPlaceholder=输入服务端命令，例如 $c:attack
+logs.terminalSend=执行
+logs.terminalFailed=终端命令执行失败
+
+mods.pathRoot=相对路径 ./ 以以下目录为根：{path}

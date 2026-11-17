@@ -8,6 +8,18 @@ import { normalizeLanguage, tForMod } from "./lib/texts.js";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const NM = path.join(__dirname, "node_modules");
 
+// Standalone app: Mod path fields use "./" for the writable data root.
+const dataRoot = process.env.MCWS_DATA_ROOT;
+if (dataRoot) {
+	try {
+		fs.mkdirSync(dataRoot, { recursive: true });
+		process.chdir(dataRoot);
+		console.log(`< data root: ${dataRoot}`);
+	} catch (e) {
+		console.error(`< data root unavailable: ${(e as Error).message}`);
+	}
+}
+
 function envLanguage() {
 	const lang = (process.env.LANG ?? process.env.LC_ALL ?? "").toLowerCase();
 	return normalizeLanguage(lang.includes("hant") || /zh[_-](tw|hk|mo)/.test(lang) ? "zh-TW" : lang.startsWith("zh") ? "zh-CN" : "en");

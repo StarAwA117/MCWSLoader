@@ -65,6 +65,7 @@ if "android.permission.INTERNET" not in s:
     )
 permissions = [
     "android.permission.RECEIVE_BOOT_COMPLETED",
+    "android.permission.MANAGE_EXTERNAL_STORAGE",
     "android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS",
     "android.permission.POST_NOTIFICATIONS",
     "android.permission.FOREGROUND_SERVICE",

@@ -1,9 +1,9 @@
 import readline from "node:readline";
-import { logger } from "./logger.js";
+import { appendAppLog, logger } from "./logger.js";
 import Command from "./command.js";
 import Current from "./current.js";
 import { reloadConfig, config } from "./mods.js";
-import { tForMod } from "./texts.js";
+import { tCore, tForMod } from "./texts.js";
 import { errorDetail, toUserError } from "./errors.js";
 type ServerModManagerClass = typeof import("./mods.js").ServerModManager;
 type ClientModManagerClass = typeof import("./mods.js").ClientModManager;
@@ -160,6 +160,104 @@ export function stop(): void {
 	current.removeAllListeners("line");
 	current.on("error", () => { /* stdin may already be detached */ });
 	try { current.close(); } catch { /* ignore shutdown errors */ }
+}
+
+export interface TerminalCommandResult {
+	ok: boolean;
+	output: string[];
+	message?: string;
+}
+
+function formatConsoleArg(value: unknown): string {
+	if (typeof value === "string") return value;
+	if (value instanceof Error) return value.stack || value.message;
+	try {
+		return typeof value === "object" ? JSON.stringify(value) : String(value);
+	} catch {
+		return String(value);
+	}
+}
+
+/**
+ * Execute a server-side terminal command from the WebUI.
+ * console.log / console.error output is captured for the response and appended
+ * to app.log so it also appears in the Logs page.
+ */
+export async function executeTerminalCommand(input: string): Promise<TerminalCommandResult> {
+	const text = String(input ?? "").trim();
+	if (!text) return { ok: false, output: [], message: tCore("webui.terminalEmpty") };
+	if (!text.startsWith(Command.commandPrefix)) {
+		return { ok: false, output: [], message: tCore("webui.terminalNotCommand", { prefix: Command.commandPrefix }) };
+	}
+
+	const output: string[] = [];
+	const errors: string[] = [];
+	const originalLog = console.log;
+	const originalError = console.error;
+	const originalWarn = console.warn;
+	const capture = (target: string[], args: unknown[]): void => {
+		const line = args.map(formatConsoleArg).join(" ");
+		target.push(line);
+	};
+	console.log = (...args: unknown[]) => {
+		capture(output, args);
+		originalLog(...args);
+	};
+	console.warn = (...args: unknown[]) => {
+		capture(output, args);
+		originalWarn(...args);
+	};
+	console.error = (...args: unknown[]) => {
+		capture(errors, args);
+		originalError(...args);
+	};
+
+	let matched = false;
+	let status = true;
+	let message: string | undefined;
+	try {
+		for (const bucket of ["normal", "ws"] as const) {
+			for (const cmd of commands[bucket]) {
+				const result = cmd.execute("Terminal", text, (error) => {
+					const line = toUserError(error);
+					errors.push(line);
+					originalError(line);
+					logger.error(`Terminal command failed: ${errorDetail(error)}`);
+				});
+				if (result === false) continue;
+				matched = true;
+				if (!result.status) {
+					status = false;
+					message = typeof result.message === "string"
+						? result.message
+						: result.message instanceof Error
+							? result.message.message
+							: result.message === undefined
+								? undefined
+								: String(result.message);
+				}
+				break;
+			}
+			if (matched) break;
+		}
+		// Let async command implementations flush their console output.
+		await new Promise((resolve) => setTimeout(resolve, 120));
+	} finally {
+		console.log = originalLog;
+		console.warn = originalWarn;
+		console.error = originalError;
+	}
+
+	if (!matched) {
+		message = tCore("webui.terminalUnknown", { command: text.split(/\s+/)[0] ?? text });
+	}
+	const allOutput = [...output, ...errors];
+	for (const line of allOutput) appendAppLog(line);
+	return {
+		ok: matched && status && errors.length === 0,
+		output: allOutput,
+		message: message ?? (errors[0] || undefined)
+	};
 }
 
 /** 执行命令列表（返回 true 表示未匹配到任何命令） */

@@ -22,6 +22,13 @@ class LocalServer {
     // assets. Keep the service running, but allow retry to poll the API again.
     if (!_started) {
       if (isAndroid) {
+        // "./" in Mod config paths means the writable data root. Ask the native
+        // side for it before starting Node; this may open the all-files access
+        // settings screen on Android 11+.
+        final dataRoot = await MethodChannel('mcws/standalone').invokeMethod<String>('ensureDataDirectory');
+        if (dataRoot == null || dataRoot.isEmpty) {
+          throw Exception('需要存储权限才能启动本地服务，请授权后重试');
+        }
         // The future resolves when Node exits, so do not await it here; poll the API instead.
         unawaited(Nodejs.startService(
           'main.js',
@@ -65,6 +72,7 @@ class LocalServer {
         ...Platform.environment,
         'MCWS_MODE': 'gui',
         'MCWS_WEB_PORT': '50100',
+        'MCWS_DATA_ROOT': serverDir.path,
       },
       runInShell: false,
     );

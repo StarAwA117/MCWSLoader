@@ -5,6 +5,8 @@
  * assets/main.css (`:root[data-theme="<id>"]`). No other component needs
  * to know about theme-specific colors.
  */
+import { postNativeTheme } from "./utils/nativeBridge";
+
 export class Theme {
 	constructor(
 		public readonly id: string,
@@ -13,7 +15,10 @@ export class Theme {
 	) {}
 
 	apply(): void {
-		if (typeof document !== "undefined") document.documentElement.dataset.theme = this.id;
+		if (typeof document !== "undefined") {
+			document.documentElement.dataset.theme = this.id;
+			postNativeTheme();
+		}
 	}
 }
 

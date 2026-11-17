@@ -173,6 +173,17 @@ function normalizeConfig(cfg: AnyRecord): AnyRecord {
 	if (typeof cfg.web.ui.theme !== "string" || !/^[a-z0-9][a-z0-9-]{0,31}$/.test(cfg.web.ui.theme)) cfg.web.ui.theme = "star";
 	if (!Array.isArray(cfg.web.ui.allowedOrigins)) cfg.web.ui.allowedOrigins = [];
 	cfg.web.ui.allowedOrigins = cfg.web.ui.allowedOrigins.map((item: unknown) => String(item));
+	// The standalone app waits for its loopback API on this fixed port and
+	// exposes no static WebUI server. Keep existing configs from changing the
+	// port and making the WebView unreachable.
+	if (cfg.standalone === true) {
+		cfg.web.host = "127.0.0.1";
+		cfg.web.port = 50100;
+		cfg.mode = "gui";
+		// The standalone WebUI is loaded from the app bundle and talks only to
+		// the loopback API; the remote-origin allowlist is not applicable.
+		cfg.web.ui.allowedOrigins = [];
+	}
 	// 删除旧顶层 rateLimit 避免混淆
 	if (cfg.rateLimit) delete cfg.rateLimit;
 	// 删除旧 safety 避免混淆

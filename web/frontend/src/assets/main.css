@@ -977,3 +977,20 @@ body::after { animation: glowDriftB 36s var(--ease-in-out) infinite alternate; }
 :root[data-mobile="true"] .sidebar-overlay.open {
 	animation: none !important;
 }
+
+/* GUI: the native window/WebView already provides the frame. */
+:root[data-standalone="true"] {
+	scrollbar-width: none;
+	-ms-overflow-style: none;
+}
+
+:root[data-standalone="true"] * {
+	scrollbar-width: none;
+	-ms-overflow-style: none;
+}
+
+:root[data-standalone="true"] ::-webkit-scrollbar {
+	width: 0;
+	height: 0;
+	background: transparent;
+}

@@ -13,6 +13,7 @@ import { THEME_DEFINITIONS } from "../theme";
 import { userErrorText } from "../utils/errors";
 import { STANDALONE } from "../apiBase";
 import { removeSession, getSession, setSession } from "../utils/storage";
+import { requestBackgroundPermissions } from "../utils/nativeBridge";
 
 const { t, applyLocale, availableLocales } = useI18n();
 const { setTheme } = useTheme();
@@ -129,11 +130,6 @@ async function handleResetPassword() {
 
 function selectLocale(loc: string): void {
 	if (config.value) config.value.language = loc;
-}
-
-function requestBackgroundPermissions(): void {
-	const bridge = (window as unknown as { MCWSStandalone?: { postMessage: (message: string) => void } }).MCWSStandalone;
-	bridge?.postMessage("requestBackgroundPermissions");
 }
 
 onMounted(() => { refresh().catch(() => { message.value = t("common.networkError"); }); });
@@ -319,7 +315,7 @@ onMounted(() => { refresh().catch(() => { message.value = t("common.networkError
 					<p class="field-hint">{{ t('settings.themeHint') }}</p>
 				</SettingsCard>
 
-				<SettingsCard :title="t('settings.webui')">
+				<SettingsCard v-if="!config.standalone" :title="t('settings.webui')">
 					<div class="form-group">
 						<label>{{ t('settings.httpPort') }}</label>
 						<input v-model.number="config.web.port" type="number" />
@@ -332,7 +328,7 @@ onMounted(() => { refresh().catch(() => { message.value = t("common.networkError
 					</div>
 				</SettingsCard>
 
-				<SettingsCard :title="t('settings.auth')">
+				<SettingsCard v-if="!config.standalone" :title="t('settings.auth')">
 					<div class="form-row">
 						<div class="form-group">
 							<label>{{ t('settings.maxAttempts') }}</label>
@@ -402,7 +398,7 @@ onMounted(() => { refresh().catch(() => { message.value = t("common.networkError
 				</SettingsCard>
 
 
-				<SettingsCard :title="t('settings.mode')">
+				<SettingsCard v-if="!config.standalone" :title="t('settings.mode')">
 					<SelectMenu id="serverMode" v-model="config.mode" :options="modeOptions" />
 					<p class="field-hint">{{ t('settings.modeHint') }}</p>
 				</SettingsCard>
@@ -415,7 +411,7 @@ onMounted(() => { refresh().catch(() => { message.value = t("common.networkError
 				</SettingsCard>
 
 				<SettingsCard v-if="isAndroidStandalone" :title="t('settings.background')">
-					<button class="btn" @click="requestBackgroundPermissions">{{ t('settings.backgroundPermissions') }}</button>
+					<button class="btn btn-primary" @click="requestBackgroundPermissions">{{ t('settings.backgroundPermissions') }}</button>
 					<p class="field-hint">{{ t('settings.backgroundHint') }}</p>
 				</SettingsCard>
 			</div>

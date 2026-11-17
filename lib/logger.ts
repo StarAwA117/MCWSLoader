@@ -232,5 +232,15 @@ export default class Logger {
 	}
 }
 
+/** Append a raw line to app.log without adding a logger timestamp. */
+export function appendAppLog(message: string): void {
+	if (closing) return;
+	try {
+		writeLog("app", String(message));
+	} catch {
+		// Logging must never break command execution.
+	}
+}
+
 export const logger = new Logger();
 export const messageLogger = new Logger("message");

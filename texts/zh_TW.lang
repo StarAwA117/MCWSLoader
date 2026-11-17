@@ -529,3 +529,15 @@ about.builtWith=使用 Vue、TypeScript、Node.js 與 Flutter WebView 建置
 settings.background=背景執行
 settings.backgroundPermissions=開啟背景權限設定
 settings.backgroundHint=Android 上可申請忽略電池最佳化並使用前景服務保持本機服務執行
+
+# Terminal commands in Logs
+webui.terminalEmpty=終端命令不能為空
+webui.terminalTooLong=終端命令過長
+webui.terminalFailed=終端命令執行失敗
+webui.terminalUnknown=未知命令：{command}
+webui.terminalNotCommand=請輸入以 {prefix} 開頭的伺服器命令
+logs.terminalPlaceholder=輸入伺服器命令，例如 $c:attack
+logs.terminalSend=執行
+logs.terminalFailed=終端命令執行失敗
+
+mods.pathRoot=相對路徑 ./ 以以下目錄為根：{path}
