@@ -536,8 +536,14 @@ webui.terminalTooLong=终端命令过长
 webui.terminalFailed=终端命令执行失败
 webui.terminalUnknown=未知命令：{command}
 webui.terminalNotCommand=请输入以 {prefix} 开头的服务端命令
-logs.terminalPlaceholder=输入服务端命令，例如 $c:attack
+logs.terminalPlaceholder=输入服务端命令
 logs.terminalSend=执行
 logs.terminalFailed=终端命令执行失败
 
 mods.pathRoot=相对路径 ./ 以以下目录为根：{path}
+
+settings.dataPath=数据路径
+settings.dataPathRoot=相对路径根目录
+settings.dataPathDefault=使用默认数据目录
+settings.dataPathHint=模组配置中的 ./ 以该目录为根；留空使用默认目录。修改后请重启应用。
+settings.dataPathCurrent=当前生效目录：{path}

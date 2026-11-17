@@ -536,8 +536,14 @@ webui.terminalTooLong=終端命令過長
 webui.terminalFailed=終端命令執行失敗
 webui.terminalUnknown=未知命令：{command}
 webui.terminalNotCommand=請輸入以 {prefix} 開頭的伺服器命令
-logs.terminalPlaceholder=輸入伺服器命令，例如 $c:attack
+logs.terminalPlaceholder=輸入伺服器命令
 logs.terminalSend=執行
 logs.terminalFailed=終端命令執行失敗
 
 mods.pathRoot=相對路徑 ./ 以以下目錄為根：{path}
+
+settings.dataPath=資料路徑
+settings.dataPathRoot=相對路徑根目錄
+settings.dataPathDefault=使用預設資料目錄
+settings.dataPathHint=模組設定中的 ./ 以該目錄為根；留空使用預設目錄。修改後請重新啟動應用程式。
+settings.dataPathCurrent=目前生效目錄：{path}

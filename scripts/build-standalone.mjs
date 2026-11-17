@@ -101,7 +101,8 @@ function writeDefaultConfig() {
 		language: "zh-CN",
 		update: { autoCheck: false, allowPrerelease: false },
 		mode: "gui",
-		standalone: true
+		standalone: true,
+		paths: { root: "" }
 	};
 	fs.writeFileSync(path.join(SERVER, "config.json"), JSON.stringify(config, null, "\t") + "\n", { encoding: "utf-8", mode: 0o600 });
 	fs.writeFileSync(path.join(SERVER, "permission.json"), JSON.stringify({ owner: "", op: [], user: [], blocker: [] }, null, 2) + "\n", { encoding: "utf-8", mode: 0o600 });

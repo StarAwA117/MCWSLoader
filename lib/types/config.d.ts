@@ -84,6 +84,8 @@ export interface AppConfig {
 	mode?: ServerMode;
 	/** 独立 Flutter 应用模式：隐藏更新和进程控制，WebUI 只监听本机 */
 	standalone?: boolean;
+	/** GUI-only writable data root; "./" in Mod configs resolves here */
+	paths?: { root?: string };
 	command?: CommandConfig;
 	web?: WebConfig;
 	sapi: SapiConfig;

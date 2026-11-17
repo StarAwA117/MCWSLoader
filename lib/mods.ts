@@ -159,6 +159,8 @@ function normalizeConfig(cfg: AnyRecord): AnyRecord {
 	if (!cfg.web || typeof cfg.web !== "object" || Array.isArray(cfg.web)) cfg.web = {};
 	if (typeof cfg.web.host !== "string" || !cfg.web.host) cfg.web.host = "0.0.0.0";
 	if (typeof cfg.standalone !== "boolean") cfg.standalone = false;
+	if (!cfg.paths || typeof cfg.paths !== "object" || Array.isArray(cfg.paths)) cfg.paths = {};
+	if (typeof (cfg.paths as AnyRecord).root !== "string") (cfg.paths as AnyRecord).root = "";
 	if (!cfg.web.auth || typeof cfg.web.auth !== "object" || Array.isArray(cfg.web.auth)) cfg.web.auth = {};
 	if (!cfg.sapi || typeof cfg.sapi !== "object" || Array.isArray(cfg.sapi)) cfg.sapi = {};
 	if (typeof cfg.sapi.gmsg !== "string" || !cfg.sapi.gmsg) cfg.sapi.gmsg = "gmsg";

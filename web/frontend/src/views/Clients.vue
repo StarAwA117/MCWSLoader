@@ -61,7 +61,7 @@ async function disconnect() {
 	else await notify(res.message ?? "");
 }
 
-usePolling(refresh, 5000);
+usePolling(refresh, 3000);
 </script>
 
 <template>

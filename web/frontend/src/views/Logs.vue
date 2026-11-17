@@ -53,7 +53,7 @@ function lineClass(line: string): string {
 	return "info";
 }
 
-usePolling(refresh, 3000);
+usePolling(refresh, 2000);
 </script>
 
 <template>

@@ -536,8 +536,14 @@ webui.terminalTooLong=Terminal command is too long
 webui.terminalFailed=Terminal command failed
 webui.terminalUnknown=Unknown command: {command}
 webui.terminalNotCommand=Enter a server command starting with {prefix}
-logs.terminalPlaceholder=Enter a server command, for example $c:attack
+logs.terminalPlaceholder=Enter a server command
 logs.terminalSend=Run
 logs.terminalFailed=Terminal command failed
 
 mods.pathRoot=Relative paths starting with ./ resolve under: {path}
+
+settings.dataPath=Data path
+settings.dataPathRoot=Relative path root
+settings.dataPathDefault=Use the default data directory
+settings.dataPathHint=./ in Mod configs resolves here; leave empty for the default directory. Restart the app after changing it.
+settings.dataPathCurrent=Effective directory: {path}

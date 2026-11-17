@@ -19,6 +19,7 @@ const { t, applyLocale, availableLocales } = useI18n();
 const { setTheme } = useTheme();
 const { resetPassword } = useModal();
 const isAndroidStandalone = STANDALONE && /Android/i.test(navigator.userAgent);
+const dataRoot = ref("");
 const route = useRoute();
 
 const config = ref<Record<string, any> | null>(null);
@@ -132,7 +133,14 @@ function selectLocale(loc: string): void {
 	if (config.value) config.value.language = loc;
 }
 
-onMounted(() => { refresh().catch(() => { message.value = t("common.networkError"); }); });
+onMounted(() => {
+	refresh().catch(() => { message.value = t("common.networkError"); });
+	api.getProcess()
+		.then((info) => {
+			if (typeof info?.dataRoot === "string") dataRoot.value = info.dataRoot;
+		})
+		.catch(() => {});
+});
 </script>
 
 <template>
@@ -413,6 +421,15 @@ onMounted(() => { refresh().catch(() => { message.value = t("common.networkError
 				<SettingsCard v-if="isAndroidStandalone" :title="t('settings.background')">
 					<button class="btn btn-primary" @click="requestBackgroundPermissions">{{ t('settings.backgroundPermissions') }}</button>
 					<p class="field-hint">{{ t('settings.backgroundHint') }}</p>
+				</SettingsCard>
+
+				<SettingsCard v-if="config.standalone" :title="t('settings.dataPath')">
+					<div class="form-group">
+						<label>{{ t('settings.dataPathRoot') }}</label>
+						<input v-model="config.paths.root" type="text" :placeholder="dataRoot || t('settings.dataPathDefault')" />
+						<p class="field-hint">{{ t('settings.dataPathHint') }}</p>
+						<p v-if="dataRoot" class="field-hint">{{ t('settings.dataPathCurrent', { path: dataRoot }) }}</p>
+					</div>
 				</SettingsCard>
 			</div>
 

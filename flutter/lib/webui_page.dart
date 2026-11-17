@@ -28,6 +28,9 @@ class _WebUiPageState extends State<WebUiPage> {
     _controller = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..setBackgroundColor(const Color(0xFFF0F7FF))
+      ..setVerticalScrollBarEnabled(false)
+      ..setHorizontalScrollBarEnabled(false)
+      ..setOverScrollMode(WebViewOverScrollMode.never)
       ..addJavaScriptChannel(
         'MCWSStandalone',
         onMessageReceived: (JavaScriptMessage message) {

@@ -9,7 +9,22 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const NM = path.join(__dirname, "node_modules");
 
 // Standalone app: Mod path fields use "./" for the writable data root.
-const dataRoot = process.env.MCWS_DATA_ROOT;
+const defaultDataRoot = process.env.MCWS_DATA_ROOT;
+let configuredDataRoot = "";
+if (defaultDataRoot) {
+	try {
+		const raw = JSON.parse(fs.readFileSync(path.join(__dirname, "config.json"), "utf-8")) as {
+			paths?: { root?: unknown };
+		};
+		if (typeof raw.paths?.root === "string" && raw.paths.root.trim()) {
+			const value = raw.paths.root.trim();
+			configuredDataRoot = path.isAbsolute(value) ? value : path.resolve(defaultDataRoot, value);
+		}
+	} catch {
+		// The normal config loader will report malformed config later.
+	}
+}
+const dataRoot = configuredDataRoot || defaultDataRoot;
 if (dataRoot) {
 	try {
 		fs.mkdirSync(dataRoot, { recursive: true });

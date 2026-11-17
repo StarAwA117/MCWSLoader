@@ -140,7 +140,9 @@ jobs:
         run: |
           mkdir -p dist
           TAG=$(printf '%s' "${GITHUB_REF_NAME:-dev}" | tr '/' '-')
-          cp build/flutter_app/build/app/outputs/flutter-apk/app-release.apk "dist/MCWSLoader-$TAG-arm64.apk"
+          APKSIGNER=$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -1)
+          "$APKSIGNER" sign             --key resources/keys/private.pk8             --cert resources/keys/star.x509.pem             --min-sdk-version 24             --v1-signing-enabled false             --v2-signing-enabled true             --v3-signing-enabled true             --out "dist/MCWSLoader-$TAG-arm64.apk"             build/flutter_app/build/app/outputs/flutter-apk/app-release.apk
+          "$APKSIGNER" verify --print-certs "dist/MCWSLoader-$TAG-arm64.apk"
 
       - name: Package Windows
         if: matrix.target == 'windows'

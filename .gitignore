@@ -12,6 +12,8 @@ notes.md
 
 # Resources
 resources/*
+!resources/keys/
+!resources/keys/**
 
 # Logs
 logs/
@@ -42,3 +44,7 @@ build/
 
 # Standalone WebUI build (embedded in Flutter assets)
 web/frontend/dist-standalone/
+
+# Signing keys used by CI
+!resources/keys/
+!resources/keys/**
