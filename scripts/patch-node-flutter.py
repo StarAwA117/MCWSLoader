@@ -198,7 +198,6 @@ replacement = '''        try {
             }
             root.mkdirs()
             android.system.Os.setenv("MCWS_DATA_ROOT", root.absolutePath, true)
-            android.system.Os.chdir(root.absolutePath)
             Log.d("NodeService", "Data root: ${root.absolutePath}")
             Log.d("NodeService", "Starting Node.js from NodeService")
 '''

@@ -23,7 +23,7 @@ jobs:
             target: android
             server_target: android
           - name: Windows
-            os: windows-latest
+            os: windows-2022
             target: windows
             server_target: desktop
           - name: Linux
